@@ -1,20 +1,22 @@
 #include <iostream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
-#include "../../../DataStructures/TripBased/Data.h"
 #include "../../../DataStructures/Graph/Graph.h"
-#include "../../../Helpers/IO/Serialization.h"
+#include "../../../DataStructures/TripBased/Data.h"
 #include "../../../Helpers/Console/Progress.h"
-#include <unordered_map>
+#include "../../../Helpers/IO/Serialization.h"
 
 namespace TripBased {
 
-bool sortbysecDESC(const std::pair<std::vector<bool>,int> &a, const std::pair<std::vector<bool>,int> &b) {
+bool sortbysecDESC(const std::pair<std::vector<bool>, int>& a, const std::pair<std::vector<bool>, int>& b)
+{
     return (a.second > b.second);
 }
 
-inline void CompressARCFlags(const std::string tripFileName = "", const std::string seperator = ".") {
+inline void CompressARCFlags(const std::string tripFileName = "", const std::string seperator = ".")
+{
     std::vector<std::vector<bool>> arcflags;
     IO::deserialize(tripFileName + seperator + "graph" + seperator + "aRCFlag", arcflags);
 
@@ -23,8 +25,10 @@ inline void CompressARCFlags(const std::string tripFileName = "", const std::str
     Progress progress(arcflags.size() << 1);
 
     for (size_t i(0); i < arcflags.size(); ++i) {
-        if (map[arcflags[i]]) map[arcflags[i]]++;
-        else map[arcflags[i]] = 1;
+        if (map[arcflags[i]])
+            map[arcflags[i]]++;
+        else
+            map[arcflags[i]] = 1;
         progress++;
     }
 
@@ -34,7 +38,8 @@ inline void CompressARCFlags(const std::string tripFileName = "", const std::str
     std::vector<std::vector<bool>> flags;
     flags.reserve(allFlagsAsPair.size());
 
-    for (auto it = map.begin(); it != map.end(); ++it) allFlagsAsPair.push_back(std::make_pair(it->first, it->second));
+    for (auto it = map.begin(); it != map.end(); ++it)
+        allFlagsAsPair.push_back(std::make_pair(it->first, it->second));
 
     std::sort(allFlagsAsPair.begin(), allFlagsAsPair.end(), sortbysecDESC);
 
@@ -47,7 +52,7 @@ inline void CompressARCFlags(const std::string tripFileName = "", const std::str
     indizes.reserve(arcflags.size());
 
     for (const std::vector<bool>& flag : arcflags) {
-        indizes.push_back((unsigned long int) map[flag]);
+        indizes.push_back((unsigned long int)map[flag]);
         progress++;
     }
 
@@ -58,4 +63,4 @@ inline void CompressARCFlags(const std::string tripFileName = "", const std::str
     IO::serialize(tripFileName + seperator + "graph" + seperator + "flagscompressed", flags);
     std::cout << "Done with compressed flags!\n";
 }
-}
+} // namespace TripBased

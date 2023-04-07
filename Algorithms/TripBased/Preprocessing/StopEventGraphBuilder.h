@@ -1,27 +1,28 @@
 #pragma once
 
-#include "../../../Helpers/Console/Progress.h"
 #include "../../../DataStructures/TripBased/Data.h"
+#include "../../../Helpers/Console/Progress.h"
 
 namespace TripBased {
 
 class StopEventGraphBuilder {
-
 private:
     struct StopLabel {
-
     public:
-        StopLabel() :
-            arrivalTime(INFTY),
-            timestamp(0) {
+        StopLabel()
+            : arrivalTime(INFTY)
+            , timestamp(0)
+        {
         }
 
-        inline void checkTimestamp(const int newTimestamp) noexcept {
+        inline void checkTimestamp(const int newTimestamp) noexcept
+        {
             arrivalTime = (timestamp != newTimestamp) ? INFTY : arrivalTime;
             timestamp = newTimestamp;
         }
 
-        inline void update(const int newTimestamp, const int newArrivalTime) noexcept {
+        inline void update(const int newTimestamp, const int newArrivalTime) noexcept
+        {
             checkTimestamp(newTimestamp);
             arrivalTime = std::min(arrivalTime, newArrivalTime);
         }
@@ -31,11 +32,12 @@ private:
     };
 
     struct RouteTransfer {
-        RouteTransfer(const RouteId toRoute, const StopIndex fromIndex, const StopIndex toIndex, const int transferTime) :
-            toRoute(toRoute),
-            fromIndex(fromIndex),
-            toIndex(toIndex),
-            transferTime(transferTime) {
+        RouteTransfer(const RouteId toRoute, const StopIndex fromIndex, const StopIndex toIndex, const int transferTime)
+            : toRoute(toRoute)
+            , fromIndex(fromIndex)
+            , toIndex(toIndex)
+            , transferTime(transferTime)
+        {
         }
 
         RouteId toRoute;
@@ -43,26 +45,30 @@ private:
         StopIndex toIndex;
         int transferTime;
 
-        inline std::tuple<RouteId, StopIndex, StopIndex> getTuple() const noexcept {
+        inline std::tuple<RouteId, StopIndex, StopIndex> getTuple() const noexcept
+        {
             return std::make_tuple(toRoute, -fromIndex, toIndex);
         }
 
-        inline bool operator<(const RouteTransfer& other) const noexcept {
+        inline bool operator<(const RouteTransfer& other) const noexcept
+        {
             return getTuple() < other.getTuple();
         }
     };
 
 public:
-    StopEventGraphBuilder(const Data& data) :
-        data(data),
-        labels(data.numberOfStops()),
-        timestamp(0) {
+    StopEventGraphBuilder(const Data& data)
+        : data(data)
+        , labels(data.numberOfStops())
+        , timestamp(0)
+    {
         generatedTransfers.addVertices(data.numberOfStopEvents());
         keptTransfers.addVertices(data.numberOfStopEvents());
     }
 
 public:
-    inline void generateRouteBasedTransfers(const RouteId fromRoute) noexcept {
+    inline void generateRouteBasedTransfers(const RouteId fromRoute) noexcept
+    {
         if (generatedTransfers.numEdges() > 1000000) {
             generatedTransfers.clear();
             generatedTransfers.addVertices(data.numberOfStopEvents());
@@ -79,9 +85,12 @@ public:
                 const StopEventId fromEvent = data.getStopEventId(fromTrip, routeTransfer.fromIndex);
                 const int arrivalTime = data.raptorData.stopEvents[fromEvent].arrivalTime + routeTransfer.transferTime;
                 const TripId toTrip = data.getEarliestTrip(toRoute, routeTransfer.toIndex, arrivalTime);
-                if (toTrip >= earliestTrip[routeTransfer.toIndex]) continue;
-                if ((toRoute == fromRoute) && (toTrip >= fromTrip) && (routeTransfer.toIndex >= routeTransfer.fromIndex)) continue;
-                if (isUTurn(fromTrip, routeTransfer.fromIndex, toTrip, routeTransfer.toIndex)) continue;
+                if (toTrip >= earliestTrip[routeTransfer.toIndex])
+                    continue;
+                if ((toRoute == fromRoute) && (toTrip >= fromTrip) && (routeTransfer.toIndex >= routeTransfer.fromIndex))
+                    continue;
+                if (isUTurn(fromTrip, routeTransfer.fromIndex, toTrip, routeTransfer.toIndex))
+                    continue;
                 for (StopIndex i = routeTransfer.toIndex; i < data.numberOfStopsInRoute(toRoute); i++) {
                     earliestTrip[i] = std::min(earliestTrip[i], toTrip);
                 }
@@ -91,7 +100,8 @@ public:
         }
     }
 
-    inline void generateFullTransfers(const TripId trip) noexcept {
+    inline void generateFullTransfers(const TripId trip) noexcept
+    {
         if (generatedTransfers.numEdges() > 1000000) {
             generatedTransfers.clear();
             generatedTransfers.addVertices(data.numberOfStopEvents());
@@ -109,7 +119,8 @@ public:
         }
     }
 
-    inline void reduceTransfers(const TripId trip) noexcept {
+    inline void reduceTransfers(const TripId trip) noexcept
+    {
         timestamp++;
         const StopId* stops = data.stopArrayOfTrip(trip);
         for (StopIndex i = StopIndex(data.numberOfStopsInTrip(trip) - 1); i > 0; i--) {
@@ -126,7 +137,7 @@ public:
             for (const Edge edge : generatedTransfers.edgesFrom(fromVertex)) {
                 transfers.emplace_back(edge);
             }
-            std::stable_sort(transfers.begin(), transfers.end(), [&](const Edge a, const Edge b){
+            std::stable_sort(transfers.begin(), transfers.end(), [&](const Edge a, const Edge b) {
                 return data.raptorData.stopEvents[generatedTransfers.get(ToVertex, a)].arrivalTime < data.raptorData.stopEvents[generatedTransfers.get(ToVertex, b)].arrivalTime;
             });
 
@@ -155,42 +166,47 @@ public:
                         }
                     }
                 }
-                if (keep) keepTransfers.emplace_back(transfer);
+                if (keep)
+                    keepTransfers.emplace_back(transfer);
             }
 
-            std::stable_sort(keepTransfers.begin(), keepTransfers.end(), [](const Edge a, const Edge b) {
-                return a > b;
-            });
+            std::stable_sort(keepTransfers.begin(), keepTransfers.end(),
+                [](const Edge a, const Edge b) { return a > b; });
             for (const Edge transfer : keepTransfers) {
-		// Arc-Flag TB set empty flags
+                // Arc-Flag TB set empty flags
                 std::vector<bool> emptyFlags(data.getNumberOfPartitionCells(), false);
                 keptTransfers.addEdge(fromVertex, generatedTransfers.get(ToVertex, transfer)).set(ARCFlag, emptyFlags);
             }
         }
     }
 
-    inline void reduceTransfers(const RouteId route) noexcept {
+    inline void reduceTransfers(const RouteId route) noexcept
+    {
         for (const TripId trip : data.tripsOfRoute(route)) {
             reduceTransfers(trip);
         }
     }
 
-    inline const SimpleDynamicGraphWithARCFlag& getStopEventGraph() const noexcept {
+    inline const SimpleDynamicGraphWithARCFlag& getStopEventGraph() const noexcept
+    {
         return keptTransfers;
     }
 
-    inline SimpleDynamicGraphWithARCFlag& getStopEventGraph() noexcept {
+    inline SimpleDynamicGraphWithARCFlag& getStopEventGraph() noexcept
+    {
         return keptTransfers;
     }
 
 private:
-    inline std::vector<RouteTransfer> generateRouteTransfers(const RouteId fromRoute) const noexcept {
+    inline std::vector<RouteTransfer> generateRouteTransfers(const RouteId fromRoute) const noexcept
+    {
         std::vector<RouteTransfer> routeTransfers;
         const StopId* stops = data.raptorData.stopArrayOfRoute(fromRoute);
         for (StopIndex i(data.numberOfStopsInRoute(fromRoute) - 1); i > 0; i--) {
             const StopId fromStop = stops[i];
             for (const RAPTOR::RouteSegment& toSegment : data.raptorData.routesContainingStop(fromStop)) {
-                if (toSegment.routeId == fromRoute && toSegment.stopIndex == i) continue;
+                if (toSegment.routeId == fromRoute && toSegment.stopIndex == i)
+                    continue;
                 routeTransfers.emplace_back(toSegment.routeId, i, toSegment.stopIndex, 0);
             }
             for (const Edge edge : data.raptorData.transferGraph.edgesFrom(fromStop)) {
@@ -205,24 +221,35 @@ private:
         return routeTransfers;
     }
 
-    inline void findTransfers(const TripId fromTrip, const StopIndex fromIndex, const StopId toStop, const int toArrivalTime) noexcept  {
+    inline void findTransfers(const TripId fromTrip, const StopIndex fromIndex, const StopId toStop,
+        const int toArrivalTime) noexcept
+    {
         const RouteId fromRoute = data.routeOfTrip[fromTrip];
         for (const RAPTOR::RouteSegment& toSegment : data.raptorData.routesContainingStop(toStop)) {
             const TripId toTrip = data.getEarliestTrip(toSegment, toArrivalTime);
-            if (toTrip == noTripId) continue;
-            if ((toSegment.routeId == fromRoute) && (toTrip >= fromTrip) && (toSegment.stopIndex >= fromIndex)) continue;
-            if (isUTurn(fromTrip, fromIndex, toTrip, toSegment.stopIndex)) continue;
+            if (toTrip == noTripId)
+                continue;
+            if ((toSegment.routeId == fromRoute) && (toTrip >= fromTrip) && (toSegment.stopIndex >= fromIndex))
+                continue;
+            if (isUTurn(fromTrip, fromIndex, toTrip, toSegment.stopIndex))
+                continue;
             const Vertex fromVertex = Vertex(data.getStopEventId(fromTrip, fromIndex));
             const Vertex toVertex = Vertex(data.getStopEventId(toTrip, toSegment.stopIndex));
             generatedTransfers.addEdge(fromVertex, toVertex);
         }
     }
 
-    inline bool isUTurn(const TripId fromTrip, const StopIndex fromIndex, const TripId toTrip, const StopIndex toIndex) const noexcept {
-        if (fromIndex < 2) return false;
-        if (toIndex + 1 >= data.numberOfStopsInTrip(toTrip)) return false;
-        if (data.getStop(fromTrip, StopIndex(fromIndex - 1)) != data.getStop(toTrip, StopIndex(toIndex + 1))) return false;
-        if (data.getStopEvent(fromTrip, StopIndex(fromIndex - 1)).arrivalTime > data.getStopEvent(toTrip, StopIndex(toIndex + 1)).departureTime) return false;
+    inline bool isUTurn(const TripId fromTrip, const StopIndex fromIndex, const TripId toTrip,
+        const StopIndex toIndex) const noexcept
+    {
+        if (fromIndex < 2)
+            return false;
+        if (toIndex + 1 >= data.numberOfStopsInTrip(toTrip))
+            return false;
+        if (data.getStop(fromTrip, StopIndex(fromIndex - 1)) != data.getStop(toTrip, StopIndex(toIndex + 1)))
+            return false;
+        if (data.getStopEvent(fromTrip, StopIndex(fromIndex - 1)).arrivalTime > data.getStopEvent(toTrip, StopIndex(toIndex + 1)).departureTime)
+            return false;
         return true;
     }
 
@@ -234,10 +261,10 @@ private:
 
     std::vector<StopLabel> labels;
     int timestamp;
-
 };
 
-inline void ComputeStopEventGraph(Data& data) noexcept {
+inline void ComputeStopEventGraph(Data& data) noexcept
+{
     Progress progress(data.numberOfTrips());
     StopEventGraphBuilder builder(data);
     for (const TripId trip : data.trips()) {
@@ -250,7 +277,8 @@ inline void ComputeStopEventGraph(Data& data) noexcept {
     progress.finished();
 }
 
-inline void ComputeStopEventGraph(Data& data, const int numberOfThreads, const int pinMultiplier = 1) noexcept {
+inline void ComputeStopEventGraph(Data& data, const int numberOfThreads, const int pinMultiplier = 1) noexcept
+{
     Progress progress(data.numberOfTrips());
     SimpleEdgeListWithARCFlag stopEventGraph;
     stopEventGraph.addVertices(data.numberOfStopEvents());
@@ -258,16 +286,17 @@ inline void ComputeStopEventGraph(Data& data, const int numberOfThreads, const i
     const int numCores = numberOfCores();
 
     omp_set_num_threads(numberOfThreads);
-    #pragma omp parallel
+#pragma omp parallel
     {
         int threadId = omp_get_thread_num();
         pinThreadToCoreId((threadId * pinMultiplier) % numCores);
-        AssertMsg(omp_get_num_threads() == numberOfThreads, "Number of threads is " << omp_get_num_threads() << ", but should be " << numberOfThreads << "!");
+        AssertMsg(omp_get_num_threads() == numberOfThreads,
+            "Number of threads is " << omp_get_num_threads() << ", but should be " << numberOfThreads << "!");
 
         StopEventGraphBuilder builder(data);
         const size_t numberOfTrips = data.numberOfTrips();
 
-        #pragma omp for schedule(dynamic,1)
+#pragma omp for schedule(dynamic, 1)
         for (size_t i = 0; i < numberOfTrips; i++) {
             const TripId trip = TripId(i);
             builder.generateFullTransfers(trip);
@@ -275,13 +304,14 @@ inline void ComputeStopEventGraph(Data& data, const int numberOfThreads, const i
             progress++;
         }
 
-        #pragma omp critical
+#pragma omp critical
         {
-            stopEventGraph.reserve(stopEventGraph.numVertices(), stopEventGraph.numEdges() + builder.getStopEventGraph().numEdges());
+            stopEventGraph.reserve(stopEventGraph.numVertices(),
+                stopEventGraph.numEdges() + builder.getStopEventGraph().numEdges());
             for (const auto [edge, from] : builder.getStopEventGraph().edgesWithFromVertex()) {
-		// Arc-Flag TB set empty flags
-		std::vector<bool> emptyFlags(data.getNumberOfPartitionCells(), false);
-		stopEventGraph.addEdge(from, builder.getStopEventGraph().get(ToVertex, edge)).set(ARCFlag, emptyFlags);
+                // Arc-Flag TB set empty flags
+                std::vector<bool> emptyFlags(data.getNumberOfPartitionCells(), false);
+                stopEventGraph.addEdge(from, builder.getStopEventGraph().get(ToVertex, edge)).set(ARCFlag, emptyFlags);
             }
         }
     }
@@ -291,7 +321,8 @@ inline void ComputeStopEventGraph(Data& data, const int numberOfThreads, const i
     progress.finished();
 }
 
-inline void ComputeStopEventGraphRouteBased(Data& data) noexcept {
+inline void ComputeStopEventGraphRouteBased(Data& data) noexcept
+{
     Progress progress(data.numberOfRoutes());
     StopEventGraphBuilder builder(data);
     for (const RouteId route : data.routes()) {
@@ -304,7 +335,8 @@ inline void ComputeStopEventGraphRouteBased(Data& data) noexcept {
     progress.finished();
 }
 
-inline void ComputeStopEventGraphRouteBased(Data& data, const int numberOfThreads, const int pinMultiplier = 1) noexcept {
+inline void ComputeStopEventGraphRouteBased(Data& data, const int numberOfThreads, const int pinMultiplier = 1) noexcept
+{
     Progress progress(data.numberOfRoutes());
     SimpleEdgeListWithARCFlag stopEventGraph;
     stopEventGraph.addVertices(data.numberOfStopEvents());
@@ -312,16 +344,17 @@ inline void ComputeStopEventGraphRouteBased(Data& data, const int numberOfThread
     const int numCores = numberOfCores();
 
     omp_set_num_threads(numberOfThreads);
-    #pragma omp parallel
+#pragma omp parallel
     {
         int threadId = omp_get_thread_num();
         pinThreadToCoreId((threadId * pinMultiplier) % numCores);
-        AssertMsg(omp_get_num_threads() == numberOfThreads, "Number of threads is " << omp_get_num_threads() << ", but should be " << numberOfThreads << "!");
+        AssertMsg(omp_get_num_threads() == numberOfThreads,
+            "Number of threads is " << omp_get_num_threads() << ", but should be " << numberOfThreads << "!");
 
         StopEventGraphBuilder builder(data);
         const size_t numberOfRoutes = data.numberOfRoutes();
 
-        #pragma omp for schedule(dynamic,1)
+#pragma omp for schedule(dynamic, 1)
         for (size_t i = 0; i < numberOfRoutes; i++) {
             const RouteId route = RouteId(i);
             builder.generateRouteBasedTransfers(route);
@@ -329,11 +362,11 @@ inline void ComputeStopEventGraphRouteBased(Data& data, const int numberOfThread
             progress++;
         }
 
-        #pragma omp critical
+#pragma omp critical
         {
             for (const auto [edge, from] : builder.getStopEventGraph().edgesWithFromVertex()) {
-		// Arc-Flag TB set empty flags
-		std::vector<bool> emptyFlags(data.getNumberOfPartitionCells(), false);
+                // Arc-Flag TB set empty flags
+                std::vector<bool> emptyFlags(data.getNumberOfPartitionCells(), false);
                 stopEventGraph.addEdge(from, builder.getStopEventGraph().get(ToVertex, edge)).set(ARCFlag, emptyFlags);
             }
         }
@@ -344,4 +377,4 @@ inline void ComputeStopEventGraphRouteBased(Data& data, const int numberOfThread
     progress.finished();
 }
 
-}
+} // namespace TripBased

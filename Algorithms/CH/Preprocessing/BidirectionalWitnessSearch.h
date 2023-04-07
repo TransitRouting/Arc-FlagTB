@@ -1,21 +1,19 @@
 #pragma once
 
 #include <iostream>
-#include <vector>
 #include <string>
-
-#include "../../../Helpers/Types.h"
-#include "../../../Helpers/Timer.h"
-#include "../../../Helpers/String/String.h"
-#include "../../../Helpers/Vector/Vector.h"
+#include <vector>
 
 #include "../../../DataStructures/Container/ExternalKHeap.h"
+#include "../../../Helpers/String/String.h"
+#include "../../../Helpers/Timer.h"
+#include "../../../Helpers/Types.h"
+#include "../../../Helpers/Vector/Vector.h"
 
 namespace CH {
 
-template<typename GRAPH, typename PROFILER, int Q_POP_LIMIT = -1, bool ONE_HOP_HEURISTIC = true>
+template <typename GRAPH, typename PROFILER, int Q_POP_LIMIT = -1, bool ONE_HOP_HEURISTIC = true>
 class BidirectionalWitnessSearch {
-
 public:
     using Graph = GRAPH;
     using Profiler = PROFILER;
@@ -25,22 +23,32 @@ public:
 
 private:
     struct Distance : public ExternalKHeapElement {
-        Distance() : ExternalKHeapElement(), distance(intMax / 2) {}
-        inline bool hasSmallerKey(const Distance* other) const noexcept {return distance < other->distance;}
+        Distance()
+            : ExternalKHeapElement()
+            , distance(intMax / 2)
+        {
+        }
+        inline bool hasSmallerKey(const Distance* other) const noexcept
+        {
+            return distance < other->distance;
+        }
         int distance;
     };
 
 public:
-    BidirectionalWitnessSearch() :
-        graph(0),
-        weight(0),
-        Q {ExternalKHeap<2, Distance>(), ExternalKHeap<2, Distance>()},
-        distance {std::vector<Distance>(), std::vector<Distance>()},
-        settled {std::vector<Vertex>(), std::vector<Vertex>()},
-        profiler(0) {
+    BidirectionalWitnessSearch()
+        : graph(0)
+        , weight(0)
+        , Q { ExternalKHeap<2, Distance>(), ExternalKHeap<2, Distance>() }
+        , distance { std::vector<Distance>(), std::vector<Distance>() }
+        , settled { std::vector<Vertex>(),
+            std::vector<Vertex>() }
+        , profiler(0)
+    {
     }
 
-    inline void initialize(const Graph* graph, const std::vector<int>* weight, Profiler* profiler) {
+    inline void initialize(const Graph* graph, const std::vector<int>* weight, Profiler* profiler)
+    {
         this->graph = graph;
         this->weight = weight;
         this->profiler = profiler;
@@ -50,9 +58,13 @@ public:
         std::vector<Distance>(graph->numVertices()).swap(distance[1]);
     }
 
-    inline bool shortcutIsNecessary(const Vertex from, const Vertex to, const Vertex via, const int shortcutDistance) noexcept {
-        if (graph->outDegree(from) == 1) return true;
-        if (graph->inDegree(to) == 1) return true;
+    inline bool shortcutIsNecessary(const Vertex from, const Vertex to, const Vertex via,
+        const int shortcutDistance) noexcept
+    {
+        if (graph->outDegree(from) == 1)
+            return true;
+        if (graph->inDegree(to) == 1)
+            return true;
         if (OneHopHeuristic) {
             const Edge edge = graph->findEdge(from, to);
             if (graph->isEdge(edge)) {
@@ -76,18 +88,22 @@ public:
         distance[BACKWARD][to].distance = 0;
         Q[BACKWARD].update(&distance[BACKWARD][to]);
 
-        while(!Q[FORWARD].empty() && !Q[BACKWARD].empty()) {
-            if (Q[FORWARD].min().distance + Q[BACKWARD].min().distance > shortcutDistance) return true;
+        while (!Q[FORWARD].empty() && !Q[BACKWARD].empty()) {
+            if (Q[FORWARD].min().distance + Q[BACKWARD].min().distance > shortcutDistance)
+                return true;
 
             settle<FORWARD>(via, shortcutDistance);
-            if (foundWitness) return false;
+            if (foundWitness)
+                return false;
 
             settle<BACKWARD>(via, shortcutDistance);
-            if (foundWitness) return false;
+            if (foundWitness)
+                return false;
 
             if constexpr (QPopLimit > 0) {
                 qPops -= 2;
-                if (qPops < 0) break;
+                if (qPops < 0)
+                    break;
             }
         }
 
@@ -96,8 +112,9 @@ public:
     }
 
 private:
-    template<int DIRECTION>
-    inline void clear() noexcept {
+    template <int DIRECTION>
+    inline void clear() noexcept
+    {
         for (const Vertex vertex : settled[DIRECTION]) {
             distance[DIRECTION][vertex].distance = INFTY;
         }
@@ -108,33 +125,38 @@ private:
         Q[DIRECTION].clear();
     }
 
-    template<int DIRECTION>
-    inline void settle(const Vertex via, const int shortcutDistance) noexcept {
+    template <int DIRECTION>
+    inline void settle(const Vertex via, const int shortcutDistance) noexcept
+    {
         Distance* label = Q[DIRECTION].extractFront();
         const Vertex u = Vertex(label - &(distance[DIRECTION][0]));
         settled[DIRECTION].emplace_back(u);
         if constexpr (DIRECTION == FORWARD) {
             for (Edge edge : graph->edgesFrom(u)) {
                 const Vertex v = graph->get(ToVertex, edge);
-                if (v == via) continue;
+                if (v == via)
+                    continue;
                 relax<DIRECTION>(v, label->distance + (*weight)[edge], shortcutDistance);
             }
         } else {
             for (Edge edge : graph->edgesTo(u)) {
                 const Vertex v = graph->get(FromVertex, edge);
-                if (v == via) continue;
+                if (v == via)
+                    continue;
                 relax<DIRECTION>(v, label->distance + (*weight)[edge], shortcutDistance);
             }
         }
         profiler->settledVertex();
     }
 
-    template<int DIRECTION>
-    inline void relax(const Vertex v, const int newDistance, const int shortcutDistance) noexcept {
+    template <int DIRECTION>
+    inline void relax(const Vertex v, const int newDistance, const int shortcutDistance) noexcept
+    {
         if (distance[DIRECTION][v].distance > newDistance) {
             distance[DIRECTION][v].distance = newDistance;
             Q[DIRECTION].update(&distance[DIRECTION][v]);
-            if (distance[FORWARD][v].distance + distance[BACKWARD][v].distance <= shortcutDistance) foundWitness = true;
+            if (distance[FORWARD][v].distance + distance[BACKWARD][v].distance <= shortcutDistance)
+                foundWitness = true;
         }
     }
 
@@ -151,7 +173,6 @@ private:
     bool foundWitness;
 
     Profiler* profiler;
-
 };
 
-}
+} // namespace CH

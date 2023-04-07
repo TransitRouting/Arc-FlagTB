@@ -2,24 +2,54 @@
 
 namespace Construct {
 
-    enum IdTag {Id};
-    enum SortTag {Sort};
-    enum RandomTag {Random};
-    enum InvertTag {Invert};
-    enum FromTextFileTag {FromTextFile};
+enum IdTag {
+    Id
+};
+enum SortTag {
+    Sort
+};
+enum RandomTag {
+    Random
+};
+enum InvertTag {
+    Invert
+};
+enum FromTextFileTag {
+    FromTextFile
+};
 
-    enum XYTag {XY};
-    enum LatLongTag {LatLong};
+enum XYTag {
+    XY
+};
+enum LatLongTag {
+    LatLong
+};
 
-    enum CompleteTag {Complete};
+enum CompleteTag {
+    Complete
+};
 
-    enum MinMaxTag {MinMax};
-    enum BoundingBoxTag {BoundingBox};
-    enum UnionTag {Union};
-    enum IntersectionTag {Intersection};
-    enum NegativeTag {Negative};
+enum MinMaxTag {
+    MinMax
+};
+enum BoundingBoxTag {
+    BoundingBox
+};
+enum UnionTag {
+    Union
+};
+enum IntersectionTag {
+    Intersection
+};
+enum NegativeTag {
+    Negative
+};
 
-    enum SplitByOriginTag {SplitByOrigin};
-    enum SplitByDestinationTag {SplitByDestination};
+enum SplitByOriginTag {
+    SplitByOrigin
+};
+enum SplitByDestinationTag {
+    SplitByDestination
+};
 
-}
+} // namespace Construct

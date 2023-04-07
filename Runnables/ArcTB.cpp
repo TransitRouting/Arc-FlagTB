@@ -1,14 +1,13 @@
+#include "../Helpers/Console/CommandLineParser.h"
+#include "../Shell/Shell.h"
+#include "Commands/ArcTBPreprocessing.h"
 #include "Commands/NetworkIO.h"
 #include "Commands/NetworkTools.h"
 #include "Commands/QueryBenchmark.h"
-#include "Commands/ArcTBPreprocessing.h"
-
-#include "../Helpers/Console/CommandLineParser.h"
-
-#include "../Shell/Shell.h"
 using namespace Shell;
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     CommandLineParser clp(argc, argv);
     pinThreadToCoreId(clp.value<int>("core", 1));
     checkAsserts();

@@ -2,15 +2,13 @@
 
 #include <vector>
 
+#include "../../DataStructures/Attributes/Attributes.h"
 #include "../Assert.h"
 #include "../Meta.h"
 #include "../Types.h"
 
-#include "../../DataStructures/Attributes/Attributes.h"
-
-template<typename GRAPH_A, typename GRAPH_B>
+template <typename GRAPH_A, typename GRAPH_B>
 class EdgeIntersectionRange {
-
 public:
     using GraphA = GRAPH_A;
     using GraphB = GRAPH_B;
@@ -26,14 +24,43 @@ private:
 public:
     class Iterator {
     public:
-        Iterator(const EdgeIntersectionRange* const outer, const IteratorA& edgeA, const IteratorB& edgeB) : outer(outer), edgeA(edgeA), edgeB(edgeB) {}
-        inline bool operator!=(const Iterator& other) const noexcept {return edgeA != other.edgeA;}
-        inline Edge operator*() const noexcept {return *edgeA;}
-        inline Iterator& operator++() noexcept {++edgeA; ++edgeB; validate(); return *this;}
-        inline Iterator& operator+=(const size_t n) noexcept {for (size_t j = 0; j < n; j++) ++(*this); return *this;}
-        inline Iterator operator+(const size_t n) const noexcept {return Iterator(*this) += n;}
-        inline Edge operator[](const size_t n) const noexcept {return *(*this + n);}
-        inline Iterator& validate() noexcept {
+        Iterator(const EdgeIntersectionRange* const outer, const IteratorA& edgeA, const IteratorB& edgeB)
+            : outer(outer)
+            , edgeA(edgeA)
+            , edgeB(edgeB)
+        {
+        }
+        inline bool operator!=(const Iterator& other) const noexcept
+        {
+            return edgeA != other.edgeA;
+        }
+        inline Edge operator*() const noexcept
+        {
+            return *edgeA;
+        }
+        inline Iterator& operator++() noexcept
+        {
+            ++edgeA;
+            ++edgeB;
+            validate();
+            return *this;
+        }
+        inline Iterator& operator+=(const size_t n) noexcept
+        {
+            for (size_t j = 0; j < n; j++)
+                ++(*this);
+            return *this;
+        }
+        inline Iterator operator+(const size_t n) const noexcept
+        {
+            return Iterator(*this) += n;
+        }
+        inline Edge operator[](const size_t n) const noexcept
+        {
+            return *(*this + n);
+        }
+        inline Iterator& validate() noexcept
+        {
             if (!(edgeB != outer->rangeB.end())) {
                 edgeA = outer->rangeA.end();
                 return *this;
@@ -51,37 +78,44 @@ public:
             }
             return *this;
         }
+
     private:
         const EdgeIntersectionRange* outer;
         IteratorA edgeA;
         IteratorB edgeB;
     };
 
-    EdgeIntersectionRange() :
-        graphA(nullptr),
-        graphB(nullptr) {
+    EdgeIntersectionRange()
+        : graphA(nullptr)
+        , graphB(nullptr)
+    {
     }
 
-    EdgeIntersectionRange(const GraphA* const graphA, const GraphB* const graphB, const Vertex vertex) :
-        graphA(graphA),
-        graphB(graphB),
-        rangeA(graphA->edgesFrom(vertex)),
-        rangeB(graphB->edgesFrom(vertex)) {
+    EdgeIntersectionRange(const GraphA* const graphA, const GraphB* const graphB, const Vertex vertex)
+        : graphA(graphA)
+        , graphB(graphB)
+        , rangeA(graphA->edgesFrom(vertex))
+        , rangeB(graphB->edgesFrom(vertex))
+    {
     }
 
-    inline Iterator begin() const noexcept {
+    inline Iterator begin() const noexcept
+    {
         return Iterator(this, rangeA.begin(), rangeB.begin()).validate();
     }
 
-    inline Iterator end() const noexcept {
+    inline Iterator end() const noexcept
+    {
         return Iterator(this, rangeA.end(), rangeB.end());
     }
 
-    inline bool empty() const noexcept {
+    inline bool empty() const noexcept
+    {
         return !(begin() != end());
     }
 
-    inline size_t size() const noexcept {
+    inline size_t size() const noexcept
+    {
         size_t result = 0;
         for (Iterator i = begin(); i != end(); ++i) {
             result++;
@@ -89,17 +123,20 @@ public:
         return result;
     }
 
-    inline Edge operator[](const size_t i) const noexcept {
+    inline Edge operator[](const size_t i) const noexcept
+    {
         AssertMsg(i < size(), "Index " << i << " is out of range!");
         return begin()[i];
     }
 
-    inline Edge front() const noexcept {
+    inline Edge front() const noexcept
+    {
         AssertMsg(!empty(), "Range is empty!");
         return *(begin());
     }
 
-    inline Edge back() const noexcept {
+    inline Edge back() const noexcept
+    {
         AssertMsg(!empty(), "Range is empty!");
         Edge result;
         for (Iterator i = begin(); i != end(); ++i) {
@@ -114,5 +151,4 @@ private:
 
     RangeA rangeA;
     RangeB rangeB;
-
 };

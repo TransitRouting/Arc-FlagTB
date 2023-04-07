@@ -3,27 +3,29 @@
 #include <string>
 
 #include "../../DataStructures/CSA/Data.h"
-#include "../../DataStructures/Graph/Graph.h"
 #include "../../DataStructures/GTFS/Data.h"
+#include "../../DataStructures/Graph/Graph.h"
 #include "../../DataStructures/Intermediate/Data.h"
 #include "../../DataStructures/RAPTOR/Data.h"
 #include "../../DataStructures/RAPTOR/MultimodalData.h"
 #include "../../DataStructures/TripBased/MultimodalData.h"
-
 #include "../../Shell/Shell.h"
 
 using namespace Shell;
 
 class ParseGTFS : public ParameterizedCommand {
-
 public:
-    ParseGTFS(BasicShell& shell) :
-        ParameterizedCommand(shell, "parseGTFS", "Parses raw GTFS data from the given directory and converts it to a binary representation.") {
+    ParseGTFS(BasicShell& shell)
+        : ParameterizedCommand(shell, "parseGTFS",
+            "Parses raw GTFS data from the given directory "
+            "and converts it to a binary representation.")
+    {
         addParameter("Input directory");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string gtfsDirectory = getParameter("Input directory");
         const std::string outputFile = getParameter("Output file");
 
@@ -31,14 +33,14 @@ public:
         data.printInfo();
         data.serialize(outputFile);
     }
-
 };
 
 class GTFSToIntermediate : public ParameterizedCommand {
-
 public:
-    GTFSToIntermediate(BasicShell& shell) :
-        ParameterizedCommand(shell, "gtfsToIntermediate", "Converts binary GTFS data to the intermediate network format.") {
+    GTFSToIntermediate(BasicShell& shell)
+        : ParameterizedCommand(shell, "gtfsToIntermediate",
+            "Converts binary GTFS data to the intermediate network format.")
+    {
         addParameter("Input directory");
         addParameter("First day");
         addParameter("Last day");
@@ -47,7 +49,8 @@ public:
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string gtfsDirectory = getParameter("Input directory");
         const std::string outputFile = getParameter("Output file");
         const int firstDay = stringToDay(getParameter("First day"));
@@ -61,19 +64,19 @@ public:
         inter.printInfo();
         inter.serialize(outputFile);
     }
-
 };
 
 class IntermediateToCSA : public ParameterizedCommand {
-
 public:
-    IntermediateToCSA(BasicShell& shell) :
-        ParameterizedCommand(shell, "intermediateToCSA", "Converts binary intermediate data to CSA network format.") {
+    IntermediateToCSA(BasicShell& shell)
+        : ParameterizedCommand(shell, "intermediateToCSA", "Converts binary intermediate data to CSA network format.")
+    {
         addParameter("Input file");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string inputFile = getParameter("Input file");
         const std::string outputFile = getParameter("Output file");
 
@@ -83,20 +86,21 @@ public:
         data.printInfo();
         data.serialize(outputFile);
     }
-
 };
 
 class IntermediateToRAPTOR : public ParameterizedCommand {
-
 public:
-    IntermediateToRAPTOR(BasicShell& shell) :
-        ParameterizedCommand(shell, "intermediateToRAPTOR", "Converts binary intermediate data to RAPTOR network format.") {
+    IntermediateToRAPTOR(BasicShell& shell)
+        : ParameterizedCommand(shell, "intermediateToRAPTOR",
+            "Converts binary intermediate data to RAPTOR network format.")
+    {
         addParameter("Input file");
         addParameter("Output file");
-        addParameter("Route type", "FIFO", {"Geographic", "FIFO", "Offset", "Frequency"});
+        addParameter("Route type", "FIFO", { "Geographic", "FIFO", "Offset", "Frequency" });
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string inputFile = getParameter("Input file");
         const std::string outputFile = getParameter("Output file");
         const std::string routeTypeString = getParameter("Route type");
@@ -119,19 +123,20 @@ public:
         data.transferGraph.printAnalysis();
         data.serialize(outputFile);
     }
-
 };
 
 class BuildMultimodalRAPTORData : public ParameterizedCommand {
-
 public:
-    BuildMultimodalRAPTORData(BasicShell& shell) :
-        ParameterizedCommand(shell, "buildMultimodalRAPTORData", "Builds multimodal RAPTOR data based on RAPTOR data.") {
+    BuildMultimodalRAPTORData(BasicShell& shell)
+        : ParameterizedCommand(shell, "buildMultimodalRAPTORData",
+            "Builds multimodal RAPTOR data based on RAPTOR data.")
+    {
         addParameter("RAPTOR data");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const RAPTOR::Data raptorData(getParameter("RAPTOR data"));
         raptorData.printInfo();
         const RAPTOR::MultimodalData multimodalData(raptorData);
@@ -141,17 +146,20 @@ public:
 };
 
 class AddModeToMultimodalRAPTORData : public ParameterizedCommand {
-
 public:
-    AddModeToMultimodalRAPTORData(BasicShell& shell) :
-        ParameterizedCommand(shell, "addModeToMultimodalRAPTORData", "Adds a transfer graph for the specified mode to multimodal RAPTOR data.") {
+    AddModeToMultimodalRAPTORData(BasicShell& shell)
+        : ParameterizedCommand(shell, "addModeToMultimodalRAPTORData",
+            "Adds a transfer graph for the specified mode to "
+            "multimodal RAPTOR data.")
+    {
         addParameter("Multimodal RAPTOR data");
         addParameter("Transfer graph");
         addParameter("Mode");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         RAPTOR::MultimodalData multimodalData(getParameter("Multimodal RAPTOR data"));
         multimodalData.printInfo();
         RAPTOR::TransferGraph graph;
@@ -164,15 +172,17 @@ public:
 };
 
 class BuildMultimodalTripBasedData : public ParameterizedCommand {
-
 public:
-    BuildMultimodalTripBasedData(BasicShell& shell) :
-        ParameterizedCommand(shell, "buildMultimodalTripBasedData", "Builds multimodal Trip-Based data based on Trip-Based data.") {
+    BuildMultimodalTripBasedData(BasicShell& shell)
+        : ParameterizedCommand(shell, "buildMultimodalTripBasedData",
+            "Builds multimodal Trip-Based data based on Trip-Based data.")
+    {
         addParameter("Trip-Based data");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const TripBased::Data tripBasedData(getParameter("Trip-Based data"));
         tripBasedData.printInfo();
         const TripBased::MultimodalData multimodalData(tripBasedData);
@@ -182,17 +192,20 @@ public:
 };
 
 class AddModeToMultimodalTripBasedData : public ParameterizedCommand {
-
 public:
-    AddModeToMultimodalTripBasedData(BasicShell& shell) :
-        ParameterizedCommand(shell, "addModeToMultimodalTripBasedData", "Adds a transfer graph for the specified mode to multimodal Trip-Based data.") {
+    AddModeToMultimodalTripBasedData(BasicShell& shell)
+        : ParameterizedCommand(shell, "addModeToMultimodalTripBasedData",
+            "Adds a transfer graph for the specified mode to "
+            "multimodal Trip-Based data.")
+    {
         addParameter("Multimodal Trip-Based data");
         addParameter("Transfer graph");
         addParameter("Mode");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         TripBased::MultimodalData multimodalData(getParameter("Multimodal Trip-Based data"));
         multimodalData.printInfo();
         TransferGraph graph;
@@ -205,17 +218,18 @@ public:
 };
 
 class LoadDimacsGraph : public ParameterizedCommand {
-
 public:
-    LoadDimacsGraph(BasicShell& shell) :
-        ParameterizedCommand(shell, "loadDimacsGraph", "Converts DIMACS graph data to our transfer graph format.") {
+    LoadDimacsGraph(BasicShell& shell)
+        : ParameterizedCommand(shell, "loadDimacsGraph", "Converts DIMACS graph data to our transfer graph format.")
+    {
         addParameter("Input file");
         addParameter("Output file");
         addParameter("Graph type", "dynamic", { "static", "dynamic" });
         addParameter("Coordinate factor", "0.000001");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         std::string graphType = getParameter("Graph type");
         if (graphType == "static") {
             load<TransferGraph>();
@@ -225,8 +239,9 @@ public:
     }
 
 private:
-    template<typename GRAPH_TYPE>
-    inline void load() const noexcept {
+    template <typename GRAPH_TYPE>
+    inline void load() const noexcept
+    {
         DimacsGraphWithCoordinates dimacs;
         dimacs.fromDimacs<true>(getParameter("Input file"), getParameter<double>("Coordinate factor"));
         Graph::printInfo(dimacs);

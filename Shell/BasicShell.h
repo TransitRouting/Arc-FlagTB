@@ -1,85 +1,97 @@
 #pragma once
 
-#include <algorithm>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <string>
 #include <sys/ioctl.h>
 
-#include "Command.h"
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
-#include "LineBuffer.h"
-
-#include "../Helpers/Timer.h"
-#include "../Helpers/HighlightText.h"
 #include "../Helpers/FileSystem/FileSystem.h"
+#include "../Helpers/HighlightText.h"
 #include "../Helpers/String/String.h"
+#include "../Helpers/Timer.h"
 #include "../Helpers/Vector/Vector.h"
+#include "Command.h"
+#include "LineBuffer.h"
 
 namespace Shell {
 
 const std::string newLine = "\n\r";
 
-inline char getch() {
+inline char getch()
+{
     char buf = 0;
     termios old;
     memset(&old, 0, sizeof(old));
-    if (tcgetattr(0, &old) < 0) perror("tcsetattr()");
+    if (tcgetattr(0, &old) < 0)
+        perror("tcsetattr()");
     old.c_lflag &= ~ICANON;
     old.c_lflag &= ~ECHO;
     old.c_cc[VMIN] = 1;
     old.c_cc[VTIME] = 0;
-    if (tcsetattr(0, TCSANOW, &old) < 0) perror("tcsetattr ICANON");
-    if (read(0, &buf, 1) < 0) perror ("read()");
+    if (tcsetattr(0, TCSANOW, &old) < 0)
+        perror("tcsetattr ICANON");
+    if (read(0, &buf, 1) < 0)
+        perror("read()");
     old.c_lflag |= ICANON;
     old.c_lflag |= ECHO;
-    if (tcsetattr(0, TCSADRAIN, &old) < 0) perror ("tcsetattr ~ICANON");
+    if (tcsetattr(0, TCSADRAIN, &old) < 0)
+        perror("tcsetattr ~ICANON");
     return (buf);
 }
 
 class BasicShell {
-
 public:
-    BasicShell(std::string programName = "", std::string prompt = "> ", bool autosaveCache = true, std::string cacheFile = "readcache", std::ostream& out = std::cout) :
-        programName(programName),
-        prompt(prompt),
-        out(out),
-        shell(*this),
-        running(false),
-        cachePos(-1),
-        cacheFile(cacheFile),
-        autosaveCache(autosaveCache),
-        lineBuffer(out),
-        autoCompleteFiles(true),
-        reportCommandTimes(false),
-        reportParameters(false) {
-        if (programName != "") this->cacheFile = programName + "." + cacheFile;
+    BasicShell(std::string programName = "", std::string prompt = "> ", bool autosaveCache = true,
+        std::string cacheFile = "readcache", std::ostream& out = std::cout)
+        : programName(programName)
+        , prompt(prompt)
+        , out(out)
+        , shell(*this)
+        , running(false)
+        , cachePos(-1)
+        , cacheFile(cacheFile)
+        , autosaveCache(autosaveCache)
+        , lineBuffer(out)
+        , autoCompleteFiles(true)
+        , reportCommandTimes(false)
+        , reportParameters(false)
+    {
+        if (programName != "")
+            this->cacheFile = programName + "." + cacheFile;
         dir = FileSystem::getWorkingDirectory();
-        if (autosaveCache) loadCache();
+        if (autosaveCache)
+            loadCache();
     }
 
-    ~BasicShell() {
-        if (autosaveCache) saveCache();
+    ~BasicShell()
+    {
+        if (autosaveCache)
+            saveCache();
         while (!commands.empty()) {
             delete commands.back();
             commands.pop_back();
         }
     }
 
-    inline std::string readLine(const bool isPrompt) {
+    inline std::string readLine(const bool isPrompt)
+    {
         printPrompt();
         lineBuffer.setFirstCharColumn(prompt.size());
         while (true) {
             char c = readChar(isPrompt);
-            if (c == '\n') return acceptLineBuffer();
+            if (c == '\n')
+                return acceptLineBuffer();
             lineBuffer << c;
         }
         return "";
     }
 
-    inline char readChar(const bool isPrompt) {
+    inline char readChar(const bool isPrompt)
+    {
         while (true) {
             uint64_t c = getch();
             if ((c >= 32 && c <= 126) || (c >= 128 && c <= 254)) { // Displayable character
@@ -134,25 +146,29 @@ public:
         return '\n';
     }
 
-    inline std::string acceptLineBuffer() {
+    inline std::string acceptLineBuffer()
+    {
         std::string s = lineBuffer.accept();
         addToCache(s);
         return s;
     }
 
-    inline void autoComplete(const bool isPrompt) {
+    inline void autoComplete(const bool isPrompt)
+    {
         std::vector<std::string> suggestions;
         std::string currentLine = lineBuffer.getPrefix();
         const bool endsWithSpace = currentLine.back() == ' ';
         currentLine = String::trim(currentLine);
-        if (endsWithSpace) currentLine += ' ';
+        if (endsWithSpace)
+            currentLine += ' ';
         const size_t firstSpacePos = currentLine.find(' ');
         const size_t lastSpacePos = currentLine.rfind(' ');
         if (!isPrompt) {
             if (firstSpacePos < currentLine.size()) {
                 const std::string commandName = currentLine.substr(0, firstSpacePos);
                 currentLine = currentLine.substr(lastSpacePos + 1);
-                collectParameterSuggestions(commandName, currentLine, suggestions, String::count(String::trim(currentLine), ' ') - 1);
+                collectParameterSuggestions(commandName, currentLine, suggestions,
+                    String::count(String::trim(currentLine), ' ') - 1);
             } else if (!isPrompt) {
                 collectCommandSuggestions(currentLine, suggestions);
             }
@@ -162,14 +178,19 @@ public:
         autoComplete(currentLine, suggestions);
     }
 
-    inline void cacheUp() {
+    inline void cacheUp()
+    {
         cachePos--;
-        if (cachePos < 0) cachePos = cache.size() - 1;
-        if (cachePos >= 0) lineBuffer.setString(cache[cachePos]);
+        if (cachePos < 0)
+            cachePos = cache.size() - 1;
+        if (cachePos >= 0)
+            lineBuffer.setString(cache[cachePos]);
     }
 
-    inline void cacheDown() {
-        if (cachePos < 0) return;
+    inline void cacheDown()
+    {
+        if (cachePos < 0)
+            return;
         cachePos++;
         if (size_t(cachePos) >= cache.size()) {
             cachePos = -1;
@@ -179,14 +200,18 @@ public:
         }
     }
 
-    inline void addToCache(const std::string& s) {
-        if (s.size() < 1) return;
+    inline void addToCache(const std::string& s)
+    {
+        if (s.size() < 1)
+            return;
         std::string line = String::trim(s);
-        if (cache.empty() || cache.back() != line) cache.push_back(line);
+        if (cache.empty() || cache.back() != line)
+            cache.push_back(line);
         cachePos = -1;
     }
 
-    inline Command* findCommand(const std::string& name) {
+    inline Command* findCommand(const std::string& name)
+    {
         for (Command* command : commands) {
             if (command->matches(name)) {
                 return command;
@@ -195,7 +220,8 @@ public:
         return nullptr;
     }
 
-    inline const Command* findCommand(const std::string& name) const {
+    inline const Command* findCommand(const std::string& name) const
+    {
         for (const Command* command : commands) {
             if (command->matches(name)) {
                 return command;
@@ -204,29 +230,35 @@ public:
         return nullptr;
     }
 
-    void run() {
+    void run()
+    {
         running = true;
         while (running) {
             interpretCommand(readLine(false));
         }
     }
 
-    inline void interpretCommand(const std::string& line) noexcept {
+    inline void interpretCommand(const std::string& line) noexcept
+    {
         std::vector<std::string> tokens = splitCommand(line);
-        if (tokens[0].size() < 1) return;
+        if (tokens[0].size() < 1)
+            return;
         Command* command = findCommand(tokens[0]);
         if (command != nullptr) {
-            if (autosaveCache) saveCache();
+            if (autosaveCache)
+                saveCache();
             Timer commandTimer;
             command->execute(tokens[1]);
-            if (reportCommandTimes) shell << grey("[Finished in ", String::msToString(commandTimer.elapsedMilliseconds()), "]") << newLine;
+            if (reportCommandTimes)
+                shell << grey("[Finished in ", String::msToString(commandTimer.elapsedMilliseconds()), "]") << newLine;
         } else {
             shell << "Unknown command: \"" << tokens[0] << "\", try using \"help\"" << newLine;
         }
     }
 
-    template<typename T>
-    inline T ask(const std::string& question) {
+    template <typename T>
+    inline T ask(const std::string& question)
+    {
         std::string oldPrompt = prompt;
         prompt = question;
         std::string line = readLine(true);
@@ -234,12 +266,14 @@ public:
         return String::lexicalCast<T>(line);
     }
 
-    inline std::string ask(const std::string& question) {
+    inline std::string ask(const std::string& question)
+    {
         return ask<std::string>(question);
     }
 
-    template<typename T>
-    inline T ask(const std::string& question, const std::vector<std::string>& suggestions) {
+    template <typename T>
+    inline T ask(const std::string& question, const std::vector<std::string>& suggestions)
+    {
         additionalSuggestions = suggestions;
         std::string oldPrompt = prompt;
         prompt = question;
@@ -249,23 +283,28 @@ public:
         return String::lexicalCast<T>(line);
     }
 
-    inline std::string ask(const std::string& question, const std::vector<std::string>& suggestions) {
+    inline std::string ask(const std::string& question, const std::vector<std::string>& suggestions)
+    {
         return ask<std::string>(question, suggestions);
     }
 
-    inline void stop() {
+    inline void stop()
+    {
         running = false;
     }
 
-    inline void execute(const std::string& line) noexcept {
+    inline void execute(const std::string& line) noexcept
+    {
         printPrompt() << line << newLine;
         addToCache(line);
         interpretCommand(line);
     }
 
-    inline void loadCache() {
+    inline void loadCache()
+    {
         std::ifstream inputFile(getCacheFile());
-        if (!inputFile.is_open()) return;
+        if (!inputFile.is_open())
+            return;
         while (!inputFile.eof()) {
             std::string line;
             getline(inputFile, line);
@@ -274,7 +313,8 @@ public:
         inputFile.close();
     }
 
-    inline void saveCache() const {
+    inline void saveCache() const
+    {
         std::ofstream outputFile(getCacheFile());
         for (const std::string& s : cache) {
             outputFile << s << std::endl;
@@ -282,44 +322,74 @@ public:
         outputFile.close();
     }
 
-    template<typename T>
-    inline BasicShell& operator<<(const T& c) {
+    template <typename T>
+    inline BasicShell& operator<<(const T& c)
+    {
         out << c << std::flush;
         return *this;
     }
 
-    inline BasicShell& flush() {
+    inline BasicShell& flush()
+    {
         out << std::flush;
         return *this;
     }
 
-    inline BasicShell& endl() {
+    inline BasicShell& endl()
+    {
         out << std::endl;
         return *this;
     }
 
-    template<typename... T>
-    inline BasicShell& error(const T&... c)    {return shell << (std::string)::error(c...);}
-    template<typename... T>
-    inline BasicShell& red(const T&... c)      {return shell << (std::string)::red(c...);}
-    template<typename... T>
-    inline BasicShell& green(const T&... c)    {return shell << (std::string)::green(c...);}
-    template<typename... T>
-    inline BasicShell& yellow(const T&... c)   {return shell << (std::string)::yellow(c...);}
-    template<typename... T>
-    inline BasicShell& blue(const T&... c)     {return shell << (std::string)::blue(c...);}
-    template<typename... T>
-    inline BasicShell& magenta(const T&... c)  {return shell << (std::string)::magenta(c...);}
-    template<typename... T>
-    inline BasicShell& cyan(const T&... c)     {return shell << (std::string)::cyan(c...);}
-    template<typename... T>
-    inline BasicShell& white(const T&... c)    {return shell << (std::string)::white(c...);}
+    template <typename... T>
+    inline BasicShell& error(const T&... c)
+    {
+        return shell << (std::string)::error(c...);
+    }
+    template <typename... T>
+    inline BasicShell& red(const T&... c)
+    {
+        return shell << (std::string)::red(c...);
+    }
+    template <typename... T>
+    inline BasicShell& green(const T&... c)
+    {
+        return shell << (std::string)::green(c...);
+    }
+    template <typename... T>
+    inline BasicShell& yellow(const T&... c)
+    {
+        return shell << (std::string)::yellow(c...);
+    }
+    template <typename... T>
+    inline BasicShell& blue(const T&... c)
+    {
+        return shell << (std::string)::blue(c...);
+    }
+    template <typename... T>
+    inline BasicShell& magenta(const T&... c)
+    {
+        return shell << (std::string)::magenta(c...);
+    }
+    template <typename... T>
+    inline BasicShell& cyan(const T&... c)
+    {
+        return shell << (std::string)::cyan(c...);
+    }
+    template <typename... T>
+    inline BasicShell& white(const T&... c)
+    {
+        return shell << (std::string)::white(c...);
+    }
 
-
-    inline BasicShell& printPrompt() {return blue(prompt);}
+    inline BasicShell& printPrompt()
+    {
+        return blue(prompt);
+    }
 
 public:
-    inline bool addCommand(Command* c) {
+    inline bool addCommand(Command* c)
+    {
         if (Vector::contains(commands, c)) {
             return false;
         } else {
@@ -328,87 +398,107 @@ public:
         }
     }
 
-    inline const std::vector<Command*>& getCommands() const {
+    inline const std::vector<Command*>& getCommands() const
+    {
         return commands;
     }
 
-    inline std::string getProgramName() const {
+    inline std::string getProgramName() const
+    {
         return programName;
     }
 
-    inline void setProgramName(const std::string& name) {
+    inline void setProgramName(const std::string& name)
+    {
         programName = name;
     }
 
-    inline std::string getPrompt() const {
+    inline std::string getPrompt() const
+    {
         return prompt;
     }
 
-    inline void setPrompt(const std::string& p) {
+    inline void setPrompt(const std::string& p)
+    {
         prompt = p;
     }
 
-    inline void clearLine() const {
+    inline void clearLine() const
+    {
         shell << "\r" << whiteSpace(getScreenWidth()) << "\r";
     }
 
-    inline std::string getDir() const {
+    inline std::string getDir() const
+    {
         return dir;
     }
 
-    inline void setDir(const std::string& s) {
+    inline void setDir(const std::string& s)
+    {
         dir = s;
-        while(dir.rfind('/') == dir.size() - 1) {
+        while (dir.rfind('/') == dir.size() - 1) {
             dir = dir.substr(0, dir.size() - 1);
         }
     }
 
-    inline std::vector<std::string>& getReadCache() {
+    inline std::vector<std::string>& getReadCache()
+    {
         return cache;
     }
 
-    inline std::string getCacheFile() const {
+    inline std::string getCacheFile() const
+    {
         return cacheFile;
     }
 
-    inline void setCacheFile(const std::string& filename) {
+    inline void setCacheFile(const std::string& filename)
+    {
         cacheFile = filename;
     }
 
-    inline bool getAutosaveCache() const {
+    inline bool getAutosaveCache() const
+    {
         return autosaveCache;
     }
 
-    inline void setAutosaveCache(const bool b) {
+    inline void setAutosaveCache(const bool b)
+    {
         autosaveCache = b;
     }
 
-    inline bool getAutoCompleteFiles() const {
+    inline bool getAutoCompleteFiles() const
+    {
         return autoCompleteFiles;
     }
 
-    inline void setAutoCompleteFiles(const bool b) {
+    inline void setAutoCompleteFiles(const bool b)
+    {
         autoCompleteFiles = b;
     }
 
-    inline bool getReportCommandTimes() const {
+    inline bool getReportCommandTimes() const
+    {
         return reportCommandTimes;
     }
 
-    inline void setReportCommandTimes(const bool b) {
+    inline void setReportCommandTimes(const bool b)
+    {
         reportCommandTimes = b;
     }
 
-    inline bool getReportParameters() const {
+    inline bool getReportParameters() const
+    {
         return reportParameters;
     }
 
-    inline void setReportParameters(const bool b) {
+    inline void setReportParameters(const bool b)
+    {
         reportParameters = b;
     }
 
 private:
-    inline std::string whiteSpace(int size) const {
+    inline std::string whiteSpace(int size) const
+    {
         std::stringstream ss;
         for (int i = 0; i < size; i++) {
             ss << " ";
@@ -416,7 +506,8 @@ private:
         return ss.str();
     }
 
-    inline std::vector<std::string> splitCommand(const std::string& s) const {
+    inline std::vector<std::string> splitCommand(const std::string& s) const
+    {
         int splitPos = s.find(' ');
         std::vector<std::string> result;
         if (splitPos < 0) {
@@ -429,7 +520,8 @@ private:
         return result;
     }
 
-    inline void collectCommandSuggestions(const std::string& s, std::vector<std::string>& suggestions) {
+    inline void collectCommandSuggestions(const std::string& s, std::vector<std::string>& suggestions)
+    {
         for (Command* command : commands) {
             if (command->name().find(s) == 0) {
                 suggestions.push_back(command->name());
@@ -437,7 +529,8 @@ private:
         }
     }
 
-    inline void collectAdditionalSuggestions(const std::string& s, std::vector<std::string>& suggestions) {
+    inline void collectAdditionalSuggestions(const std::string& s, std::vector<std::string>& suggestions)
+    {
         for (const std::string& suggestion : additionalSuggestions) {
             if (suggestion.find(s) == 0) {
                 suggestions.push_back(suggestion);
@@ -445,24 +538,30 @@ private:
         }
     }
 
-    inline void collectPathSuggestions(const std::string& s, std::vector<std::string>& suggestions) {
+    inline void collectPathSuggestions(const std::string& s, std::vector<std::string>& suggestions)
+    {
         const int splitPos = s.rfind('/');
-        if (splitPos < 0) return;
+        if (splitPos < 0)
+            return;
         const std::string path = FileSystem::extendPath(getDir(), s.substr(0, splitPos));
         const std::string file = s.substr(splitPos + 1);
         for (const std::string& fileName : FileSystem::getFiles(path)) {
-            if (fileName.empty()) continue;
+            if (fileName.empty())
+                continue;
             if (fileName.find(file) == 0) {
                 std::string suggestion = path + "/" + fileName;
-                if (fileName[0] != '.' && FileSystem::isDirectory(suggestion)) suggestion += "/";
+                if (fileName[0] != '.' && FileSystem::isDirectory(suggestion))
+                    suggestion += "/";
                 suggestions.push_back(suggestion);
             }
         }
     }
 
-    inline void collectCacheSuggestions(const std::string& s, std::vector<std::string>& suggestions) {
+    inline void collectCacheSuggestions(const std::string& s, std::vector<std::string>& suggestions)
+    {
         std::string line = String::trim(s);
-        if (s.size() > 0 && String::isWhiteSpace(s.back())) line += ' ';
+        if (s.size() > 0 && String::isWhiteSpace(s.back()))
+            line += ' ';
         for (const std::string& entry : cache) {
             if (entry.find(line) == 0 && !Vector::contains(suggestions, entry)) {
                 suggestions.push_back(entry);
@@ -470,7 +569,9 @@ private:
         }
     }
 
-    inline void collectParameterSuggestions(const std::string& commandName, const std::string& s, std::vector<std::string>& suggestions) {
+    inline void collectParameterSuggestions(const std::string& commandName, const std::string& s,
+        std::vector<std::string>& suggestions)
+    {
         Command* command = findCommand(commandName);
         if (command != nullptr) {
             for (const std::string& entry : command->parameterSuggestions()) {
@@ -481,7 +582,9 @@ private:
         }
     }
 
-    inline void collectParameterSuggestions(const std::string& commandName, const std::string& s, std::vector<std::string>& suggestions, const size_t index) {
+    inline void collectParameterSuggestions(const std::string& commandName, const std::string& s,
+        std::vector<std::string>& suggestions, const size_t index)
+    {
         Command* command = findCommand(commandName);
         if (command != nullptr) {
             for (const std::string& entry : command->parameterSuggestions(index)) {
@@ -492,15 +595,17 @@ private:
         }
     }
 
-
-    inline void autoCompleteCache(const std::string& s) {
+    inline void autoCompleteCache(const std::string& s)
+    {
         std::vector<std::string> suggestions;
         collectCacheSuggestions(s, suggestions);
         autoComplete(s, suggestions);
     }
 
-    inline void autoComplete(const std::string& s, std::vector<std::string>& suggestions) {
-        if (suggestions.size() == 0) return;
+    inline void autoComplete(const std::string& s, std::vector<std::string>& suggestions)
+    {
+        if (suggestions.size() == 0)
+            return;
         if (suggestions.size() == 1) {
             autoComplete(s, suggestions[0]);
             return;
@@ -520,7 +625,8 @@ private:
                     break;
                 }
             }
-            if (equal) i++;
+            if (equal)
+                i++;
         }
         if ((!equal) && (i <= s.size())) {
             shell << lineBuffer.getSuffix() << newLine;
@@ -534,13 +640,17 @@ private:
         }
     }
 
-    inline void autoComplete(const std::string& s, const std::string& suggestion) {
-        if (s.empty()) return;
+    inline void autoComplete(const std::string& s, const std::string& suggestion)
+    {
+        if (s.empty())
+            return;
         std::string oldLine = lineBuffer.getPrefix();
         size_t index = oldLine.rfind(s);
-        if (index >= oldLine.size()) return;
+        if (index >= oldLine.size())
+            return;
         std::string newLine = oldLine.substr(0, index) + suggestion;
-        if (index + s.size() < oldLine.size()) newLine = newLine + oldLine.substr(index + s.size());
+        if (index + s.size() < oldLine.size())
+            newLine = newLine + oldLine.substr(index + s.size());
         lineBuffer.setPrefix(newLine);
     }
 
@@ -567,7 +677,6 @@ private:
     bool reportParameters;
 
     std::vector<std::string> additionalSuggestions;
-
 };
 
-}
+} // namespace Shell

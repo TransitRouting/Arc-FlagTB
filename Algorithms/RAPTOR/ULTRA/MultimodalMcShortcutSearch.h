@@ -1,25 +1,22 @@
 #pragma once
 
 #include <iostream>
-#include <vector>
 #include <string>
+#include <vector>
 
-#include "../../Dijkstra/Dijkstra.h"
-
-#include "../../../Helpers/Meta.h"
-#include "../../../Helpers/Helpers.h"
-#include "../../../Helpers/Types.h"
-
+#include "../../../DataStructures/Container/ExternalKHeap.h"
 #include "../../../DataStructures/Container/Map.h"
 #include "../../../DataStructures/Container/Set.h"
-#include "../../../DataStructures/Container/ExternalKHeap.h"
 #include "../../../DataStructures/RAPTOR/Data.h"
+#include "../../../Helpers/Helpers.h"
+#include "../../../Helpers/Meta.h"
+#include "../../../Helpers/Types.h"
+#include "../../Dijkstra/Dijkstra.h"
 
 namespace RAPTOR::ULTRA {
 
-template<bool DEBUG = false, int TIME_FACTOR = 1>
+template <bool DEBUG = false, int TIME_FACTOR = 1>
 class MultimodalMcShortcutSearch {
-
 public:
     inline static constexpr bool Debug = DEBUG;
     inline static constexpr int TimeFactor = TIME_FACTOR;
@@ -28,11 +25,13 @@ public:
 
 public:
     struct ShortcutInfo {
-        ShortcutInfo(const StopId origin, const StopId destination, const int length, const StopEventId target, const bool isProper) :
-            origin(origin),
-            destination(destination),
-            length(length),
-            isProper(isProper) {
+        ShortcutInfo(const StopId origin, const StopId destination, const int length, const StopEventId target,
+            const bool isProper)
+            : origin(origin)
+            , destination(destination)
+            , length(length)
+            , isProper(isProper)
+        {
             targets.insert(target);
         }
 
@@ -44,10 +43,11 @@ public:
     };
 
     struct Shortcut {
-        Shortcut(const ShortcutInfo& info) :
-            origin(info.origin),
-            destination(info.destination),
-            travelTime(info.length) {
+        Shortcut(const ShortcutInfo& info)
+            : origin(info.origin)
+            , destination(info.destination)
+            , travelTime(info.length)
+        {
         }
 
         StopId origin;
@@ -56,20 +56,26 @@ public:
     };
 
     struct ArrivalLabel : public ExternalKHeapElement {
-        ArrivalLabel() : arrivalTime(never) {}
+        ArrivalLabel()
+            : arrivalTime(never)
+        {
+        }
         int arrivalTime;
-        inline bool hasSmallerKey(const ArrivalLabel* const other) const noexcept {
+        inline bool hasSmallerKey(const ArrivalLabel* const other) const noexcept
+        {
             return arrivalTime < other->arrivalTime;
         }
     };
 
     struct InitialTransferLabel : public ExternalKHeapElement {
-        InitialTransferLabel(const int transferDistance = INFTY, const int transferCost = INFTY) :
-            transferDistance(transferDistance),
-            transferCost(transferCost) {
+        InitialTransferLabel(const int transferDistance = INFTY, const int transferCost = INFTY)
+            : transferDistance(transferDistance)
+            , transferCost(transferCost)
+        {
         }
 
-        inline bool hasSmallerKey(const InitialTransferLabel* const other) const noexcept {
+        inline bool hasSmallerKey(const InitialTransferLabel* const other) const noexcept
+        {
             return transferDistance < other->transferDistance;
         }
 
@@ -78,26 +84,30 @@ public:
     };
 
     struct OneTripLabel : public ExternalKHeapElement {
-        OneTripLabel(const int arrivalTime = never, const int walkingDistance = INFTY, const StopId shortcutOrigin = noStop, const size_t timestamp = -1) :
-            arrivalTime(arrivalTime),
-            walkingDistance(walkingDistance),
-            shortcutOrigin(shortcutOrigin),
-            timestamp(timestamp) {
+        OneTripLabel(const int arrivalTime = never, const int walkingDistance = INFTY,
+            const StopId shortcutOrigin = noStop, const size_t timestamp = -1)
+            : arrivalTime(arrivalTime)
+            , walkingDistance(walkingDistance)
+            , shortcutOrigin(shortcutOrigin)
+            , timestamp(timestamp)
+        {
         }
 
-        OneTripLabel(const OneTripLabel& parentLabel, const int walkingDistance) :
-            arrivalTime(parentLabel.arrivalTime + walkingDistance),
-            walkingDistance(parentLabel.walkingDistance + walkingDistance),
-            shortcutOrigin(parentLabel.shortcutOrigin),
-            timestamp(parentLabel.timestamp) {
+        OneTripLabel(const OneTripLabel& parentLabel, const int walkingDistance)
+            : arrivalTime(parentLabel.arrivalTime + walkingDistance)
+            , walkingDistance(parentLabel.walkingDistance + walkingDistance)
+            , shortcutOrigin(parentLabel.shortcutOrigin)
+            , timestamp(parentLabel.timestamp)
+        {
         }
 
         int arrivalTime;
         int walkingDistance;
-        StopId shortcutOrigin; //Only valid for candidates
+        StopId shortcutOrigin; // Only valid for candidates
         size_t timestamp;
 
-        inline int getDominanceWalkingDistance() const noexcept {
+        inline int getDominanceWalkingDistance() const noexcept
+        {
             if constexpr (TimeFactor == 1) {
                 return walkingDistance;
             } else {
@@ -105,73 +115,88 @@ public:
             }
         }
 
-        template<typename LABEL>
-        inline bool dominates(const LABEL& other) const noexcept {
+        template <typename LABEL>
+        inline bool dominates(const LABEL& other) const noexcept
+        {
             return arrivalTime <= other.arrivalTime && getDominanceWalkingDistance() <= other.getDominanceWalkingDistance();
         }
 
-        inline bool dominatesStrongly(const OneTripLabel& other) const noexcept {
+        inline bool dominatesStrongly(const OneTripLabel& other) const noexcept
+        {
             return (arrivalTime < other.arrivalTime && getDominanceWalkingDistance() <= other.getDominanceWalkingDistance()) || (arrivalTime <= other.arrivalTime && getDominanceWalkingDistance() < other.getDominanceWalkingDistance());
         }
 
-        inline bool isCandidate() const noexcept {
+        inline bool isCandidate() const noexcept
+        {
             return shortcutOrigin != noStop;
         }
 
-        inline void witnessify() noexcept {
+        inline void witnessify() noexcept
+        {
             shortcutOrigin = noStop;
         }
 
-        inline int getKey() const noexcept {
+        inline int getKey() const noexcept
+        {
             return arrivalTime;
         }
 
-        inline KeyType getQueueKey() const noexcept {
+        inline KeyType getQueueKey() const noexcept
+        {
             return std::make_tuple(arrivalTime, walkingDistance);
         }
 
-        inline bool hasSmallerKey(const OneTripLabel* const other) const noexcept {
+        inline bool hasSmallerKey(const OneTripLabel* const other) const noexcept
+        {
             return getQueueKey() < other->getQueueKey();
         }
 
-        inline bool operator==(const OneTripLabel& other) const noexcept {
+        inline bool operator==(const OneTripLabel& other) const noexcept
+        {
             return arrivalTime == other.arrivalTime && walkingDistance == other.walkingDistance;
         }
 
-        inline bool operator!=(const OneTripLabel& other) const noexcept {
+        inline bool operator!=(const OneTripLabel& other) const noexcept
+        {
             return arrivalTime != other.arrivalTime || walkingDistance != other.walkingDistance;
         }
     };
 
     struct TwoTripsLabel : public ExternalKHeapElement {
-        TwoTripsLabel(const int arrivalTime = never, const int walkingDistance = INFTY, const StopEventId finalStopEvent = noStopEvent, const size_t timestamp = -1) :
-            arrivalTime(arrivalTime),
-            walkingDistance(walkingDistance),
-            finalStopEvent(finalStopEvent),
-            timestamp(timestamp) {
+        TwoTripsLabel(const int arrivalTime = never, const int walkingDistance = INFTY,
+            const StopEventId finalStopEvent = noStopEvent, const size_t timestamp = -1)
+            : arrivalTime(arrivalTime)
+            , walkingDistance(walkingDistance)
+            , finalStopEvent(finalStopEvent)
+            , timestamp(timestamp)
+        {
         }
 
-        TwoTripsLabel(const TwoTripsLabel& parentLabel, const int walkingDistance) :
-            arrivalTime(parentLabel.arrivalTime + walkingDistance),
-            walkingDistance(parentLabel.walkingDistance + walkingDistance),
-            finalStopEvent(noStopEvent),
-            timestamp(parentLabel.timestamp) {
+        TwoTripsLabel(const TwoTripsLabel& parentLabel, const int walkingDistance)
+            : arrivalTime(parentLabel.arrivalTime + walkingDistance)
+            , walkingDistance(parentLabel.walkingDistance + walkingDistance)
+            , finalStopEvent(noStopEvent)
+            , timestamp(parentLabel.timestamp)
+        {
         }
 
-        TwoTripsLabel(const OneTripLabel& oneTripLabel) :
-            arrivalTime(oneTripLabel.arrivalTime),
-            walkingDistance(oneTripLabel.walkingDistance),
-            finalStopEvent(noStopEvent),
-            //Set timestamp to INFTY so label can dominate equivalent candidates
-            timestamp(INFTY) {
+        TwoTripsLabel(const OneTripLabel& oneTripLabel)
+            : arrivalTime(oneTripLabel.arrivalTime)
+            , walkingDistance(oneTripLabel.walkingDistance)
+            , finalStopEvent(noStopEvent)
+            ,
+            // Set timestamp to INFTY so label can dominate equivalent candidates
+            timestamp(INFTY)
+        {
         }
 
         int arrivalTime;
         int walkingDistance;
-        StopEventId finalStopEvent; //Only valid for candidates
+        StopEventId finalStopEvent; // Only valid for candidates
         size_t timestamp;
 
-        inline int getDominanceWalkingDistance() const noexcept {
+        inline int getDominanceWalkingDistance() const noexcept
+        {
             if constexpr (TimeFactor == 1) {
                 return walkingDistance;
             } else {
@@ -179,45 +204,54 @@ public:
             }
         }
 
-        template<typename LABEL>
-        inline bool dominates(const LABEL& other) const noexcept {
+        template <typename LABEL>
+        inline bool dominates(const LABEL& other) const noexcept
+        {
             return arrivalTime <= other.arrivalTime && getDominanceWalkingDistance() <= other.getDominanceWalkingDistance();
         }
 
-        inline bool dominatesStrongly(const TwoTripsLabel& other) const noexcept {
+        inline bool dominatesStrongly(const TwoTripsLabel& other) const noexcept
+        {
             return (arrivalTime < other.arrivalTime && getDominanceWalkingDistance() <= other.getDominanceWalkingDistance()) || (arrivalTime <= other.arrivalTime && getDominanceWalkingDistance() < other.getDominanceWalkingDistance());
         }
 
-        inline bool isCandidate() const noexcept {
+        inline bool isCandidate() const noexcept
+        {
             return finalStopEvent != noStopEvent;
         }
 
-        inline void witnessify() noexcept {
+        inline void witnessify() noexcept
+        {
             finalStopEvent = noStopEvent;
         }
 
-        inline int getKey() const noexcept {
+        inline int getKey() const noexcept
+        {
             return arrivalTime;
         }
 
-        inline KeyType getQueueKey() const noexcept {
+        inline KeyType getQueueKey() const noexcept
+        {
             return std::make_tuple(arrivalTime, walkingDistance);
         }
 
-        inline bool hasSmallerKey(const TwoTripsLabel* const other) const noexcept {
+        inline bool hasSmallerKey(const TwoTripsLabel* const other) const noexcept
+        {
             return getQueueKey() < other->getQueueKey();
         }
 
-        inline bool operator==(const TwoTripsLabel& other) const noexcept {
+        inline bool operator==(const TwoTripsLabel& other) const noexcept
+        {
             return arrivalTime == other.arrivalTime && walkingDistance == other.walkingDistance;
         }
 
-        inline bool operator!=(const TwoTripsLabel& other) const noexcept {
+        inline bool operator!=(const TwoTripsLabel& other) const noexcept
+        {
             return arrivalTime != other.arrivalTime || walkingDistance != other.walkingDistance;
         }
     };
 
-    template<typename LABEL>
+    template <typename LABEL>
     class Bag : public ExternalKHeapElement {
     public:
         using Label = LABEL;
@@ -225,53 +259,67 @@ public:
         static constexpr int logK = 2;
         static constexpr int K = 1 << logK;
 
-        Bag() : heapSize(0) {}
+        Bag()
+            : heapSize(0)
+        {
+        }
 
-        inline Label& operator[](const size_t i) noexcept {
+        inline Label& operator[](const size_t i) noexcept
+        {
             return labels[i];
         }
 
-        inline const Label& operator[](const size_t i) const noexcept {
+        inline const Label& operator[](const size_t i) const noexcept
+        {
             return labels[i];
         }
 
-        inline Iterator begin() const noexcept {
+        inline Iterator begin() const noexcept
+        {
             return labels.begin();
         }
 
-        inline Iterator end() const noexcept {
+        inline Iterator end() const noexcept
+        {
             return labels.end();
         }
 
-        inline bool empty() const noexcept {
+        inline bool empty() const noexcept
+        {
             return labels.empty();
         }
 
-        inline size_t size() const noexcept {
+        inline size_t size() const noexcept
+        {
             return labels.size();
         }
 
-        inline bool heapEmpty() const noexcept {
+        inline bool heapEmpty() const noexcept
+        {
             return heapSize == 0;
         }
 
-        inline const Label& front() const noexcept {
+        inline const Label& front() const noexcept
+        {
             AssertMsg(!empty(), "An empty heap has no front!");
             AssertMsg(heapSize > 0, "An empty heap has no front!");
             return labels[0];
         }
 
-        inline int getKey() const noexcept {
+        inline int getKey() const noexcept
+        {
             return front().getKey();
         }
 
-        inline bool hasSmallerKey(const Bag* const other) const noexcept {
+        inline bool hasSmallerKey(const Bag* const other) const noexcept
+        {
             const KeyType thisKey = front().getQueueKey();
             const KeyType otherKey = other->front().getQueueKey();
             return thisKey < otherKey || (thisKey == otherKey && this < other);
         }
 
-        inline const Label& extractFront() noexcept {
+        inline const Label& extractFront() noexcept
+        {
             AssertMsg(!empty(), "An empty heap has no front!");
             AssertMsg(heapSize > 0, "An empty heap has no front!");
             heapSize--;
@@ -282,14 +330,15 @@ public:
             return labels[heapSize];
         }
 
-        inline bool prune(const Label& newLabel) noexcept {
-            return internalMerge<false>(newLabel, NoOperation, [&](const Label& label) {
-                return label.dominatesStrongly(newLabel);
-            });
+        inline bool prune(const Label& newLabel) noexcept
+        {
+            return internalMerge<false>(newLabel, NoOperation,
+                [&](const Label& label) { return label.dominatesStrongly(newLabel); });
         }
 
-        template<typename OTHER_BAG>
-        inline bool pruneWithBag(const OTHER_BAG& otherBag) noexcept {
+        template <typename OTHER_BAG>
+        inline bool pruneWithBag(const OTHER_BAG& otherBag) noexcept
+        {
             bool pruned = false;
             for (const typename OTHER_BAG::Label& label : otherBag) {
                 pruned |= prune(label);
@@ -297,8 +346,10 @@ public:
             return pruned;
         }
 
-        template<typename FUNCTION = NO_OPERATION>
-        inline std::tuple<bool, bool> merge(const Label& newLabel, const FUNCTION& processRemovedHeapLabel = NoOperation) noexcept {
+        template <typename FUNCTION = NO_OPERATION>
+        inline std::tuple<bool, bool> merge(const Label& newLabel,
+            const FUNCTION& processRemovedHeapLabel = NoOperation) noexcept
+        {
             bool isProper = true;
             const bool result = internalMerge<true>(newLabel, processRemovedHeapLabel, [&](const Label& label) {
                 if (newLabel.isCandidate() && label.timestamp < newLabel.timestamp) {
@@ -308,22 +359,25 @@ public:
                     return label.dominates(newLabel);
                 }
             });
-            return std::tuple<bool, bool>{result, isProper};
+            return std::tuple<bool, bool> { result, isProper };
         }
 
-        template<typename FUNCTION = NO_OPERATION>
-        inline bool mergeWitness(const Label& newLabel, const FUNCTION& processRemovedHeapLabel = NoOperation) noexcept {
-            return internalMerge<true>(newLabel, processRemovedHeapLabel, [&](const Label& label) {
-                return label.dominates(newLabel);
-            });
+        template <typename FUNCTION = NO_OPERATION>
+        inline bool mergeWitness(const Label& newLabel, const FUNCTION& processRemovedHeapLabel = NoOperation) noexcept
+        {
+            return internalMerge<true>(newLabel, processRemovedHeapLabel,
+                [&](const Label& label) { return label.dominates(newLabel); });
         }
 
-        template<typename FUNCTION = NO_OPERATION>
-        inline std::tuple<bool, bool> mergeTransitiveWitness(const Label& newLabel, const FUNCTION& processRemovedHeapLabel = NoOperation) noexcept {
+        template <typename FUNCTION = NO_OPERATION>
+        inline std::tuple<bool, bool> mergeTransitiveWitness(
+            const Label& newLabel, const FUNCTION& processRemovedHeapLabel = NoOperation) noexcept
+        {
             size_t removedLabels = 0;
             size_t removedHeapLabels = 0;
             for (size_t i = 0; i < labels.size(); i++) {
-                if (labels[i].dominates(newLabel)) return std::tuple<bool, bool>{false, false};
+                if (labels[i].dominates(newLabel))
+                    return std::tuple<bool, bool> { false, false };
                 if (newLabel.dominates(labels[i])) {
                     removedLabels++;
                     if (i < heapSize) {
@@ -337,31 +391,38 @@ public:
             heapSize -= removedHeapLabels;
             labels.resize(labels.size() - removedLabels + 1);
             labels.back() = newLabel;
-            if (removedHeapLabels > 0) heapify();
-            return std::tuple<bool, bool>{true, removedHeapLabels > 0};
+            if (removedHeapLabels > 0)
+                heapify();
+            return std::tuple<bool, bool> { true, removedHeapLabels > 0 };
         }
 
-        template<typename OTHER_LABEL>
-        inline bool dominates(const OTHER_LABEL& other) noexcept {
+        template <typename OTHER_LABEL>
+        inline bool dominates(const OTHER_LABEL& other) noexcept
+        {
             for (const Label& label : labels) {
-                if (label.dominates(other)) return true;
+                if (label.dominates(other))
+                    return true;
             }
             return false;
         }
 
-        inline void witnessify() noexcept {
+        inline void witnessify() noexcept
+        {
             for (size_t i = 0; i < heapSize; i++) {
                 labels[i].witnessify();
             }
         }
 
     private:
-        template<bool ONTO_HEAP, typename FUNCTION1 = NO_OPERATION, typename FUNCTION2 = NO_OPERATION>
-        inline bool internalMerge(const Label& newLabel, const FUNCTION1& processRemovedHeapLabel = NoOperation, const FUNCTION2& isDominatedBy = NoOperation) noexcept {
+        template <bool ONTO_HEAP, typename FUNCTION1 = NO_OPERATION, typename FUNCTION2 = NO_OPERATION>
+        inline bool internalMerge(const Label& newLabel, const FUNCTION1& processRemovedHeapLabel = NoOperation,
+            const FUNCTION2& isDominatedBy = NoOperation) noexcept
+        {
             size_t removedLabels = 0;
             size_t removedHeapLabels = 0;
             for (size_t i = 0; i < labels.size(); i++) {
-                if (isDominatedBy(labels[i])) return false;
+                if (isDominatedBy(labels[i]))
+                    return false;
                 if (newLabel.dominates(labels[i])) {
                     removedLabels++;
                     if (i < heapSize) {
@@ -381,19 +442,23 @@ public:
                 heapify();
                 return true;
             } else {
-                if (removedHeapLabels > 0) heapify();
+                if (removedHeapLabels > 0)
+                    heapify();
                 return (removedHeapLabels > 0);
             }
         }
 
-        inline void heapify() noexcept {
-            if (heapSize <= 1) return;
+        inline void heapify() noexcept
+        {
+            if (heapSize <= 1)
+                return;
             for (size_t i = parent(heapSize - 1); i != size_t(-1); i--) {
                 siftDown(i);
             }
         }
 
-        inline void siftDown(size_t i) noexcept {
+        inline void siftDown(size_t i) noexcept
+        {
             AssertMsg(i < heapSize, "siftDown index out of range!");
             while (true) {
                 size_t minIndex = i;
@@ -404,17 +469,20 @@ public:
                         minIndex = j;
                     }
                 }
-                if (minIndex == i) break;
+                if (minIndex == i)
+                    break;
                 std::swap(labels[i], labels[minIndex]);
                 i = minIndex;
             }
         }
 
-        inline size_t parent(const size_t i) const noexcept {
+        inline size_t parent(const size_t i) const noexcept
+        {
             return (i - 1) >> logK;
         }
 
-        inline size_t firstChild(const size_t i) const noexcept {
+        inline size_t firstChild(const size_t i) const noexcept
+        {
             return (i << logK) + 1;
         }
 
@@ -432,11 +500,13 @@ public:
         StopIndex parentStopIndex;
         size_t timestamp;
 
-        inline const StopEvent* parentStopEvent() const noexcept {
+        inline const StopEvent* parentStopEvent() const noexcept
+        {
             return trip + parentStopIndex;
         }
 
-        inline int getDominanceWalkingDistance() const noexcept {
+        inline int getDominanceWalkingDistance() const noexcept
+        {
             if constexpr (TimeFactor == 1) {
                 return walkingDistance;
             } else {
@@ -444,11 +514,13 @@ public:
             }
         }
 
-        inline bool dominates(const RouteLabel& other) const noexcept {
+        inline bool dominates(const RouteLabel& other) const noexcept
+        {
             return trip <= other.trip && getDominanceWalkingDistance() <= other.getDominanceWalkingDistance();
         }
 
-        inline bool isCandidate() const noexcept {
+        inline bool isCandidate() const noexcept
+        {
             return shortcutOrigin != noStop;
         }
     };
@@ -456,10 +528,12 @@ public:
     struct RouteBag {
         using Iterator = typename std::vector<RouteLabel>::const_iterator;
 
-        inline bool merge(const RouteLabel& newLabel) noexcept {
+        inline bool merge(const RouteLabel& newLabel) noexcept
+        {
             size_t removedLabels = 0;
             for (size_t i = 0; i < labels.size(); i++) {
-                if (labels[i].dominates(newLabel)) return false;
+                if (labels[i].dominates(newLabel))
+                    return false;
                 if (newLabel.dominates(labels[i])) {
                     removedLabels++;
                     continue;
@@ -471,11 +545,13 @@ public:
             return true;
         }
 
-        inline Iterator begin() const noexcept {
+        inline Iterator begin() const noexcept
+        {
             return labels.begin();
         }
 
-        inline Iterator end() const noexcept {
+        inline Iterator end() const noexcept
+        {
             return labels.end();
         }
 
@@ -483,28 +559,42 @@ public:
     };
 
     struct DepartureLabel {
-        DepartureLabel(const RouteId routeId = noRouteId, const StopIndex stopIndex = noStopIndex, const int departureTime = never) : route(routeId, stopIndex), departureTime(departureTime) {}
+        DepartureLabel(const RouteId routeId = noRouteId, const StopIndex stopIndex = noStopIndex,
+            const int departureTime = never)
+            : route(routeId, stopIndex)
+            , departureTime(departureTime)
+        {
+        }
         RouteSegment route;
         int departureTime;
-        inline bool operator<(const DepartureLabel& other) const noexcept {
+        inline bool operator<(const DepartureLabel& other) const noexcept
+        {
             return (departureTime > other.departureTime) || ((departureTime == other.departureTime) && (route.routeId < other.route.routeId));
         }
     };
 
     struct ConsolidatedDepartureLabel {
-        ConsolidatedDepartureLabel(const int departureTime = never) : departureTime(departureTime) {}
+        ConsolidatedDepartureLabel(const int departureTime = never)
+            : departureTime(departureTime)
+        {
+        }
         std::vector<RouteSegment> routes;
         int departureTime;
-        inline bool operator<(const ConsolidatedDepartureLabel& other) const noexcept {
+        inline bool operator<(const ConsolidatedDepartureLabel& other) const noexcept
+        {
             return departureTime > other.departureTime;
         }
     };
 
     struct Station {
-        Station() : representative(noStop) {}
+        Station()
+            : representative(noStop)
+        {
+        }
         StopId representative;
         std::vector<StopId> stops;
-        inline void add(const StopId stop) noexcept {
+        inline void add(const StopId stop) noexcept
+        {
             if (representative > stop) {
                 representative = stop;
             }
@@ -513,39 +603,47 @@ public:
     };
 
 public:
-    MultimodalMcShortcutSearch(const Data& data, const TransferGraph& transitiveTransferGraph, DynamicTransferGraph& shortcutGraph, const int intermediateWitnessTransferLimit, const int finalWitnessTransferLimit) :
-        data(data),
-        transitiveTransferGraph(transitiveTransferGraph),
-        shortcutGraph(shortcutGraph),
-        stationOfStop(data.numberOfStops()),
-        sourceStation(),
-        sourceDepartureTime(0),
-        stopsReachedByDirectTransfer(data.numberOfStops()),
-        shortcutCandidatesInQueue(0),
-        shortcutDestinationCandidates(data.numberOfStopEvents()),
-        properDestinationCandidates(0),
-        routesServingUpdatedStops(data.numberOfRoutes()),
-        stopsUpdatedByRoute(data.numberOfStops()),
-        stopsUpdatedByTransfer(data.numberOfStops()),
-        intermediateWitnessTransferLimit(intermediateWitnessTransferLimit),
-        finalWitnessTransferLimit(finalWitnessTransferLimit),
-        earliestDepartureTime(data.getMinDepartureTime()),
-        timestamp(0) {
+    MultimodalMcShortcutSearch(const Data& data, const TransferGraph& transitiveTransferGraph,
+        DynamicTransferGraph& shortcutGraph, const int intermediateWitnessTransferLimit,
+        const int finalWitnessTransferLimit)
+        : data(data)
+        , transitiveTransferGraph(transitiveTransferGraph)
+        , shortcutGraph(shortcutGraph)
+        , stationOfStop(data.numberOfStops())
+        , sourceStation()
+        , sourceDepartureTime(0)
+        , stopsReachedByDirectTransfer(data.numberOfStops())
+        , shortcutCandidatesInQueue(0)
+        , shortcutDestinationCandidates(data.numberOfStopEvents())
+        , properDestinationCandidates(0)
+        , routesServingUpdatedStops(data.numberOfRoutes())
+        , stopsUpdatedByRoute(data.numberOfStops())
+        , stopsUpdatedByTransfer(data.numberOfStops())
+        , intermediateWitnessTransferLimit(intermediateWitnessTransferLimit)
+        , finalWitnessTransferLimit(finalWitnessTransferLimit)
+        , earliestDepartureTime(data.getMinDepartureTime())
+        , timestamp(0)
+    {
         AssertMsg(data.hasImplicitBufferTimes(), "Shortcut search requires implicit departure buffer times!");
         Dijkstra<TransferGraph, false> dijkstra(data.transferGraph);
         for (const StopId stop : data.stops()) {
-            dijkstra.run(stop, noVertex, [&](const Vertex u) {
-                if (!data.isStop(u)) return;
-                stationOfStop[stop].add(StopId(u));
-            }, NoOperation, [&](const Vertex, const Edge edge) {
-                return data.transferGraph.get(TravelTime, edge) > 0;
-            });
+            dijkstra.run(
+                stop, noVertex,
+                [&](const Vertex u) {
+                    if (!data.isStop(u))
+                        return;
+                    stationOfStop[stop].add(StopId(u));
+                },
+                NoOperation,
+                [&](const Vertex, const Edge edge) { return data.transferGraph.get(TravelTime, edge) > 0; });
         }
     }
 
-    inline void run(const StopId source, const int minTime, const int maxTime) noexcept {
+    inline void run(const StopId source, const int minTime, const int maxTime) noexcept
+    {
         AssertMsg(data.isStop(source), "source (" << source << ") is not a stop!");
-        if (stationOfStop[source].representative != source) return;
+        if (stationOfStop[source].representative != source)
+            return;
         setSource(source);
         for (const ConsolidatedDepartureLabel& label : collectDepartures(minTime, maxTime)) {
             runForDepartureTime(label);
@@ -553,27 +651,39 @@ public:
                 if (!shortcutGraph.hasEdge(shortcut.origin, shortcut.destination)) {
                     shortcutGraph.addEdge(shortcut.origin, shortcut.destination).set(TravelTime, shortcut.travelTime);
                 } else {
-                    AssertMsg(shortcutGraph.get(TravelTime, shortcutGraph.findEdge(shortcut.origin, shortcut.destination)) == shortcut.travelTime, "Edge from " << shortcut.origin << " to " << shortcut.destination << " has inconclusive travel time (" << shortcutGraph.get(TravelTime, shortcutGraph.findEdge(shortcut.origin, shortcut.destination)) << ", " << shortcut.travelTime << ")");
+                    AssertMsg(
+                        shortcutGraph.get(TravelTime, shortcutGraph.findEdge(shortcut.origin, shortcut.destination)) == shortcut.travelTime,
+                        "Edge from " << shortcut.origin << " to " << shortcut.destination
+                                     << " has inconclusive travel time ("
+                                     << shortcutGraph.get(TravelTime,
+                                            shortcutGraph.findEdge(shortcut.origin, shortcut.destination))
+                                     << ", " << shortcut.travelTime << ")");
                 }
             }
         }
     }
 
 private:
-    inline void setSource(const StopId source) noexcept {
+    inline void setSource(const StopId source) noexcept
+    {
         AssertMsg(initialTransferQueue.empty(), "Queue for round 0 is not empty!");
-        AssertMsg(stationOfStop[source].representative == source, "Source " << source << " is not representative of its station!");
+        AssertMsg(stationOfStop[source].representative == source,
+            "Source " << source << " is not representative of its station!");
         clear();
         sourceStation = stationOfStop[source];
         initialDijkstra();
         if constexpr (Debug) {
             std::cout << "   Source stop: " << source << std::endl;
-            std::cout << "   Number of stops reached by direct transfer: " << String::prettyInt(stopsReachedByDirectTransfer.size()) << std::endl;
+            std::cout << "   Number of stops reached by direct transfer: "
+                      << String::prettyInt(stopsReachedByDirectTransfer.size()) << std::endl;
         }
     }
 
-    inline void runForDepartureTime(const ConsolidatedDepartureLabel& label) noexcept {
-        if constexpr (Debug) std::cout << "   Running search for departure time: " << label.departureTime << " (" << String::secToTime(label.departureTime) << ")" << std::endl;
+    inline void runForDepartureTime(const ConsolidatedDepartureLabel& label) noexcept
+    {
+        if constexpr (Debug)
+            std::cout << "   Running search for departure time: " << label.departureTime << " ("
+                      << String::secToTime(label.departureTime) << ")" << std::endl;
 
         timestamp++;
         shortcutCandidatesInQueue = 0;
@@ -599,8 +709,10 @@ private:
         finalDijkstra();
     }
 
-    inline std::vector<ConsolidatedDepartureLabel> collectDepartures(const int minTime, const int maxTime) noexcept {
-        AssertMsg(initialTransferLabels[sourceStation.representative].transferDistance == 0, "Direct transfer for source " << sourceStation.representative << " is incorrect!");
+    inline std::vector<ConsolidatedDepartureLabel> collectDepartures(const int minTime, const int maxTime) noexcept
+    {
+        AssertMsg(initialTransferLabels[sourceStation.representative].transferDistance == 0,
+            "Direct transfer for source " << sourceStation.representative << " is incorrect!");
         const int cutoffTime = std::max(minTime, earliestDepartureTime);
         std::vector<DepartureLabel> departureLabels;
         for (const RouteId route : data.routes()) {
@@ -609,12 +721,16 @@ private:
             int minimalTransferTime = never;
             for (size_t stopIndex = 0; stopIndex + 1 < tripSize; stopIndex++) {
                 const int initialTransferTime = initialTransferLabels[stops[stopIndex]].transferDistance;
-                if (initialTransferTime > minimalTransferTime) continue;
+                if (initialTransferTime > minimalTransferTime)
+                    continue;
                 minimalTransferTime = initialTransferTime;
-                for (const StopEvent* trip = data.firstTripOfRoute(route); trip <= data.lastTripOfRoute(route); trip += tripSize) {
+                for (const StopEvent* trip = data.firstTripOfRoute(route); trip <= data.lastTripOfRoute(route);
+                     trip += tripSize) {
                     const int departureTime = trip[stopIndex].departureTime - minimalTransferTime;
-                    if (departureTime < cutoffTime) continue;
-                    if (departureTime > maxTime) break;
+                    if (departureTime < cutoffTime)
+                        continue;
+                    if (departureTime > maxTime)
+                        break;
                     if (stationOfStop[stops[stopIndex]].representative == sourceStation.representative) {
                         departureLabels.emplace_back(noRouteId, noStopIndex, departureTime);
                     }
@@ -626,7 +742,8 @@ private:
         std::vector<ConsolidatedDepartureLabel> result(1);
         for (const DepartureLabel& label : departureLabels) {
             if (label.route.routeId == noRouteId) {
-                if (label.departureTime == result.back().departureTime) continue;
+                if (label.departureTime == result.back().departureTime)
+                    continue;
                 result.back().departureTime = label.departureTime;
                 result.emplace_back(label.departureTime);
             } else {
@@ -641,7 +758,8 @@ private:
     }
 
 private:
-    inline void clear() noexcept {
+    inline void clear() noexcept
+    {
         sourceStation = Station();
 
         std::vector<InitialTransferLabel>(data.transferGraph.numVertices()).swap(initialTransferLabels);
@@ -665,11 +783,14 @@ private:
         stopsUpdatedByTransfer.clear();
     }
 
-    inline void collectRoutes1(const std::vector<RouteSegment>& routes) noexcept {
+    inline void collectRoutes1(const std::vector<RouteSegment>& routes) noexcept
+    {
         for (const RouteSegment& route : routes) {
             AssertMsg(data.isRoute(route.routeId), "Route " << route.routeId << " is out of range!");
-            AssertMsg(route.stopIndex + 1 < data.numberOfStopsInRoute(route.routeId), "RouteSegment " << route << " is not a departure event!");
-            AssertMsg(data.lastTripOfRoute(route.routeId)[route.stopIndex].departureTime >= initialArrivalTime(data.stopOfRouteSegment(route)), "RouteSegment " << route << " is not reachable!");
+            AssertMsg(route.stopIndex + 1 < data.numberOfStopsInRoute(route.routeId),
+                "RouteSegment " << route << " is not a departure event!");
+            AssertMsg(data.lastTripOfRoute(route.routeId)[route.stopIndex].departureTime >= initialArrivalTime(data.stopOfRouteSegment(route)),
+                "RouteSegment " << route << " is not reachable!");
             if (routesServingUpdatedStops.contains(route.routeId)) {
                 routesServingUpdatedStops[route.routeId] = std::min(routesServingUpdatedStops[route.routeId], route.stopIndex);
             } else {
@@ -679,12 +800,15 @@ private:
         AssertMsg(routesServingUpdatedStops.isSortedByKeys(), "Collected route segments are not sorted!");
     }
 
-    inline void collectRoutes2() noexcept {
+    inline void collectRoutes2() noexcept
+    {
         for (const StopId stop : stopsUpdatedByTransfer) {
             for (const RouteSegment& route : data.routesContainingStop(stop)) {
                 AssertMsg(data.isRoute(route.routeId), "Route " << route.routeId << " is out of range!");
-                AssertMsg(data.stopIds[data.firstStopIdOfRoute[route.routeId] + route.stopIndex] == stop, "RAPTOR data contains invalid route segments!");
-                if (route.stopIndex + 1 == data.numberOfStopsInRoute(route.routeId)) continue;
+                AssertMsg(data.stopIds[data.firstStopIdOfRoute[route.routeId] + route.stopIndex] == stop,
+                    "RAPTOR data contains invalid route segments!");
+                if (route.stopIndex + 1 == data.numberOfStopsInRoute(route.routeId))
+                    continue;
                 if (routesServingUpdatedStops.contains(route.routeId)) {
                     routesServingUpdatedStops[route.routeId] = std::min(routesServingUpdatedStops[route.routeId], route.stopIndex);
                 } else {
@@ -695,7 +819,8 @@ private:
         routesServingUpdatedStops.sortKeys();
     }
 
-    inline void scanRoutes1Full() noexcept {
+    inline void scanRoutes1Full() noexcept
+    {
         shortcutCandidatesInQueue = 0;
         for (const RouteId route : routesServingUpdatedStops.getKeys()) {
             StopIndex stopIndex = routesServingUpdatedStops[route];
@@ -731,7 +856,8 @@ private:
                 for (const RouteLabel& label : routeBag) {
                     const StopId parent = stops[label.parentStopIndex];
                     const bool isCandidate = stationOfStop[parent].representative == sourceStation.representative;
-                    const OneTripLabel newLabel(label.trip[stopIndex].arrivalTime, label.walkingDistance, isCandidate ? stop : noStop, timestamp);
+                    const OneTripLabel newLabel(label.trip[stopIndex].arrivalTime, label.walkingDistance,
+                        isCandidate ? stop : noStop, timestamp);
                     arrivalByRoute1(stop, newLabel);
                 }
             }
@@ -740,16 +866,18 @@ private:
         routesServingUpdatedStops.clear();
     }
 
-    inline void scanRoutes1() noexcept {
+    inline void scanRoutes1() noexcept
+    {
         shortcutCandidatesInQueue = 0;
         for (const RouteId route : routesServingUpdatedStops.getKeys()) {
             const StopIndex stopIndex = routesServingUpdatedStops[route];
             TripIterator tripIterator = data.getTripIterator(route, stopIndex);
             StopIndex parentIndex = stopIndex;
             while (tripIterator.hasFurtherStops()) {
-                //Find earliest trip that can be entered
+                // Find earliest trip that can be entered
                 if (tripIterator.hasEarlierTrip() && (tripIterator.previousDepartureTime() >= initialArrivalTime(tripIterator.stop()))) {
-                    AssertMsg(stopsUpdatedByTransfer.contains(tripIterator.stop()), "Trip was entered at a stop that was not reached!");
+                    AssertMsg(stopsUpdatedByTransfer.contains(tripIterator.stop()),
+                        "Trip was entered at a stop that was not reached!");
                     do {
                         tripIterator.previousTrip();
                     } while (tripIterator.hasEarlierTrip() && (tripIterator.previousDepartureTime() >= initialArrivalTime(tripIterator.stop())));
@@ -759,7 +887,8 @@ private:
                 const StopId parent = tripIterator.stop(parentIndex);
                 const int walkingDistance = initialTransferLabels[parent].transferCost;
                 const bool isCandidate = stationOfStop[parent].representative == sourceStation.representative;
-                const OneTripLabel label(tripIterator.arrivalTime(), walkingDistance, isCandidate ? tripIterator.stop() : noStop, timestamp);
+                const OneTripLabel label(tripIterator.arrivalTime(), walkingDistance,
+                    isCandidate ? tripIterator.stop() : noStop, timestamp);
                 arrivalByRoute1(tripIterator.stop(), label);
             }
         }
@@ -767,7 +896,8 @@ private:
         routesServingUpdatedStops.clear();
     }
 
-    inline void scanRoutes2() noexcept {
+    inline void scanRoutes2() noexcept
+    {
         properDestinationCandidates = 0;
         for (const RouteId route : routesServingUpdatedStops.getKeys()) {
             StopIndex stopIndex = routesServingUpdatedStops[route];
@@ -784,12 +914,14 @@ private:
 
             while (stopIndex < tripSize - 1) {
                 for (const OneTripLabel& label : oneTripBags[stop]) {
-                    if (label.timestamp != timestamp) continue;
+                    if (label.timestamp != timestamp)
+                        continue;
                     const StopEvent* trip = firstTrip;
                     while ((trip < lastTrip) && (trip[stopIndex].departureTime < label.arrivalTime)) {
                         trip += tripSize;
                     }
-                    if (trip[stopIndex].departureTime < label.arrivalTime) continue;
+                    if (trip[stopIndex].departureTime < label.arrivalTime)
+                        continue;
 
                     RouteLabel newLabel;
                     newLabel.trip = trip;
@@ -802,7 +934,8 @@ private:
                 stopIndex++;
                 stop = stops[stopIndex];
                 for (const RouteLabel& label : routeBag) {
-                    TwoTripsLabel newLabel(label.trip[stopIndex].arrivalTime, label.walkingDistance, noStopEvent, label.timestamp);
+                    TwoTripsLabel newLabel(label.trip[stopIndex].arrivalTime, label.walkingDistance, noStopEvent,
+                        label.timestamp);
                     const StopEventId finalStopEvent = StopEventId(label.trip + stopIndex - &(data.stopEvents[0]));
                     arrivalByRoute2(stop, newLabel, label, stops[label.parentStopIndex], finalStopEvent);
                 }
@@ -812,7 +945,8 @@ private:
         routesServingUpdatedStops.clear();
     }
 
-    inline void initialDijkstra() noexcept {
+    inline void initialDijkstra() noexcept
+    {
         initialTransferLabels[sourceStation.representative] = InitialTransferLabel(0, 0);
         initialTransferQueue.update(&(initialTransferLabels[sourceStation.representative]));
         while (!initialTransferQueue.empty()) {
@@ -846,7 +980,8 @@ private:
         }
     }
 
-    inline void relaxIntermediateTransitiveTransfers() noexcept {
+    inline void relaxIntermediateTransitiveTransfers() noexcept
+    {
         AssertMsg(stopsUpdatedByTransfer.empty(), "stopsUpdatedByTransfer is not empty!");
 
         for (const StopId stop : stopsUpdatedByRoute) {
@@ -854,7 +989,8 @@ private:
                 const Vertex toStop = transitiveTransferGraph.get(ToVertex, edge);
                 const int travelTime = transitiveTransferGraph.get(TravelTime, edge);
                 for (const OneTripLabel& label : oneTripBags[stop]) {
-                    if (label.timestamp != timestamp) continue;
+                    if (label.timestamp != timestamp)
+                        continue;
                     OneTripLabel newLabel(label, travelTime);
                     newLabel.witnessify();
                     if (updateOneTripBagTransitiveWitness(toStop, newLabel)) {
@@ -865,9 +1001,11 @@ private:
         }
     }
 
-    inline void intermediateDijkstra() noexcept {
+    inline void intermediateDijkstra() noexcept
+    {
         for (const StopId stop : stopsUpdatedByRoute) {
-            if (oneTripBags[stop].heapEmpty()) continue;
+            if (oneTripBags[stop].heapEmpty())
+                continue;
             oneTripQueue.update(&(oneTripBags[stop]));
         }
         if (shortcutCandidatesInQueue == 0) {
@@ -879,7 +1017,8 @@ private:
         while (!oneTripQueue.empty()) {
             OneTripBag* currentBag = oneTripQueue.extractFront();
             const OneTripLabel& currentLabel = currentBag->extractFront();
-            if (!currentBag->heapEmpty()) oneTripQueue.update(currentBag);
+            if (!currentBag->heapEmpty())
+                oneTripQueue.update(currentBag);
             const Vertex currentVertex = Vertex(currentBag - &(oneTripBags[0]));
             for (Edge edge : data.transferGraph.edgesFrom(currentVertex)) {
                 const Vertex neighborVertex = data.transferGraph.get(ToVertex, edge);
@@ -890,23 +1029,31 @@ private:
                 shortcutCandidatesInQueue--;
             }
             if (shortcutCandidatesInQueue == 0) {
-                //Once all candidates have been settled, leave the Dijkstra search running until witnessTransferLimit is met.
-                //Note that witnesses above the limit may be pruned, leading to superfluous shortcuts.
+                // Once all candidates have been settled, leave the Dijkstra search
+                // running until witnessTransferLimit is met. Note that witnesses
+                // above the limit may be pruned, leading to superfluous shortcuts.
                 shortcutCandidatesInQueue = -1;
                 transferLimit = currentLabel.getKey() + intermediateWitnessTransferLimit;
-                if (transferLimit < currentLabel.getKey()) transferLimit = intMax;
-                if constexpr (Debug) std::cout << "   Transfer limit in round 1: " << String::secToString(transferLimit - sourceDepartureTime) << ", travel time: " << (currentLabel.arrivalTime - sourceDepartureTime) << ", walking distance: " << currentLabel.walkingDistance << std::endl;
+                if (transferLimit < currentLabel.getKey())
+                    transferLimit = intMax;
+                if constexpr (Debug)
+                    std::cout << "   Transfer limit in round 1: "
+                              << String::secToString(transferLimit - sourceDepartureTime)
+                              << ", travel time: " << (currentLabel.arrivalTime - sourceDepartureTime)
+                              << ", walking distance: " << currentLabel.walkingDistance << std::endl;
             }
             if (data.isStop(currentVertex)) {
                 stopsUpdatedByTransfer.insert(StopId(currentVertex));
             }
-            if (currentLabel.getKey() > transferLimit) break;
+            if (currentLabel.getKey() > transferLimit)
+                break;
         }
 
         stopsUpdatedByRoute.clear();
     }
 
-    inline void relaxFinalTransitiveTransfers() noexcept {
+    inline void relaxFinalTransitiveTransfers() noexcept
+    {
         AssertMsg(stopsUpdatedByTransfer.empty(), "stopsUpdatedByTransfer is not empty!");
 
         for (const StopId stop : stopsUpdatedByRoute) {
@@ -914,7 +1061,8 @@ private:
                 const Vertex toStop = transitiveTransferGraph.get(ToVertex, edge);
                 const int travelTime = transitiveTransferGraph.get(TravelTime, edge);
                 for (const TwoTripsLabel& label : twoTripsBags[stop]) {
-                    if (label.timestamp != timestamp) continue;
+                    if (label.timestamp != timestamp)
+                        continue;
                     TwoTripsLabel newLabel(label, travelTime);
                     newLabel.witnessify();
                     updateTwoTripsBagTransitiveWitness(toStop, newLabel);
@@ -923,9 +1071,11 @@ private:
         }
     }
 
-    inline void finalDijkstra() noexcept {
+    inline void finalDijkstra() noexcept
+    {
         for (const StopId stop : stopsUpdatedByRoute) {
-            if (twoTripsBags[stop].heapEmpty()) continue;
+            if (twoTripsBags[stop].heapEmpty())
+                continue;
             twoTripsQueue.update(&(twoTripsBags[stop]));
         }
 
@@ -933,7 +1083,8 @@ private:
         while (!twoTripsQueue.empty()) {
             TwoTripsBag* currentBag = twoTripsQueue.extractFront();
             const TwoTripsLabel& currentLabel = currentBag->extractFront();
-            if (!currentBag->heapEmpty()) twoTripsQueue.update(currentBag);
+            if (!currentBag->heapEmpty())
+                twoTripsQueue.update(currentBag);
             const Vertex currentVertex = Vertex(currentBag - &(twoTripsBags[0]));
             for (Edge edge : data.transferGraph.edgesFrom(currentVertex)) {
                 const Vertex neighborVertex = data.transferGraph.get(ToVertex, edge);
@@ -943,11 +1094,17 @@ private:
             if (data.isStop(currentVertex) && currentLabel.isCandidate()) {
                 const StopEventId shortcutDestination = twoTripsRouteParent[currentLabel.finalStopEvent];
                 if (shortcutDestination != noStopEvent && shortcutDestinationCandidates.contains(shortcutDestination)) {
-                    //No witness dominates this candidate journey => insert shortcut
+                    // No witness dominates this candidate journey => insert
+                    // shortcut
                     const ShortcutInfo& info = shortcutDestinationCandidates[shortcutDestination];
                     shortcuts.emplace_back(info);
-                    AssertMsg(info.targets.contains(currentLabel.finalStopEvent), "Stop event " << currentLabel.finalStopEvent << " is not contained in shortcutDestinationCandidates list of " << shortcutDestination << "!");
-                    //Unmark other candidates using this shortcut, since we don't need them anymore
+                    AssertMsg(info.targets.contains(currentLabel.finalStopEvent),
+                        "Stop event " << currentLabel.finalStopEvent
+                                      << " is not contained in "
+                                         "shortcutDestinationCandidates list of "
+                                      << shortcutDestination << "!");
+                    // Unmark other candidates using this shortcut, since we don't
+                    // need them anymore
                     for (const StopEventId obsoleteCandidate : info.targets) {
                         twoTripsRouteParent[obsoleteCandidate] = noStopEvent;
                     }
@@ -958,28 +1115,38 @@ private:
                 }
             }
             if (properDestinationCandidates == 0) {
-                //Once all proper candidates have been settled, leave the Dijkstra search running until witnessTransferLimit is met.
-                //Note that witnesses above the limit may be pruned, leading to superfluous shortcuts.
+                // Once all proper candidates have been settled, leave the Dijkstra
+                // search running until witnessTransferLimit is met. Note that
+                // witnesses above the limit may be pruned, leading to superfluous
+                // shortcuts.
                 properDestinationCandidates = -1;
                 transferLimit = currentLabel.getKey() + finalWitnessTransferLimit;
-                if (transferLimit < currentLabel.getKey()) transferLimit = intMax;
-                if constexpr (Debug) std::cout << "   Transfer limit in round 2: " << String::secToString(transferLimit - sourceDepartureTime) << ", travel time: " << (currentLabel.arrivalTime - sourceDepartureTime) << ", walking distance: " << currentLabel.walkingDistance << std::endl;
+                if (transferLimit < currentLabel.getKey())
+                    transferLimit = intMax;
+                if constexpr (Debug)
+                    std::cout << "   Transfer limit in round 2: "
+                              << String::secToString(transferLimit - sourceDepartureTime)
+                              << ", travel time: " << (currentLabel.arrivalTime - sourceDepartureTime)
+                              << ", walking distance: " << currentLabel.walkingDistance << std::endl;
             }
-            if (shortcutDestinationCandidates.empty()) break;
-            if (currentLabel.getKey() > transferLimit) break;
+            if (shortcutDestinationCandidates.empty())
+                break;
+            if (currentLabel.getKey() > transferLimit)
+                break;
         }
 
-        //Insert shortcuts for remaining improper candidates
+        // Insert shortcuts for remaining improper candidates
         for (const StopEventId shortcutDestination : shortcutDestinationCandidates.getKeys()) {
             const ShortcutInfo& info = shortcutDestinationCandidates[shortcutDestination];
             shortcuts.emplace_back(info);
-            //Unmark other candidates using this shortcut, since we don't need them anymore
+            // Unmark other candidates using this shortcut, since we don't need
+            // them anymore
             for (const StopEventId obsoleteCandidate : info.targets) {
                 twoTripsRouteParent[obsoleteCandidate] = noStopEvent;
             }
         }
 
-        //Clean up finalStopEvent pointers of obsolete candidates
+        // Clean up finalStopEvent pointers of obsolete candidates
         for (TwoTripsBag* unsettledBag : twoTripsQueue.data()) {
             unsettledBag->witnessify();
         }
@@ -988,24 +1155,31 @@ private:
         stopsUpdatedByRoute.clear();
     }
 
-    inline void arrivalByRoute1(const StopId stop, const OneTripLabel& label) noexcept {
-        if (!updateOneTripBag(stop, label)) return;
-        if (label.isCandidate()) shortcutCandidatesInQueue++;
-        //If the bag was improved, remove it from the queue - it will be re-added with the correct key later.
+    inline void arrivalByRoute1(const StopId stop, const OneTripLabel& label) noexcept
+    {
+        if (!updateOneTripBag(stop, label))
+            return;
+        if (label.isCandidate())
+            shortcutCandidatesInQueue++;
+        // If the bag was improved, remove it from the queue - it will be re-added
+        // with the correct key later.
         if (oneTripBags[stop].isOnHeap()) {
             oneTripQueue.remove(&(oneTripBags[stop]));
         }
         stopsUpdatedByRoute.insert(stop);
     }
 
-    inline void arrivalByRoute2(const StopId stop, TwoTripsLabel& label, const RouteLabel& routeLabel, const StopId parentStop, const StopEventId finalStopEvent) noexcept {
+    inline void arrivalByRoute2(const StopId stop, TwoTripsLabel& label, const RouteLabel& routeLabel,
+        const StopId parentStop, const StopEventId finalStopEvent) noexcept
+    {
         const bool isCandidate = routeLabel.isCandidate() && (routeLabel.shortcutOrigin != parentStop) && !shortcutGraph.hasEdge(routeLabel.shortcutOrigin, parentStop);
         if (isCandidate) {
             label.finalStopEvent = finalStopEvent;
         }
         bool wasInserted, isProper;
         std::tie(wasInserted, isProper) = updateTwoTripsBagCandidate(stop, label);
-        if (!wasInserted) return;
+        if (!wasInserted)
+            return;
         if (twoTripsBags[stop].isOnHeap()) {
             twoTripsQueue.remove(&(twoTripsBags[stop]));
         }
@@ -1015,8 +1189,11 @@ private:
             const StopEventId shortcutDestination = StopEventId(routeLabel.parentStopEvent() - &(data.stopEvents[0]));
             twoTripsRouteParent[finalStopEvent] = shortcutDestination;
             if (!shortcutDestinationCandidates.contains(shortcutDestination)) {
-                shortcutDestinationCandidates.insert(shortcutDestination, ShortcutInfo(routeLabel.shortcutOrigin, parentStop, label.walkingDistance, finalStopEvent, isProper));
-                if (isProper) properDestinationCandidates++;
+                shortcutDestinationCandidates.insert(shortcutDestination,
+                    ShortcutInfo(routeLabel.shortcutOrigin, parentStop,
+                        label.walkingDistance, finalStopEvent, isProper));
+                if (isProper)
+                    properDestinationCandidates++;
             } else {
                 shortcutDestinationCandidates[shortcutDestination].targets.insert(finalStopEvent);
             }
@@ -1025,26 +1202,35 @@ private:
         }
     }
 
-    inline void arrivalByEdge1(const Vertex vertex, const OneTripLabel& label) noexcept {
-        if (!updateOneTripBag(vertex, label)) return;
-        if (label.isCandidate()) shortcutCandidatesInQueue++;
+    inline void arrivalByEdge1(const Vertex vertex, const OneTripLabel& label) noexcept
+    {
+        if (!updateOneTripBag(vertex, label))
+            return;
+        if (label.isCandidate())
+            shortcutCandidatesInQueue++;
         oneTripQueue.update(&(oneTripBags[vertex]));
     }
 
-    inline void arrivalByEdge2(const Vertex vertex, const TwoTripsLabel& label) noexcept {
-        if (!updateTwoTripsBagWitness(vertex, label)) return;
+    inline void arrivalByEdge2(const Vertex vertex, const TwoTripsLabel& label) noexcept
+    {
+        if (!updateTwoTripsBagWitness(vertex, label))
+            return;
         twoTripsQueue.update(&(twoTripsBags[vertex]));
     }
 
-    inline int initialArrivalTime(const StopId stop) const noexcept {
+    inline int initialArrivalTime(const StopId stop) const noexcept
+    {
         return initialTransferLabels[stop].transferDistance + sourceDepartureTime;
     }
 
-    inline bool updateOneTripBag(const Vertex vertex, const OneTripLabel& newLabel) noexcept {
+    inline bool updateOneTripBag(const Vertex vertex, const OneTripLabel& newLabel) noexcept
+    {
         const OneTripLabel walkingLabel = getWalkingLabel(vertex);
-        if (walkingLabel.dominates(newLabel)) return false;
+        if (walkingLabel.dominates(newLabel))
+            return false;
         const bool merged = std::get<0>(oneTripBags[vertex].merge(newLabel, [&](const OneTripLabel& removedLabel) {
-            if (removedLabel.isCandidate()) shortcutCandidatesInQueue--;
+            if (removedLabel.isCandidate())
+                shortcutCandidatesInQueue--;
         }));
         if (merged && twoTripsBags[vertex].prune(TwoTripsLabel(newLabel))) {
             pruneBagInQueue(twoTripsBags[vertex], twoTripsQueue);
@@ -1052,14 +1238,18 @@ private:
         return merged;
     }
 
-    inline bool updateOneTripBagTransitiveWitness(const Vertex vertex, const OneTripLabel& newLabel) noexcept {
+    inline bool updateOneTripBagTransitiveWitness(const Vertex vertex, const OneTripLabel& newLabel) noexcept
+    {
         const OneTripLabel walkingLabel = getWalkingLabel(vertex);
-        if (walkingLabel.dominates(newLabel)) return false;
+        if (walkingLabel.dominates(newLabel))
+            return false;
         bool merged, removedHeapLabels;
         std::tie(merged, removedHeapLabels) = oneTripBags[vertex].mergeTransitiveWitness(newLabel, [&](const OneTripLabel& removedLabel) {
-            if (removedLabel.isCandidate()) shortcutCandidatesInQueue--;
+            if (removedLabel.isCandidate())
+                shortcutCandidatesInQueue--;
         });
-        if (!merged) return false;
+        if (!merged)
+            return false;
         if (removedHeapLabels && oneTripBags[vertex].isOnHeap()) {
             pruneBagInQueue(oneTripBags[vertex], oneTripQueue);
         }
@@ -1069,41 +1259,52 @@ private:
         return true;
     }
 
-    inline bool updateTwoTripsBagTransitiveWitness(const Vertex vertex, const TwoTripsLabel& newLabel) noexcept {
+    inline bool updateTwoTripsBagTransitiveWitness(const Vertex vertex, const TwoTripsLabel& newLabel) noexcept
+    {
         const OneTripLabel walkingLabel = getWalkingLabel(vertex);
-        if (walkingLabel.dominates(newLabel)) return false;
+        if (walkingLabel.dominates(newLabel))
+            return false;
         bool merged, removedHeapLabels;
-        std::tie(merged, removedHeapLabels) = twoTripsBags[vertex].mergeTransitiveWitness(newLabel, [&](const TwoTripsLabel& removedLabel) {
-            pruneShortcutDestinationCandidates(removedLabel);
-        });
-        if (!merged) return false;
+        std::tie(merged, removedHeapLabels) = twoTripsBags[vertex].mergeTransitiveWitness(
+            newLabel, [&](const TwoTripsLabel& removedLabel) { pruneShortcutDestinationCandidates(removedLabel); });
+        if (!merged)
+            return false;
         if (removedHeapLabels && twoTripsBags[vertex].isOnHeap()) {
             pruneBagInQueue(twoTripsBags[vertex], twoTripsQueue);
         }
         return true;
     }
 
-    inline bool updateTwoTripsBagWitness(const Vertex vertex, const TwoTripsLabel& newLabel) noexcept {
+    inline bool updateTwoTripsBagWitness(const Vertex vertex, const TwoTripsLabel& newLabel) noexcept
+    {
         const OneTripLabel walkingLabel = getWalkingLabel(vertex);
-        if (walkingLabel.dominates(newLabel)) return false;
-        return twoTripsBags[vertex].mergeWitness(newLabel, [&](const TwoTripsLabel& removedLabel) {
-            pruneShortcutDestinationCandidates(removedLabel);
-        });
+        if (walkingLabel.dominates(newLabel))
+            return false;
+        return twoTripsBags[vertex].mergeWitness(
+            newLabel, [&](const TwoTripsLabel& removedLabel) { pruneShortcutDestinationCandidates(removedLabel); });
     }
 
-    inline std::tuple<bool, bool> updateTwoTripsBagCandidate(const Vertex vertex, const TwoTripsLabel& newLabel) noexcept {
+    inline std::tuple<bool, bool> updateTwoTripsBagCandidate(const Vertex vertex,
+        const TwoTripsLabel& newLabel) noexcept
+    {
         const OneTripLabel walkingLabel = getWalkingLabel(vertex);
-        if (walkingLabel.dominates(newLabel)) return std::tuple<bool, bool>{false, false};
-        return twoTripsBags[vertex].merge(newLabel, [&](const TwoTripsLabel& removedLabel) {
-            pruneShortcutDestinationCandidates(removedLabel);
-        });
+        if (walkingLabel.dominates(newLabel))
+            return std::tuple<bool, bool> { false, false };
+        return twoTripsBags[vertex].merge(
+            newLabel, [&](const TwoTripsLabel& removedLabel) { pruneShortcutDestinationCandidates(removedLabel); });
     }
 
-    inline void pruneShortcutDestinationCandidates(const TwoTripsLabel& removedLabel) noexcept {
-        if (!removedLabel.isCandidate()) return;
+    inline void pruneShortcutDestinationCandidates(const TwoTripsLabel& removedLabel) noexcept
+    {
+        if (!removedLabel.isCandidate())
+            return;
         const StopEventId shortcutDestination = twoTripsRouteParent[removedLabel.finalStopEvent];
-        if (shortcutDestination == noStopEvent || !shortcutDestinationCandidates.contains(shortcutDestination)) return;
-        AssertMsg(shortcutDestinationCandidates[shortcutDestination].targets.contains(removedLabel.finalStopEvent), "Stop event " << removedLabel.finalStopEvent << " is not contained in shortcutDestinationCandidates list of " << shortcutDestination << "!");
+        if (shortcutDestination == noStopEvent || !shortcutDestinationCandidates.contains(shortcutDestination))
+            return;
+        AssertMsg(shortcutDestinationCandidates[shortcutDestination].targets.contains(removedLabel.finalStopEvent),
+            "Stop event " << removedLabel.finalStopEvent
+                          << " is not contained in shortcutDestinationCandidates list of " << shortcutDestination
+                          << "!");
         shortcutDestinationCandidates[shortcutDestination].targets.erase(removedLabel.finalStopEvent);
         if (shortcutDestinationCandidates[shortcutDestination].targets.empty()) {
             if (shortcutDestinationCandidates[shortcutDestination].isProper) {
@@ -1114,8 +1315,9 @@ private:
         twoTripsRouteParent[removedLabel.finalStopEvent] = noStopEvent;
     }
 
-    template<typename BAG_TYPE, typename QUEUE_TYPE>
-    inline void pruneBagInQueue(BAG_TYPE& bag, QUEUE_TYPE& queue) noexcept {
+    template <typename BAG_TYPE, typename QUEUE_TYPE>
+    inline void pruneBagInQueue(BAG_TYPE& bag, QUEUE_TYPE& queue) noexcept
+    {
         AssertMsg(bag.isOnHeap(), "Heap labels were removed from bag, but bag is not in queue!");
         if (bag.heapEmpty()) {
             queue.remove(&bag);
@@ -1124,9 +1326,11 @@ private:
         }
     }
 
-    inline OneTripLabel getWalkingLabel(const Vertex vertex) noexcept {
+    inline OneTripLabel getWalkingLabel(const Vertex vertex) noexcept
+    {
         const int transferDistance = initialTransferLabels[vertex].transferDistance;
-        return OneTripLabel(transferDistance == INFTY ? INFTY : sourceDepartureTime + transferDistance, initialTransferLabels[vertex].transferCost);
+        return OneTripLabel(transferDistance == INFTY ? INFTY : sourceDepartureTime + transferDistance,
+            initialTransferLabels[vertex].transferCost);
     }
 
 private:
@@ -1148,7 +1352,8 @@ private:
     std::vector<TwoTripsBag> twoTripsBags;
     ExternalKHeap<2, TwoTripsBag> twoTripsQueue;
 
-    //For each stop event. If a candidate leads there, points to the corresponding shortcut destination stop event
+    // For each stop event. If a candidate leads there, points to the
+    // corresponding shortcut destination stop event
     std::vector<StopEventId> twoTripsRouteParent;
 
     size_t shortcutCandidatesInQueue;
@@ -1166,7 +1371,6 @@ private:
     int earliestDepartureTime;
 
     size_t timestamp;
-
 };
 
-}
+} // namespace RAPTOR::ULTRA

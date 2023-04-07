@@ -5,10 +5,11 @@
 namespace TripBased {
 
 struct Shortcut {
-    Shortcut(const StopEventId origin, const StopEventId destination, const int walkingDistance = 0) :
-        origin(origin),
-        destination(destination),
-        walkingDistance(walkingDistance) {
+    Shortcut(const StopEventId origin, const StopEventId destination, const int walkingDistance = 0)
+        : origin(origin)
+        , destination(destination)
+        , walkingDistance(walkingDistance)
+    {
     }
 
     StopEventId origin;
@@ -16,4 +17,4 @@ struct Shortcut {
     int walkingDistance;
 };
 
-}
+} // namespace TripBased

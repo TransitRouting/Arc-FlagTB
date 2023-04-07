@@ -1,42 +1,47 @@
 /**********************************************************************************
  Copyright (c) 2022 Patrick Steil
  MIT License
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
- files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
- modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
- is furnished to do so, subject to the following conditions:
- The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
- LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
- IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions: The above copyright notice and this
+permission notice shall be included in all copies or substantial portions of
+the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
 **********************************************************************************/
 #pragma once
 
+#include "../../../DataStructures/Container/Set.h"
 #include "../../../DataStructures/RAPTOR/Entities/ArrivalLabel.h"
 #include "../../../DataStructures/RAPTOR/Entities/Journey.h"
 #include "../../../DataStructures/TripBased/Data.h"
-#include "../../../DataStructures/Container/Set.h"
 #include "../../../Helpers/String/String.h"
-
-#include "Profiler.h"
 #include "ProfileReachedIndex.h"
+#include "Profiler.h"
 
 namespace TripBased {
 
-template<typename PROFILER = NoProfiler>
+template <typename PROFILER = NoProfiler>
 class ProfileOneToAllQuery {
-
 public:
     using Profiler = PROFILER;
     using Type = ProfileOneToAllQuery<Profiler>;
 
 private:
     struct TripLabel {
-        TripLabel(const StopEventId begin = noStopEvent, const StopEventId end = noStopEvent, const u_int32_t parent = -1) :
-            begin(begin),
-            end(end),
-            parent(parent) {
+        TripLabel(const StopEventId begin = noStopEvent, const StopEventId end = noStopEvent,
+            const u_int32_t parent = -1)
+            : begin(begin)
+            , end(end)
+            , parent(parent)
+        {
         }
         StopEventId begin;
         StopEventId end;
@@ -44,17 +49,23 @@ private:
     };
 
     struct EdgeRange {
-        EdgeRange() : begin(noEdge), end(noEdge) {}
+        EdgeRange()
+            : begin(noEdge)
+            , end(noEdge)
+        {
+        }
 
         Edge begin;
         Edge end;
     };
 
     struct EdgeLabel {
-        EdgeLabel(const StopEventId stopEvent = noStopEvent, const TripId trip = noTripId, const StopEventId firstEvent = noStopEvent) :
-            stopEvent(stopEvent),
-            trip(trip),
-            firstEvent(firstEvent) {
+        EdgeLabel(const StopEventId stopEvent = noStopEvent, const TripId trip = noTripId,
+            const StopEventId firstEvent = noStopEvent)
+            : stopEvent(stopEvent)
+            , trip(trip)
+            , firstEvent(firstEvent)
+        {
         }
         StopEventId stopEvent;
         TripId trip;
@@ -62,10 +73,12 @@ private:
     };
 
     struct RouteLabel {
-        RouteLabel() :
-            numberOfTrips(0) {
+        RouteLabel()
+            : numberOfTrips(0)
+        {
         }
-        inline StopIndex end() const noexcept {
+        inline StopIndex end() const noexcept
+        {
             return StopIndex(departureTimes.size() / numberOfTrips);
         }
         u_int32_t numberOfTrips;
@@ -73,12 +86,14 @@ private:
     };
 
     struct TargetLabel {
-        TargetLabel(const long arrivalTime = INFTY, const u_int32_t parent = -1) :
-            arrivalTime(arrivalTime),
-            parent(parent) {
+        TargetLabel(const long arrivalTime = INFTY, const u_int32_t parent = -1)
+            : arrivalTime(arrivalTime)
+            , parent(parent)
+        {
         }
 
-        void clear() {
+        void clear()
+        {
             arrivalTime = INFTY;
             parent = -1;
         }
@@ -88,10 +103,12 @@ private:
     };
 
     struct TripStopIndex {
-        TripStopIndex(const TripId trip = noTripId, const StopIndex stopIndex = StopIndex(-1), const int depTime = never) :
-            trip(trip),
-            stopIndex(stopIndex),
-            depTime(depTime) {
+        TripStopIndex(const TripId trip = noTripId, const StopIndex stopIndex = StopIndex(-1),
+            const int depTime = never)
+            : trip(trip)
+            , stopIndex(stopIndex)
+            , depTime(depTime)
+        {
         }
 
         TripId trip;
@@ -100,22 +117,23 @@ private:
     };
 
 public:
-    ProfileOneToAllQuery(const Data& data) :
-        data(data),
-        reverseTransferGraph(data.raptorData.transferGraph),
-        transferFromSource(data.numberOfStops(), INFTY),
-        lastSource(StopId(0)),
-        lastTarget(StopId(0)),
-        reachedRoutes(data.numberOfRoutes()),
-        queue(data.numberOfStopEvents()),
-        edgeRanges(data.numberOfStopEvents()),
-        queueSize(0),
-        reachedIndex(data),
-        edgeLabels(data.stopEventGraph.numEdges()),
-        sourceStop(noStop),
-        minDepartureTime(never),
-        maxDepartureTime(never), 
-        routeLabels(data.stopEventGraph.numEdges()) {
+    ProfileOneToAllQuery(const Data& data)
+        : data(data)
+        , reverseTransferGraph(data.raptorData.transferGraph)
+        , transferFromSource(data.numberOfStops(), INFTY)
+        , lastSource(StopId(0))
+        , lastTarget(StopId(0))
+        , reachedRoutes(data.numberOfRoutes())
+        , queue(data.numberOfStopEvents())
+        , edgeRanges(data.numberOfStopEvents())
+        , queueSize(0)
+        , reachedIndex(data)
+        , edgeLabels(data.stopEventGraph.numEdges())
+        , sourceStop(noStop)
+        , minDepartureTime(never)
+        , maxDepartureTime(never)
+        , routeLabels(data.stopEventGraph.numEdges())
+    {
         collectedDepTimes.reserve(data.raptorData.numberOfTrips()); // can be adjusted
         allJourneys.reserve(32);
         // init empty version
@@ -144,20 +162,29 @@ public:
                 }
             }
         }
-        profiler.registerPhases({PHASE_SCAN_INITIAL, PHASE_COLLECT_DEPTIMES, PHASE_SCAN_TRIPS});
-        profiler.registerMetrics({METRIC_ROUNDS, METRIC_SCANNED_TRIPS, METRIC_SCANNED_STOPS, METRIC_RELAXED_TRANSFERS, METRIC_ENQUEUES, METRIC_ADD_JOURNEYS});
+        profiler.registerPhases({ PHASE_SCAN_INITIAL, PHASE_COLLECT_DEPTIMES, PHASE_SCAN_TRIPS });
+        profiler.registerMetrics({ METRIC_ROUNDS, METRIC_SCANNED_TRIPS, METRIC_SCANNED_STOPS, METRIC_RELAXED_TRANSFERS,
+            METRIC_ENQUEUES, METRIC_ADD_JOURNEYS });
     }
 
-    inline void run(const Vertex source, const int minDepartureTime, const int maxDepartureTime, const std::vector<Vertex> targets = {}) {
+    inline void run(const Vertex source, const int minDepartureTime, const int maxDepartureTime,
+        const std::vector<Vertex> targets = {})
+    {
         AssertMsg(data.isStop(source), "Source " << source << " is not a stop!");
-        AssertMsg(minDepartureTime >= 0 && minDepartureTime < 24 * 60 * 60, "Minimum Departure Time has to be within the first 24 Hours, not " << minDepartureTime << "!");
-        AssertMsg(maxDepartureTime >= 0 && maxDepartureTime < 24 * 60 * 60, "Maxmum Departure Time has to be within the first 24 Hours, not " << minDepartureTime << "!");
-        AssertMsg(minDepartureTime <= maxDepartureTime, "Minimum Departure Time needs to smaller or equal to the Maximum Departure Time!");
+        AssertMsg(minDepartureTime >= 0 && minDepartureTime < 24 * 60 * 60,
+            "Minimum Departure Time has to be within the first 24 Hours, not " << minDepartureTime << "!");
+        AssertMsg(maxDepartureTime >= 0 && maxDepartureTime < 24 * 60 * 60,
+            "Maxmum Departure Time has to be within the first 24 Hours, not " << minDepartureTime << "!");
+        AssertMsg(minDepartureTime <= maxDepartureTime,
+            "Minimum Departure Time needs to smaller or equal to the Maximum "
+            "Departure Time!");
         std::vector<StopId> targetsStops(targets.begin(), targets.end());
         run(StopId(source), minDepartureTime, maxDepartureTime, targetsStops);
     }
 
-    inline void run(const StopId source, const int minDepTime, const int maxDepTime, const std::vector<StopId>& targets = {}) {
+    inline void run(const StopId source, const int minDepTime, const int maxDepTime,
+        const std::vector<StopId>& targets = {})
+    {
         profiler.start();
         sourceStop = source;
         minDepartureTime = minDepTime;
@@ -180,7 +207,8 @@ public:
         // note: vector is not duplicate free
         size_t i(0), j(0);
         while (i < collectedDepTimes.size()) {
-            // now we collect all the trips and stop sequences at a certain timestamp and perform one normal query
+            // now we collect all the trips and stop sequences at a certain
+            // timestamp and perform one normal query
             queueSize = 0;
             while (j < collectedDepTimes.size() && collectedDepTimes[i].depTime == collectedDepTimes[j].depTime) {
                 enqueue(collectedDepTimes[j].trip, StopIndex(collectedDepTimes[j].stopIndex + 1));
@@ -201,7 +229,8 @@ public:
         profiler.done();
     }
 
-    inline void evaluateInitialTransfers() noexcept {
+    inline void evaluateInitialTransfers() noexcept
+    {
         reachedRoutes.clear();
         for (const RAPTOR::RouteSegment& route : data.raptorData.routesContainingStop(sourceStop)) {
             reachedRoutes.insert(route.routeId);
@@ -221,39 +250,50 @@ public:
             TripId tripIndex = noTripId;
             for (StopIndex stopIndex(0); stopIndex < endIndex; stopIndex++) {
                 const int timeFromSource = transferFromSource[stops[stopIndex]];
-                if (timeFromSource == INFTY) continue;
+                if (timeFromSource == INFTY)
+                    continue;
                 const int stopDepartureTime = 24 * 60 * 60 + timeFromSource;
                 const u_int32_t labelIndex = stopIndex * label.numberOfTrips;
                 if (tripIndex >= label.numberOfTrips) {
-                    tripIndex = std::lower_bound(TripId(0), TripId(label.numberOfTrips), stopDepartureTime, [&](const TripId trip, const int time) {
-                        return label.departureTimes[labelIndex + trip] < time;
-                    });
-                    if (tripIndex >= label.numberOfTrips) continue;
+                    tripIndex = std::lower_bound(TripId(0), TripId(label.numberOfTrips), stopDepartureTime,
+                        [&](const TripId trip, const int time) {
+                            return label.departureTimes[labelIndex + trip] < time;
+                        });
+                    if (tripIndex >= label.numberOfTrips)
+                        continue;
                 } else {
-                    if (label.departureTimes[labelIndex + tripIndex - 1] < stopDepartureTime) continue;
+                    if (label.departureTimes[labelIndex + tripIndex - 1] < stopDepartureTime)
+                        continue;
                     tripIndex--;
                     while ((tripIndex > 0) && (label.departureTimes[labelIndex + tripIndex - 1] >= stopDepartureTime)) {
                         tripIndex--;
                     }
                 }
                 enqueue(firstTrip + tripIndex, StopIndex(stopIndex + 1));
-                if (tripIndex == 0) break;
+                if (tripIndex == 0)
+                    break;
             }
         }
     }
 
-    inline Profiler& getProfiler() noexcept {
+    inline Profiler& getProfiler() noexcept
+    {
         return profiler;
     }
 
-    inline std::vector<RAPTOR::Journey> getAllJourneys() const noexcept { return allJourneys; }
+    inline std::vector<RAPTOR::Journey> getAllJourneys() const noexcept
+    {
+        return allJourneys;
+    }
 
-    inline std::vector<RAPTOR::Journey> getJourneys(const StopId& target) const noexcept {
+    inline std::vector<RAPTOR::Journey> getJourneys(const StopId& target) const noexcept
+    {
         std::vector<RAPTOR::Journey> result;
         int bestArrivalTime = INFTY;
         int counter(0);
         for (const TargetLabel& label : targetLabels[target]) {
-            if ((!targetLabelChanged[target][counter++]) || label.arrivalTime >= bestArrivalTime) continue;
+            if ((!targetLabelChanged[target][counter++]) || label.arrivalTime >= bestArrivalTime)
+                continue;
             bestArrivalTime = label.arrivalTime;
             result.emplace_back(getJourney(label, Vertex(target)));
         }
@@ -261,7 +301,8 @@ public:
     }
 
 private:
-    inline void clear() noexcept {
+    inline void clear() noexcept
+    {
         queueSize = 0;
         reachedIndex.clear();
         targetLabels.assign(data.raptorData.stopData.size(), emptyTargetLabels);
@@ -270,7 +311,8 @@ private:
         allJourneys.clear();
     }
 
-    inline void computeInitialAndFinalTransfers() noexcept {
+    inline void computeInitialAndFinalTransfers() noexcept
+    {
         profiler.startPhase();
         transferFromSource[lastSource] = INFTY;
         for (const Edge edge : data.raptorData.transferGraph.edgesFrom(lastSource)) {
@@ -286,7 +328,8 @@ private:
         profiler.donePhase(PHASE_SCAN_INITIAL);
     }
 
-    inline void collectDepartures() noexcept {
+    inline void collectDepartures() noexcept
+    {
         profiler.startPhase();
         collectedDepTimes.clear();
         // get all reachable routes (meaning also by footpaths)
@@ -302,29 +345,34 @@ private:
         }
         reachedRoutes.sort();
         for (const RouteId route : reachedRoutes) {
-            const size_t numberOfStops = data.numberOfStopsInRoute(route);            
+            const size_t numberOfStops = data.numberOfStopsInRoute(route);
             const StopId* stops = data.raptorData.stopArrayOfRoute(route);
             const RAPTOR::StopEvent* stopEvents = data.raptorData.firstTripOfRoute(route);
             const TripId firstTrip = data.firstTripOfRoute[route];
-            for (size_t stopEventIndex = 0; stopEventIndex < data.raptorData.numberOfStopEventsInRoute(route); ++stopEventIndex) {
-                if ((stopEventIndex + 1) % numberOfStops == 0) continue;
+            for (size_t stopEventIndex = 0; stopEventIndex < data.raptorData.numberOfStopEventsInRoute(route);
+                 ++stopEventIndex) {
+                if ((stopEventIndex + 1) % numberOfStops == 0)
+                    continue;
                 const StopId stop = stops[stopEventIndex % numberOfStops];
                 const int walkingTime = transferFromSource[stop];
-                if (walkingTime == INFTY) continue;
+                if (walkingTime == INFTY)
+                    continue;
 
                 const int departureTime = stopEvents[stopEventIndex].departureTime - walkingTime;
-                if (departureTime < minDepartureTime || departureTime >= maxDepartureTime) continue;
-                collectedDepTimes.push_back(TripStopIndex(TripId(firstTrip + (int) (stopEventIndex / numberOfStops)), StopIndex(stopEventIndex % numberOfStops), departureTime));
+                if (departureTime < minDepartureTime || departureTime >= maxDepartureTime)
+                    continue;
+                collectedDepTimes.push_back(TripStopIndex(TripId(firstTrip + (int)(stopEventIndex / numberOfStops)),
+                    StopIndex(stopEventIndex % numberOfStops), departureTime));
             }
         }
         // sort collectedDepTimes desc
-        std::stable_sort(collectedDepTimes.begin(), collectedDepTimes.end(), [](const TripStopIndex a, const TripStopIndex b) {
-            return a.depTime > b.depTime;
-        });
+        std::stable_sort(collectedDepTimes.begin(), collectedDepTimes.end(),
+            [](const TripStopIndex a, const TripStopIndex b) { return a.depTime > b.depTime; });
         profiler.donePhase(PHASE_COLLECT_DEPTIMES);
     }
 
-    inline void scanTrips() noexcept {
+    inline void scanTrips() noexcept
+    {
         profiler.startPhase();
         size_t roundBegin = 0;
         size_t roundEnd = queueSize;
@@ -336,7 +384,8 @@ private:
         long maxMinArrivalTime(0);
         while (roundBegin < roundEnd && n < 16) {
             profiler.countMetric(METRIC_ROUNDS);
-            // Evaluate final transfers in order to check if the target is reachable
+            // Evaluate final transfers in order to check if the target is
+            // reachable
             for (size_t i = roundBegin; i < roundEnd; ++i) {
                 const TripLabel& label = queue[i];
                 profiler.countMetric(METRIC_SCANNED_TRIPS);
@@ -344,12 +393,15 @@ private:
                     stop = data.arrivalEvents[j].stop;
                     profiler.countMetric(METRIC_SCANNED_STOPS);
                     // IMPORTANT! continue, not break
-                    if (data.arrivalEvents[j].arrivalTime >= minArrivalTimeFastLookUp[stop][n]) continue;
+                    if (data.arrivalEvents[j].arrivalTime >= minArrivalTimeFastLookUp[stop][n])
+                        continue;
                     addTargetLabel(stop, data.arrivalEvents[j].arrivalTime, i, n);
-                    AssertMsg(data.raptorData.transferGraph.isVertex(stop), "This stop is not represented in the transfergraph!\n");
+                    AssertMsg(data.raptorData.transferGraph.isVertex(stop),
+                        "This stop is not represented in the transfergraph!\n");
                     for (const Edge edge : data.raptorData.transferGraph.edgesFrom(stop)) {
                         transferStop = data.raptorData.transferGraph.get(ToVertex, edge);
-                        if (!data.isStop(transferStop)) continue;
+                        if (!data.isStop(transferStop))
+                            continue;
                         travelTime = data.raptorData.transferGraph.get(TravelTime, edge);
                         addTargetLabel(StopId(transferStop), data.arrivalEvents[j].arrivalTime + travelTime, i, n);
                     }
@@ -362,7 +414,8 @@ private:
                 for (StopEventId j(label.begin); j < label.end; ++j) {
                     maxMinArrivalTime = std::max(maxMinArrivalTime, minArrivalTimeFastLookUp[data.arrivalEvents[j].stop][n]);
                 }
-                if (data.arrivalEvents[label.begin].arrivalTime > maxMinArrivalTime) continue;
+                if (data.arrivalEvents[label.begin].arrivalTime > maxMinArrivalTime)
+                    continue;
                 edgeRanges[i].begin = data.stopEventGraph.beginEdgeFrom(Vertex(label.begin));
                 edgeRanges[i].end = data.stopEventGraph.beginEdgeFrom(Vertex(label.end));
                 for (Edge edge = edgeRanges[i].begin; edge < edgeRanges[i].end; edge++) {
@@ -378,9 +431,11 @@ private:
         profiler.donePhase(PHASE_SCAN_TRIPS);
     }
 
-    inline void enqueue(const TripId trip, const StopIndex index) noexcept {
+    inline void enqueue(const TripId trip, const StopIndex index) noexcept
+    {
         profiler.countMetric(METRIC_ENQUEUES);
-        if (reachedIndex.alreadyReached(trip, index, 1)) return;
+        if (reachedIndex.alreadyReached(trip, index, 1))
+            return;
         const StopEventId firstEvent = data.firstStopEventOfTrip[trip];
         queue[queueSize] = TripLabel(StopEventId(firstEvent + index), StopEventId(firstEvent + reachedIndex(trip, 1)));
         queueSize++;
@@ -388,17 +443,21 @@ private:
         reachedIndex.update(trip, index, 1);
     }
 
-    inline void enqueue(const Edge edge, const size_t parent, const u_int8_t n) noexcept {
+    inline void enqueue(const Edge edge, const size_t parent, const u_int8_t n) noexcept
+    {
         profiler.countMetric(METRIC_ENQUEUES);
         const EdgeLabel& label = edgeLabels[edge];
-        if (reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent, n+1)) return;
-        queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + reachedIndex(label.trip, n+1)), parent);
+        if (reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent, n + 1))
+            return;
+        queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + reachedIndex(label.trip, n + 1)), parent);
         queueSize++;
         AssertMsg(queueSize <= queue.size(), "Queue is overfull!");
-        reachedIndex.update(label.trip, StopIndex(label.stopEvent - label.firstEvent), n+1);
+        reachedIndex.update(label.trip, StopIndex(label.stopEvent - label.firstEvent), n + 1);
     }
 
-    inline void addTargetLabel(const StopId stop, const int newArrivalTime, const u_int32_t parent = -1, const u_int8_t n = 0) noexcept {
+    inline void addTargetLabel(const StopId stop, const int newArrivalTime, const u_int32_t parent = -1,
+        const u_int8_t n = 0) noexcept
+    {
         profiler.countMetric(METRIC_ADD_JOURNEYS);
         if (newArrivalTime < minArrivalTimeFastLookUp[stop][n]) {
             targetLabels[stop][n].arrivalTime = newArrivalTime;
@@ -408,17 +467,19 @@ private:
 
             minArrivalTimeFastLookUp[stop][n] = newArrivalTime;
 
-            #pragma omp simd
-            for (int i=n+1; i < 16; ++i) {
+#pragma omp simd
+            for (int i = n + 1; i < 16; ++i) {
                 if (targetLabels[stop][i].arrivalTime > targetLabels[stop][n].arrivalTime) {
                     targetLabels[stop][i].clear();
                 }
-                if (minArrivalTimeFastLookUp[stop][i] > newArrivalTime) minArrivalTimeFastLookUp[stop][i] = newArrivalTime;
+                if (minArrivalTimeFastLookUp[stop][i] > newArrivalTime)
+                    minArrivalTimeFastLookUp[stop][i] = newArrivalTime;
             }
         }
     }
 
-    inline RAPTOR::Journey getJourney(const TargetLabel& targetLabel, const Vertex& targetStop) const noexcept {
+    inline RAPTOR::Journey getJourney(const TargetLabel& targetLabel, const Vertex& targetStop) const noexcept
+    {
         RAPTOR::Journey result;
         u_int32_t parent = targetLabel.parent;
         if (parent == u_int32_t(-1)) {
@@ -433,7 +494,9 @@ private:
             const TripLabel& label = queue[parent];
             StopEventId arrivalStopEvent;
             Edge edge;
-            std::tie(arrivalStopEvent, edge) = (departureStopEvent == noStopEvent) ? getParent(label, targetLabel, targetStop) : getParent(label, StopEventId(departureStopEvent + 1));
+            std::tie(arrivalStopEvent, edge) = (departureStopEvent == noStopEvent)
+                ? getParent(label, targetLabel, targetStop)
+                : getParent(label, StopEventId(departureStopEvent + 1));
 
             const StopId arrivalStop = data.getStopOfStopEvent(arrivalStopEvent);
             const int arrivalTime = data.raptorData.stopEvents[arrivalStopEvent].arrivalTime;
@@ -455,28 +518,39 @@ private:
         return result;
     }
 
-    inline std::pair<StopEventId, Edge> getParent(const TripLabel& parentLabel, const StopEventId departureStopEvent) const noexcept {
+    inline std::pair<StopEventId, Edge> getParent(const TripLabel& parentLabel,
+        const StopEventId departureStopEvent) const noexcept
+    {
         for (StopEventId i = parentLabel.begin; i < parentLabel.end; i++) {
             for (const Edge edge : data.stopEventGraph.edgesFrom(Vertex(i))) {
-                if (edgeLabels[edge].stopEvent == departureStopEvent) return std::make_pair(i, edge);
+                if (edgeLabels[edge].stopEvent == departureStopEvent)
+                    return std::make_pair(i, edge);
             }
         }
         Ensure(false, "Could not find parent stop event!");
         return std::make_pair(noStopEvent, noEdge);
     }
 
-    inline std::pair<StopEventId, Edge> getParent(const TripLabel& parentLabel, const TargetLabel& targetLabel, const Vertex& targetStop) const noexcept {
-        //Final transfer to target may start exactly at parentLabel.end if it has length 0
+    inline std::pair<StopEventId, Edge> getParent(const TripLabel& parentLabel, const TargetLabel& targetLabel,
+        const Vertex& targetStop) const noexcept
+    {
+        // Final transfer to target may start exactly at parentLabel.end if it has
+        // length 0
         const TripId trip = data.tripOfStopEvent[parentLabel.begin];
         const StopEventId end = data.firstStopEventOfTrip[trip + 1];
         for (StopEventId i = parentLabel.begin; i < end; i++) {
-            if (data.arrivalEvents[i].stop == targetStop) return std::make_pair(i, noEdge);
+            if (data.arrivalEvents[i].stop == targetStop)
+                return std::make_pair(i, noEdge);
             Edge edge = reverseTransferGraph.findEdge(targetStop, data.arrivalEvents[i].stop);
-            if (!reverseTransferGraph.isEdge(edge)) continue;
+            if (!reverseTransferGraph.isEdge(edge))
+                continue;
             const int timeToTarget = reverseTransferGraph.get(TravelTime, edge);
-            // const int timeToTarget = transferToTarget[data.arrivalEvents[i].stop];
-            if (timeToTarget == INFTY) continue;
-            if (data.arrivalEvents[i].arrivalTime + timeToTarget == targetLabel.arrivalTime) return std::make_pair(i, noEdge);
+            // const int timeToTarget =
+            // transferToTarget[data.arrivalEvents[i].stop];
+            if (timeToTarget == INFTY)
+                continue;
+            if (data.arrivalEvents[i].arrivalTime + timeToTarget == targetLabel.arrivalTime)
+                return std::make_pair(i, noEdge);
         }
         Ensure(false, "Could not find parent stop event!");
         return std::make_pair(noStopEvent, noEdge);
@@ -518,4 +592,4 @@ private:
     Profiler profiler;
 };
 
-}
+} // namespace TripBased

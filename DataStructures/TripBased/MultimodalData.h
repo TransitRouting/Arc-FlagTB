@@ -1,23 +1,27 @@
 #pragma once
 
-#include "Data.h"
 #include "../RAPTOR/TransferModes.h"
+#include "Data.h"
 
 namespace TripBased {
 
 using TransferGraph = ::TransferGraph;
 
 class MultimodalData {
-
 public:
-    MultimodalData(const std::string& fileName) {
+    MultimodalData(const std::string& fileName)
+    {
         deserialize(fileName);
     }
 
-    MultimodalData(const Data& data) : tripData(data) {}
+    MultimodalData(const Data& data)
+        : tripData(data)
+    {
+    }
 
 public:
-    inline void serialize(const std::string& fileName) const noexcept {
+    inline void serialize(const std::string& fileName) const noexcept
+    {
         IO::serialize(fileName, modes);
         tripData.serialize(fileName + ".trip");
         for (const size_t mode : modes) {
@@ -25,7 +29,8 @@ public:
         }
     }
 
-    inline void deserialize(const std::string& fileName) noexcept {
+    inline void deserialize(const std::string& fileName) noexcept
+    {
         IO::deserialize(fileName, modes);
         tripData.deserialize(fileName + ".trip");
         for (const size_t mode : modes) {
@@ -33,7 +38,8 @@ public:
         }
     }
 
-    inline void printInfo() const noexcept {
+    inline void printInfo() const noexcept
+    {
         std::cout << "Trip-Based data:" << std::endl;
         tripData.printInfo();
         for (const size_t mode : modes) {
@@ -42,7 +48,8 @@ public:
         }
     }
 
-    inline void addTransferGraph(const size_t mode, const TransferGraph& graph) noexcept {
+    inline void addTransferGraph(const size_t mode, const TransferGraph& graph) noexcept
+    {
         AssertMsg(mode < RAPTOR::NUM_TRANSFER_MODES, "Mode is not supported!");
         if (!Vector::contains(modes, mode)) {
             modes.emplace_back(mode);
@@ -50,24 +57,28 @@ public:
         stopEventGraphs[mode] = graph;
     }
 
-    inline const TransferGraph& getTransferGraph(const size_t mode) const noexcept {
+    inline const TransferGraph& getTransferGraph(const size_t mode) const noexcept
+    {
         AssertMsg(Vector::contains(modes, mode), "Mode is not supported!");
         return stopEventGraphs[mode];
     }
 
-    inline Data getBimodalData(const size_t mode) const noexcept {
+    inline Data getBimodalData(const size_t mode) const noexcept
+    {
         Data resultData(tripData);
-	// Arc-Flag TB
+        // Arc-Flag TB
         // resultData.stopEventGraph = getTransferGraph(mode);
         Graph::copy(getTransferGraph(mode), resultData.stopEventGraph);
         return resultData;
     }
 
-    inline Data getPruningData() const noexcept {
+    inline Data getPruningData() const noexcept
+    {
         return getPruningData(modes);
     }
 
-    inline Data getPruningData(const std::vector<size_t>& pruningModes) const noexcept {
+    inline Data getPruningData(const std::vector<size_t>& pruningModes) const noexcept
+    {
         AssertMsg(!pruningModes.empty(), "Cannot build pruning data without transfer modes!");
         Data resultData(tripData);
         DynamicTransferGraph temp;
@@ -98,4 +109,4 @@ public:
     TransferGraph stopEventGraphs[RAPTOR::NUM_TRANSFER_MODES];
 };
 
-}
+} // namespace TripBased

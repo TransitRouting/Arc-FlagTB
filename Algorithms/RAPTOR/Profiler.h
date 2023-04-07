@@ -1,12 +1,11 @@
 #pragma once
 
-#include <iostream>
 #include <iomanip>
-#include <vector>
+#include <iostream>
 #include <string>
+#include <vector>
 
 #include "../../DataStructures/RAPTOR/Data.h"
-
 #include "../../Helpers/Timer.h"
 
 namespace RAPTOR {
@@ -43,7 +42,8 @@ typedef enum {
     NUM_PHASES
 } Phase;
 
-inline Phase getProfilerTransferPhase(const size_t mode) noexcept {
+inline Phase getProfilerTransferPhase(const size_t mode) noexcept
+{
     return Phase(PHASE_TRANSFERS_WALKING + mode);
 }
 
@@ -78,42 +78,65 @@ constexpr const char* MetricNames[] = {
 };
 
 class NoProfiler {
-
 public:
-    inline void registerExtraRounds(const std::initializer_list<ExtraRound>&) const noexcept {}
-    inline void registerPhases(const std::initializer_list<Phase>&) const noexcept {}
-    inline void registerMetrics(const std::initializer_list<Metric>&) const noexcept {}
+    inline void registerExtraRounds(const std::initializer_list<ExtraRound>&) const noexcept
+    {
+    }
+    inline void registerPhases(const std::initializer_list<Phase>&) const noexcept
+    {
+    }
+    inline void registerMetrics(const std::initializer_list<Metric>&) const noexcept
+    {
+    }
 
-    inline void initialize() const noexcept {}
+    inline void initialize() const noexcept
+    {
+    }
 
-    inline void start() const noexcept {}
-    inline void done() const noexcept {}
+    inline void start() const noexcept
+    {
+    }
+    inline void done() const noexcept
+    {
+    }
 
-    inline void startRound() const noexcept {}
-    inline void startExtraRound(const ExtraRound) const noexcept {}
-    inline void doneRound() const noexcept {}
+    inline void startRound() const noexcept
+    {
+    }
+    inline void startExtraRound(const ExtraRound) const noexcept
+    {
+    }
+    inline void doneRound() const noexcept
+    {
+    }
 
-    inline void startPhase() const noexcept {}
-    inline void donePhase(const Phase) const noexcept {}
+    inline void startPhase() const noexcept
+    {
+    }
+    inline void donePhase(const Phase) const noexcept
+    {
+    }
 
-    inline void countMetric(const Metric) const noexcept {}
+    inline void countMetric(const Metric) const noexcept
+    {
+    }
 };
 
-
 class BasicProfiler : public NoProfiler {
-
 public:
-    BasicProfiler() :
-        numQueries(0),
-        metricValue(NUM_METRICS, 0),
-        roundCount(0),
-        initialTime(0),
-        measureInitialTime(false),
-        totalTime(0) {
+    BasicProfiler()
+        : numQueries(0)
+        , metricValue(NUM_METRICS, 0)
+        , roundCount(0)
+        , initialTime(0)
+        , measureInitialTime(false)
+        , totalTime(0)
+    {
     }
 
 public:
-    inline void reset() noexcept {
+    inline void reset() noexcept
+    {
         numQueries = 0;
         Vector::fill(metricValue, (long long)0);
         roundCount = 0;
@@ -122,20 +145,24 @@ public:
         totalTime = 0.0;
     }
 
-    inline void start() noexcept {
+    inline void start() noexcept
+    {
         roundCount++;
         totalTimer.restart();
     }
 
-    inline void done() noexcept {
+    inline void done() noexcept
+    {
         totalTime += totalTimer.elapsedMicroseconds();
     }
 
-    inline void startRound() noexcept {
+    inline void startRound() noexcept
+    {
         roundCount++;
     }
 
-    inline void startExtraRound(const ExtraRound extraRound) noexcept {
+    inline void startExtraRound(const ExtraRound extraRound) noexcept
+    {
         if (extraRound == EXTRA_ROUND_INITIALIZATION) {
             initialTimer.restart();
             measureInitialTime = true;
@@ -144,19 +171,24 @@ public:
         }
     }
 
-    inline void stopRound() noexcept {
+    inline void stopRound() noexcept
+    {
         if (measureInitialTime) {
             initialTime += initialTimer.elapsedMicroseconds();
         }
     }
 
-    inline void countMetric(const Metric metric) noexcept {
+    inline void countMetric(const Metric metric) noexcept
+    {
         metricValue[metric]++;
     }
 
-    inline void printStatistics() const noexcept {
-        std::cout << "Number of scanned routes: " << String::prettyDouble(metricValue[METRIC_ROUTES] / numQueries, 0) << std::endl;
-        std::cout << "Number of settled vertices: " << String::prettyDouble(metricValue[METRIC_VERTICES] / numQueries, 0) << std::endl;
+    inline void printStatistics() const noexcept
+    {
+        std::cout << "Number of scanned routes: " << String::prettyDouble(metricValue[METRIC_ROUTES] / numQueries, 0)
+                  << std::endl;
+        std::cout << "Number of settled vertices: "
+                  << String::prettyDouble(metricValue[METRIC_VERTICES] / numQueries, 0) << std::endl;
         std::cout << "Number of rounds: " << String::prettyDouble(roundCount / numQueries, 2) << std::endl;
         std::cout << "Initial transfers time: " << String::musToString(initialTime / numQueries) << std::endl;
         std::cout << "Total time: " << String::musToString(totalTime / numQueries) << std::endl;
@@ -173,17 +205,18 @@ private:
 
     Timer totalTimer;
     double totalTime;
-
 };
 
 struct RoundData {
-    RoundData() :
-        metricValue(NUM_METRICS, 0),
-        phaseTime(NUM_PHASES, 0.0),
-        totalTime(0.0) {
+    RoundData()
+        : metricValue(NUM_METRICS, 0)
+        , phaseTime(NUM_PHASES, 0.0)
+        , totalTime(0.0)
+    {
     }
 
-    inline RoundData& operator+=(const RoundData& other) noexcept {
+    inline RoundData& operator+=(const RoundData& other) noexcept
+    {
         for (size_t metric = 0; metric < NUM_METRICS; metric++) {
             metricValue[metric] += other.metricValue[metric];
         }
@@ -194,7 +227,8 @@ struct RoundData {
         return *this;
     }
 
-    inline RoundData& operator/=(size_t numQueries) noexcept {
+    inline RoundData& operator/=(size_t numQueries) noexcept
+    {
         for (long long& metric : metricValue) {
             metric /= numQueries;
         }
@@ -205,16 +239,21 @@ struct RoundData {
         return *this;
     }
 
-    inline static int metricLength(const Metric metric) noexcept {
+    inline static int metricLength(const Metric metric) noexcept
+    {
         return std::max((int)std::string(MetricNames[metric]).length() + 1, MetricWidth);
     }
 
-    inline static int phaseLength(const Phase phase) noexcept {
+    inline static int phaseLength(const Phase phase) noexcept
+    {
         return std::max((int)std::string(PhaseNames[phase]).length() + 1, TimeWidth);
     }
 
-    inline static void printHeader(const std::vector<Metric>& metrics, const std::vector<Phase>& phases) noexcept {
-        std::cout << std::endl << "Statistics:" << std::endl << std::setw(8) << "Round";
+    inline static void printHeader(const std::vector<Metric>& metrics, const std::vector<Phase>& phases) noexcept
+    {
+        std::cout << std::endl
+                  << "Statistics:" << std::endl
+                  << std::setw(8) << "Round";
         for (const Metric metric : metrics) {
             std::cout << std::setw(metricLength(metric)) << MetricNames[metric];
         }
@@ -224,7 +263,9 @@ struct RoundData {
         std::cout << std::setw(TimeWidth) << "Total" << std::endl;
     }
 
-    inline void print(const std::vector<Metric>& metrics, const std::vector<Phase>& phases, const std::string& name) const noexcept {
+    inline void print(const std::vector<Metric>& metrics, const std::vector<Phase>& phases,
+        const std::string& name) const noexcept
+    {
         std::cout << std::setw(8) << name;
         for (const Metric metric : metrics) {
             std::cout << std::setw(metricLength(metric)) << String::prettyInt(metricValue[metric]);
@@ -235,7 +276,9 @@ struct RoundData {
         std::cout << std::setw(TimeWidth + 1) << String::musToString(totalTime) << std::endl;
     }
 
-    inline void print(const std::vector<Metric>& metrics, const std::vector<Phase>& phases, const size_t round) const noexcept {
+    inline void print(const std::vector<Metric>& metrics, const std::vector<Phase>& phases,
+        const size_t round) const noexcept
+    {
         print(metrics, phases, String::prettyInt(round));
     }
 
@@ -245,109 +288,123 @@ struct RoundData {
 };
 
 class SimpleProfiler : public NoProfiler {
-
 public:
-    SimpleProfiler() :
-        totalTime(0.0),
-        extraRoundData(NUM_EXTRA_ROUNDS),
-        currentRoundData(NULL) {
+    SimpleProfiler()
+        : totalTime(0.0)
+        , extraRoundData(NUM_EXTRA_ROUNDS)
+        , currentRoundData(NULL)
+    {
     }
 
-    inline void registerExtraRounds(const std::initializer_list<ExtraRound>& extraRoundList) noexcept {
+    inline void registerExtraRounds(const std::initializer_list<ExtraRound>& extraRoundList) noexcept
+    {
         for (const ExtraRound extraRound : extraRoundList) {
             extraRounds.push_back(extraRound);
         }
     }
 
-    inline void registerPhases(const std::initializer_list<Phase>& phaseList) noexcept {
+    inline void registerPhases(const std::initializer_list<Phase>& phaseList) noexcept
+    {
         for (const Phase phase : phaseList) {
             phases.push_back(phase);
         }
     }
 
-    inline void registerMetrics(const std::initializer_list<Metric>& metricList) noexcept {
+    inline void registerMetrics(const std::initializer_list<Metric>& metricList) noexcept
+    {
         for (const Metric metric : metricList) {
             metrics.push_back(metric);
         }
     }
 
-    inline void initialize() noexcept {
+    inline void initialize() noexcept
+    {
         totalTime = 0.0;
         roundData.clear();
         std::vector<RoundData>(NUM_EXTRA_ROUNDS).swap(extraRoundData);
         currentRoundData = NULL;
     }
 
-    inline void start() noexcept {
+    inline void start() noexcept
+    {
         initialize();
         totalTimer.restart();
     }
 
-    inline void done() noexcept {
+    inline void done() noexcept
+    {
         totalTime += totalTimer.elapsedMicroseconds();
         printStatistics();
     }
 
-    inline void startRound() noexcept {
+    inline void startRound() noexcept
+    {
         roundData.emplace_back();
         currentRoundData = &roundData.back();
         roundTimer.restart();
     }
 
-    inline void startExtraRound(const ExtraRound extraRound) noexcept {
+    inline void startExtraRound(const ExtraRound extraRound) noexcept
+    {
         currentRoundData = &extraRoundData[extraRound];
         roundTimer.restart();
     }
 
-    inline void doneRound() noexcept {
+    inline void doneRound() noexcept
+    {
         currentRoundData->totalTime += roundTimer.elapsedMicroseconds();
     }
 
-    inline void startPhase() noexcept {
+    inline void startPhase() noexcept
+    {
         phaseTimer.restart();
     }
 
-    inline void donePhase(const Phase phase) noexcept {
+    inline void donePhase(const Phase phase) noexcept
+    {
         currentRoundData->phaseTime[phase] += phaseTimer.elapsedMicroseconds();
     }
 
-    inline void countMetric(const Metric metric) const noexcept {
+    inline void countMetric(const Metric metric) const noexcept
+    {
         currentRoundData->metricValue[metric]++;
     }
 
-    inline double getTotalTime() const noexcept {
+    inline double getTotalTime() const noexcept
+    {
         return totalTime;
     }
 
-    inline double getExtraRoundTime(const ExtraRound extraRound) const noexcept {
+    inline double getExtraRoundTime(const ExtraRound extraRound) const noexcept
+    {
         return extraRoundData[extraRound].totalTime;
     }
 
-    inline double getPhaseTime(const Phase phase) const noexcept {
-        double result = Vector::sum<long long>(roundData, [&](const RoundData& data) {
-            return data.phaseTime[phase];
-        });
+    inline double getPhaseTime(const Phase phase) const noexcept
+    {
+        double result = Vector::sum<long long>(roundData, [&](const RoundData& data) { return data.phaseTime[phase]; });
         for (const ExtraRound extraRound : extraRounds) {
             result += extraRoundData[extraRound].phaseTime[phase];
         }
         return result;
     }
 
-    inline double getPhaseTimeInExtraRound(const Phase phase, const ExtraRound extraRound) const noexcept {
+    inline double getPhaseTimeInExtraRound(const Phase phase, const ExtraRound extraRound) const noexcept
+    {
         return extraRoundData[extraRound].phaseTime[phase];
     }
 
-    inline long long getMetric(const Metric metric) const noexcept {
-        long long result = Vector::sum<long long>(roundData, [&](const RoundData& data) {
-            return data.metricValue[metric];
-        });
+    inline long long getMetric(const Metric metric) const noexcept
+    {
+        long long result = Vector::sum<long long>(roundData, [&](const RoundData& data) { return data.metricValue[metric]; });
         for (const ExtraRound extraRound : extraRounds) {
             result += extraRoundData[extraRound].metricValue[metric];
         }
         return result;
     }
 
-    inline SimpleProfiler& operator+=(const SimpleProfiler& other) noexcept {
+    inline SimpleProfiler& operator+=(const SimpleProfiler& other) noexcept
+    {
         totalTime += other.totalTime;
         if (roundData.size() < other.roundData.size()) {
             roundData.resize(other.roundData.size());
@@ -362,7 +419,8 @@ public:
     }
 
 private:
-    inline void printStatistics() const noexcept {
+    inline void printStatistics() const noexcept
+    {
         RoundData::printHeader(metrics, phases);
         RoundData total;
         for (const ExtraRound extraRound : extraRounds) {
@@ -390,37 +448,41 @@ private:
 };
 
 class AggregateProfiler : public NoProfiler {
-
 public:
-    AggregateProfiler() :
-        totalTime(0.0),
-        extraRoundData(NUM_EXTRA_ROUNDS),
-        currentRoundData(NULL),
-        inExtraRound(false),
-        numQueries(0),
-        numRounds(0),
-        totalNumRounds(0) {
+    AggregateProfiler()
+        : totalTime(0.0)
+        , extraRoundData(NUM_EXTRA_ROUNDS)
+        , currentRoundData(NULL)
+        , inExtraRound(false)
+        , numQueries(0)
+        , numRounds(0)
+        , totalNumRounds(0)
+    {
     }
 
-    inline void registerExtraRounds(const std::initializer_list<ExtraRound>& extraRoundList) noexcept {
+    inline void registerExtraRounds(const std::initializer_list<ExtraRound>& extraRoundList) noexcept
+    {
         for (const ExtraRound extraRound : extraRoundList) {
             extraRounds.push_back(extraRound);
         }
     }
 
-    inline void registerPhases(const std::initializer_list<Phase>& phaseList) noexcept {
+    inline void registerPhases(const std::initializer_list<Phase>& phaseList) noexcept
+    {
         for (const Phase phase : phaseList) {
             phases.push_back(phase);
         }
     }
 
-    inline void registerMetrics(const std::initializer_list<Metric>& metricList) noexcept {
+    inline void registerMetrics(const std::initializer_list<Metric>& metricList) noexcept
+    {
         for (const Metric metric : metricList) {
             metrics.push_back(metric);
         }
     }
 
-    inline void initialize() noexcept {
+    inline void initialize() noexcept
+    {
         totalTime = 0.0;
         roundData.clear();
         std::vector<RoundData>(NUM_EXTRA_ROUNDS).swap(extraRoundData);
@@ -431,19 +493,22 @@ public:
         totalNumRounds = 0;
     }
 
-    inline void start() noexcept {
+    inline void start() noexcept
+    {
         currentRoundData = NULL;
         numRounds = 0;
         inExtraRound = false;
         totalTimer.restart();
     }
 
-    inline void done() noexcept {
+    inline void done() noexcept
+    {
         totalTime += totalTimer.elapsedMicroseconds();
         numQueries++;
     }
 
-    inline void startRound() noexcept {
+    inline void startRound() noexcept
+    {
         if (numRounds >= roundData.size()) {
             roundData.emplace_back();
         }
@@ -452,13 +517,15 @@ public:
         roundTimer.restart();
     }
 
-    inline void startExtraRound(const ExtraRound extraRound) noexcept {
+    inline void startExtraRound(const ExtraRound extraRound) noexcept
+    {
         inExtraRound = true;
         currentRoundData = &extraRoundData[extraRound];
         roundTimer.restart();
     }
 
-    inline void doneRound() noexcept {
+    inline void doneRound() noexcept
+    {
         currentRoundData->totalTime += roundTimer.elapsedMicroseconds();
         if (!inExtraRound) {
             numRounds++;
@@ -466,51 +533,56 @@ public:
         }
     }
 
-    inline void startPhase() noexcept {
+    inline void startPhase() noexcept
+    {
         phaseTimer.restart();
     }
 
-    inline void donePhase(const Phase phase) noexcept {
+    inline void donePhase(const Phase phase) noexcept
+    {
         currentRoundData->phaseTime[phase] += phaseTimer.elapsedMicroseconds();
     }
 
-    inline void countMetric(const Metric metric) const noexcept {
+    inline void countMetric(const Metric metric) const noexcept
+    {
         currentRoundData->metricValue[metric]++;
     }
 
-    inline double getTotalTime() const noexcept {
-        return totalTime/numQueries;
+    inline double getTotalTime() const noexcept
+    {
+        return totalTime / numQueries;
     }
 
-    inline double getExtraRoundTime(const ExtraRound extraRound) const noexcept {
-        return extraRoundData[extraRound].totalTime/numQueries;
+    inline double getExtraRoundTime(const ExtraRound extraRound) const noexcept
+    {
+        return extraRoundData[extraRound].totalTime / numQueries;
     }
 
-    inline double getPhaseTime(const Phase phase) const noexcept {
-        double result = Vector::sum<long long>(roundData, [&](const RoundData& data) {
-            return data.phaseTime[phase];
-        });
+    inline double getPhaseTime(const Phase phase) const noexcept
+    {
+        double result = Vector::sum<long long>(roundData, [&](const RoundData& data) { return data.phaseTime[phase]; });
         for (const ExtraRound extraRound : extraRounds) {
             result += extraRoundData[extraRound].phaseTime[phase];
         }
-        return result/numQueries;
+        return result / numQueries;
     }
 
-    inline double getPhaseTimeInExtraRound(const Phase phase, const ExtraRound extraRound) const noexcept {
-        return extraRoundData[extraRound].phaseTime[phase]/numQueries;
+    inline double getPhaseTimeInExtraRound(const Phase phase, const ExtraRound extraRound) const noexcept
+    {
+        return extraRoundData[extraRound].phaseTime[phase] / numQueries;
     }
 
-    inline double getMetric(const Metric metric) const noexcept {
-        double result = Vector::sum<long long>(roundData, [&](const RoundData& data) {
-            return data.metricValue[metric];
-        });
+    inline double getMetric(const Metric metric) const noexcept
+    {
+        double result = Vector::sum<long long>(roundData, [&](const RoundData& data) { return data.metricValue[metric]; });
         for (const ExtraRound extraRound : extraRounds) {
             result += extraRoundData[extraRound].metricValue[metric];
         }
-        return result/numQueries;
+        return result / numQueries;
     }
 
-    inline void printStatistics() const noexcept {
+    inline void printStatistics() const noexcept
+    {
         RoundData::printHeader(metrics, phases);
         RoundData total;
         for (const ExtraRound extraRound : extraRounds) {
@@ -526,11 +598,13 @@ public:
             total += data;
         }
         total.print(metrics, phases, "total");
-        std::cout << "Total time: " << String::musToString(totalTime/numQueries) << std::endl;
-        std::cout << "Avg. rounds: " << String::prettyDouble(totalNumRounds/static_cast<double>(numQueries)) << std::endl;
+        std::cout << "Total time: " << String::musToString(totalTime / numQueries) << std::endl;
+        std::cout << "Avg. rounds: " << String::prettyDouble(totalNumRounds / static_cast<double>(numQueries))
+                  << std::endl;
     }
 
-    inline AggregateProfiler& operator+=(const AggregateProfiler& other) noexcept {
+    inline AggregateProfiler& operator+=(const AggregateProfiler& other) noexcept
+    {
         totalTime += other.totalTime;
         if (roundData.size() < other.roundData.size()) {
             roundData.resize(other.roundData.size());
@@ -561,4 +635,4 @@ public:
     size_t totalNumRounds;
 };
 
-}
+} // namespace RAPTOR

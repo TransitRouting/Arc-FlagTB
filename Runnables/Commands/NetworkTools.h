@@ -4,31 +4,30 @@
 #include <string>
 
 #include "../../Algorithms/StronglyConnectedComponents.h"
-
 #include "../../DataStructures/CSA/Data.h"
 #include "../../DataStructures/Graph/Graph.h"
 #include "../../DataStructures/Graph/Utils/IO.h"
 #include "../../DataStructures/Intermediate/Data.h"
 #include "../../DataStructures/RAPTOR/Data.h"
 #include "../../DataStructures/TripBased/Data.h"
-
 #include "../../Helpers/HighlightText.h"
-
 #include "../../Shell/Shell.h"
 
 using namespace Shell;
 
 class DuplicateTrips : public ParameterizedCommand {
-
 public:
-    DuplicateTrips(BasicShell& shell) :
-        ParameterizedCommand(shell, "duplicateTrips", "Duplicates all trips and shifts them by the given time offset.") {
+    DuplicateTrips(BasicShell& shell)
+        : ParameterizedCommand(shell, "duplicateTrips",
+            "Duplicates all trips and shifts them by the given time offset.")
+    {
         addParameter("Intermediate binary");
         addParameter("Time offset");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string intermediateFile = getParameter("Intermediate binary");
         const int maxSpeed = getParameter<int>("Time offset");
         const std::string outputFile = getParameter("Output file");
@@ -39,19 +38,19 @@ public:
         inter.printInfo();
         inter.serialize(outputFile);
     }
-
 };
 
 class ReverseRAPTORNetwork : public ParameterizedCommand {
-
 public:
-    ReverseRAPTORNetwork(BasicShell& shell) :
-        ParameterizedCommand(shell, "reverseRAPTORNetwork", "Generates a reversed copy of the given RAPTOR network.") {
+    ReverseRAPTORNetwork(BasicShell& shell)
+        : ParameterizedCommand(shell, "reverseRAPTORNetwork", "Generates a reversed copy of the given RAPTOR network.")
+    {
         addParameter("RAPTOR binary");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string raptorFile = getParameter("RAPTOR binary");
         const std::string outputFile = getParameter("Output file");
 
@@ -61,20 +60,20 @@ public:
         reverse.printInfo();
         reverse.serialize(outputFile);
     }
-
 };
 
 class AddGraph : public ParameterizedCommand {
-
 public:
-    AddGraph(BasicShell& shell) :
-        ParameterizedCommand(shell, "addGraph", "Adds a transfer graph to the intermediate network data.") {
+    AddGraph(BasicShell& shell)
+        : ParameterizedCommand(shell, "addGraph", "Adds a transfer graph to the intermediate network data.")
+    {
         addParameter("Intermediate file");
         addParameter("Graph file");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string intermediateFile = getParameter("Intermediate file");
         const std::string graphFile = getParameter("Graph file");
         const std::string outputFile = getParameter("Output file");
@@ -89,22 +88,22 @@ public:
         inter.printInfo();
         inter.serialize(outputFile);
     }
-
 };
 
 class ReplaceGraph : public ParameterizedCommand {
-
 public:
-    ReplaceGraph(BasicShell& shell) :
-        ParameterizedCommand(shell, "replaceGraph", "Replaces the transfer graph of a network.") {
+    ReplaceGraph(BasicShell& shell)
+        : ParameterizedCommand(shell, "replaceGraph", "Replaces the transfer graph of a network.")
+    {
         addParameter("Input file");
         addParameter("Graph file");
         addParameter("Output file");
-        addParameter("Network type", {"csa", "raptor", "intermediate"});
-        addParameter("Graph type", {"static", "dynamic"});
+        addParameter("Network type", { "csa", "raptor", "intermediate" });
+        addParameter("Graph type", { "static", "dynamic" });
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string graphFile = getParameter("Graph file");
         const std::string graphType = getParameter("Graph type");
 
@@ -118,8 +117,9 @@ public:
     }
 
 private:
-    template<typename GRAPH, typename = std::enable_if_t<std::is_rvalue_reference<GRAPH&&>::value>>
-    inline void chooseNetwork(GRAPH&& graph) noexcept {
+    template <typename GRAPH, typename = std::enable_if_t<std::is_rvalue_reference<GRAPH&&>::value>>
+    inline void chooseNetwork(GRAPH&& graph) noexcept
+    {
         const std::string inputFile = getParameter("Input file");
         const std::string networkType = getParameter("Network type");
 
@@ -135,8 +135,9 @@ private:
         }
     }
 
-    template<typename GRAPH, typename NETWORK, typename = std::enable_if_t<std::is_rvalue_reference<GRAPH&&>::value>>
-    inline void replaceGraph(GRAPH&& graph, NETWORK& network) noexcept {
+    template <typename GRAPH, typename NETWORK, typename = std::enable_if_t<std::is_rvalue_reference<GRAPH&&>::value>>
+    inline void replaceGraph(GRAPH&& graph, NETWORK& network) noexcept
+    {
         const std::string outputFile = getParameter("Output file");
 
         network.printInfo();
@@ -147,19 +148,20 @@ private:
         network.printInfo();
         network.serialize(outputFile);
     }
-
 };
 
 class IntermediateMakeTransitive : public ParameterizedCommand {
-
 public:
-    IntermediateMakeTransitive(BasicShell& shell) :
-        ParameterizedCommand(shell, "makeIntermediateTransitive", "Makes the Intermediate Transfergraph transitive closed.") {
+    IntermediateMakeTransitive(BasicShell& shell)
+        : ParameterizedCommand(shell, "makeIntermediateTransitive",
+            "Makes the Intermediate Transfergraph transitive closed.")
+    {
         addParameter("Intermediate file");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string intermediateFile = getParameter("Intermediate file");
         const std::string outputFile = getParameter("Output file");
 
@@ -169,20 +171,19 @@ public:
         inter.printInfo();
         inter.serialize(outputFile);
     }
-
 };
 
-
 class ReduceGraph : public ParameterizedCommand {
-
 public:
-    ReduceGraph(BasicShell& shell) :
-        ParameterizedCommand(shell, "reduceGraph", "Contracts vertices with degree <= 2.") {
+    ReduceGraph(BasicShell& shell)
+        : ParameterizedCommand(shell, "reduceGraph", "Contracts vertices with degree <= 2.")
+    {
         addParameter("Intermediate file");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string intermediateFile = getParameter("Intermediate file");
         const std::string outputFile = getParameter("Output file");
 
@@ -192,19 +193,21 @@ public:
         inter.printInfo();
         inter.serialize(outputFile);
     }
-
 };
 
 class ReduceToMaximumConnectedComponent : public ParameterizedCommand {
-
 public:
-    ReduceToMaximumConnectedComponent(BasicShell& shell) :
-        ParameterizedCommand(shell, "reduceToMaximumConnectedComponent", "Removes everything that is not part of the largest connected component.") {
+    ReduceToMaximumConnectedComponent(BasicShell& shell)
+        : ParameterizedCommand(shell, "reduceToMaximumConnectedComponent",
+            "Removes everything that is not part of the "
+            "largest connected component.")
+    {
         addParameter("Intermediate file");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         Intermediate::Data inter(getParameter("Intermediate file"));
         inter.printInfo();
         Intermediate::TransferGraph graph = inter.minTravelTimeGraph();
@@ -214,32 +217,35 @@ public:
         scc.run();
         const int maxComponent = scc.maxComponent();
         std::cout << "Max component size: " << String::prettyInt(scc.getComponentSize(maxComponent)) << std::endl;
-        inter.deleteVertices([&](const Vertex vertex) {
-            return scc.getComponent(vertex) != maxComponent;
-        });
+        inter.deleteVertices([&](const Vertex vertex) { return scc.getComponent(vertex) != maxComponent; });
         inter.printInfo();
         inter.serialize(getParameter("Output file"));
         for (const Intermediate::Stop& stop : inter.stops) {
-            if (stop.coordinates.x != 0) continue;
-            if (stop.coordinates.y != 0) continue;
+            if (stop.coordinates.x != 0)
+                continue;
+            if (stop.coordinates.y != 0)
+                continue;
             warning(stop);
         }
     }
-
 };
 
 class ReduceToMaximumConnectedComponentWithTransitive : public ParameterizedCommand {
-
 public:
-    ReduceToMaximumConnectedComponentWithTransitive(BasicShell& shell) :
-        ParameterizedCommand(shell, "reduceToMaximumConnectedComponentWithTransitive", "Removes everything that is not part of the largest connected component in the full network and reduces the transitive network accordingly.") {
+    ReduceToMaximumConnectedComponentWithTransitive(BasicShell& shell)
+        : ParameterizedCommand(shell, "reduceToMaximumConnectedComponentWithTransitive",
+            "Removes everything that is not part of the largest connected "
+            "component in the full network and reduces the transitive network "
+            "accordingly.")
+    {
         addParameter("Full intermediate file");
         addParameter("Transitive intermediate file");
         addParameter("Full output file");
         addParameter("Transitive output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         Intermediate::Data fullData(getParameter("Full intermediate file"));
         fullData.printInfo();
         Intermediate::TransferGraph graph = fullData.minTravelTimeGraph();
@@ -249,39 +255,37 @@ public:
         scc.run();
         const int maxComponent = scc.maxComponent();
         std::cout << "Max component size: " << String::prettyInt(scc.getComponentSize(maxComponent)) << std::endl;
-        fullData.deleteVertices([&](const Vertex vertex) {
-            return scc.getComponent(vertex) != maxComponent;
-        });
+        fullData.deleteVertices([&](const Vertex vertex) { return scc.getComponent(vertex) != maxComponent; });
         fullData.printInfo();
         fullData.serialize(getParameter("Full output file"));
         for (const Intermediate::Stop& stop : fullData.stops) {
-            if (stop.coordinates.x != 0) continue;
-            if (stop.coordinates.y != 0) continue;
+            if (stop.coordinates.x != 0)
+                continue;
+            if (stop.coordinates.y != 0)
+                continue;
             warning(stop);
         }
 
         Intermediate::Data transitiveData(getParameter("Transitive intermediate file"));
         transitiveData.printInfo();
-        transitiveData.deleteVertices([&](const Vertex vertex) {
-            return scc.getComponent(vertex) != maxComponent;
-        });
+        transitiveData.deleteVertices([&](const Vertex vertex) { return scc.getComponent(vertex) != maxComponent; });
         transitiveData.printInfo();
         transitiveData.serialize(getParameter("Transitive output file"));
     }
-
 };
 
 class ApplyBoundingBox : public ParameterizedCommand {
-
 public:
-    ApplyBoundingBox(BasicShell& shell) :
-        ParameterizedCommand(shell, "applyBoundingBox", "Applies a bounding box to the intermediate network data.") {
+    ApplyBoundingBox(BasicShell& shell)
+        : ParameterizedCommand(shell, "applyBoundingBox", "Applies a bounding box to the intermediate network data.")
+    {
         addParameter("Intermediate binary");
-        addParameter("Bounding box", {"germany", "deutschland", "switzerland", "bern", "london"});
+        addParameter("Bounding box", { "germany", "deutschland", "switzerland", "bern", "london" });
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string intermediateFile = getParameter("Intermediate binary");
         const std::string boundingBox = getParameter("Bounding box");
         const std::string outputFile = getParameter("Output file");
@@ -302,18 +306,23 @@ public:
     }
 
 private:
-    const Geometry::Rectangle Switzerland = Geometry::Rectangle::BoundingBox(Geometry::Point(Construct::XY, 5.826, 45.487), Geometry::Point(Construct::XY, 10.819, 48.142));
-    const Geometry::Rectangle Bern = Geometry::Rectangle::BoundingBox(Geometry::Point(Construct::XY, 7.307, 46.868), Geometry::Point(Construct::XY, 7.563, 47.085));
-    const Geometry::Rectangle Germany = Geometry::Rectangle::BoundingBox(Geometry::Point(Construct::XY, 5.730, 47.160), Geometry::Point(Construct::XY, 15.130, 55.070));
-    const Geometry::Rectangle London = Geometry::Rectangle::BoundingBox(Geometry::Point(Construct::XY, -0.612, 51.233), Geometry::Point(Construct::XY, 0.715, 51.707));
-
+    const Geometry::Rectangle Switzerland = Geometry::Rectangle::BoundingBox(
+        Geometry::Point(Construct::XY, 5.826, 45.487), Geometry::Point(Construct::XY, 10.819, 48.142));
+    const Geometry::Rectangle Bern = Geometry::Rectangle::BoundingBox(Geometry::Point(Construct::XY, 7.307, 46.868),
+        Geometry::Point(Construct::XY, 7.563, 47.085));
+    const Geometry::Rectangle Germany = Geometry::Rectangle::BoundingBox(
+        Geometry::Point(Construct::XY, 5.730, 47.160), Geometry::Point(Construct::XY, 15.130, 55.070));
+    const Geometry::Rectangle London = Geometry::Rectangle::BoundingBox(Geometry::Point(Construct::XY, -0.612, 51.233),
+        Geometry::Point(Construct::XY, 0.715, 51.707));
 };
 
 class ApplyCustomBoundingBox : public ParameterizedCommand {
-
 public:
-    ApplyCustomBoundingBox(BasicShell& shell) :
-        ParameterizedCommand(shell, "applyCustomBoundingBox", "Applies the specified bounding box to the intermediate network data.") {
+    ApplyCustomBoundingBox(BasicShell& shell)
+        : ParameterizedCommand(shell, "applyCustomBoundingBox",
+            "Applies the specified bounding box to the "
+            "intermediate network data.")
+    {
         addParameter("Intermediate binary");
         addParameter("lon-min");
         addParameter("lon-max");
@@ -322,7 +331,8 @@ public:
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string intermediateFile = getParameter("Intermediate binary");
         const double lonMin = getParameter<double>("lon-min");
         const double lonMax = getParameter<double>("lon-max");
@@ -339,21 +349,23 @@ public:
         inter.printInfo();
         inter.serialize(outputFile);
     }
-
 };
 
 class MakeOneHopTransfers : public ParameterizedCommand {
-
 public:
-    MakeOneHopTransfers(BasicShell& shell) :
-        ParameterizedCommand(shell, "makeOneHopTransfers", "Constructs one-hop transfers between all stops within the given travel time limit.") {
+    MakeOneHopTransfers(BasicShell& shell)
+        : ParameterizedCommand(shell, "makeOneHopTransfers",
+            "Constructs one-hop transfers between all stops "
+            "within the given travel time limit.")
+    {
         addParameter("Intermediate file");
         addParameter("Max travel time");
         addParameter("Output file");
         addParameter("Build transitive closure?", "false");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string intermediateFile = getParameter("Intermediate file");
         const int maxTravelTime = getParameter<int>("Max travel time");
         const std::string outputFile = getParameter("Output file");
@@ -369,14 +381,15 @@ public:
         }
         inter.serialize(outputFile);
     }
-
 };
 
 class MakeOneHopTransfersByGeoDistance : public ParameterizedCommand {
-
 public:
-    MakeOneHopTransfersByGeoDistance(BasicShell& shell) :
-        ParameterizedCommand(shell, "makeOneHopTransfersByGeoDistance", "Constructs one-hop transfers between all stops within the given geo distance limit.") {
+    MakeOneHopTransfersByGeoDistance(BasicShell& shell)
+        : ParameterizedCommand(shell, "makeOneHopTransfersByGeoDistance",
+            "Constructs one-hop transfers between all stops "
+            "within the given geo distance limit.")
+    {
         addParameter("Intermediate file");
         addParameter("Max distance");
         addParameter("Speed in km/h");
@@ -384,7 +397,8 @@ public:
         addParameter("Build transitive closure?", "false");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string intermediateFile = getParameter("Intermediate file");
         const int maxDistance = getParameter<int>("Max distance");
         const double speed = getParameter<double>("Speed in km/h");
@@ -401,20 +415,20 @@ public:
         }
         inter.serialize(outputFile);
     }
-
 };
 
 class ApplyMaxTransferSpeed : public ParameterizedCommand {
-
 public:
-    ApplyMaxTransferSpeed(BasicShell& shell) :
-        ParameterizedCommand(shell, "applyMaxTransferSpeed", "Applies a speed limit to all transfers.") {
+    ApplyMaxTransferSpeed(BasicShell& shell)
+        : ParameterizedCommand(shell, "applyMaxTransferSpeed", "Applies a speed limit to all transfers.")
+    {
         addParameter("Intermediate binary");
         addParameter("Max speed in km/h");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string intermediateFile = getParameter("Intermediate binary");
         const double maxSpeed = getParameter<double>("Max speed in km/h");
         const std::string outputFile = getParameter("Output file");
@@ -428,17 +442,18 @@ public:
 };
 
 class ApplyConstantTransferSpeed : public ParameterizedCommand {
-
 public:
-    ApplyConstantTransferSpeed(BasicShell& shell) :
-        ParameterizedCommand(shell, "applyConstantTransferSpeed", "Applies a constant speed to all transfers.") {
+    ApplyConstantTransferSpeed(BasicShell& shell)
+        : ParameterizedCommand(shell, "applyConstantTransferSpeed", "Applies a constant speed to all transfers.")
+    {
         addParameter("Graph binary");
         addParameter("Speed in km/h");
         addParameter("Obey speed limits?");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string graphFile = getParameter("Graph binary");
         const size_t speed = getParameter<size_t>("Speed in km/h");
         const bool obeySpeedLimits = getParameter<bool>("Obey speed limits?");
@@ -454,17 +469,18 @@ public:
 };
 
 class ApplyMinTransferTravelTime : public ParameterizedCommand {
-
 public:
-    ApplyMinTransferTravelTime(BasicShell& shell) :
-        ParameterizedCommand(shell, "applyMinTransferTravelTime", "Applies a minimum travel time to all transfers.") {
+    ApplyMinTransferTravelTime(BasicShell& shell)
+        : ParameterizedCommand(shell, "applyMinTransferTravelTime", "Applies a minimum travel time to all transfers.")
+    {
         addParameter("Network binary");
         addParameter("Network type", { "intermediate", "raptor", "csa" });
         addParameter("Min travel time");
         addParameter("Output file");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string networkFile = getParameter("Network binary");
         const std::string networkType = getParameter("Network type");
         const double minTravelTime = getParameter<double>("Min travel time");
@@ -483,8 +499,10 @@ public:
     }
 
 private:
-    template<typename NETWORK_TYPE>
-    inline static void applyMinTravelTime(NETWORK_TYPE& network, const double minTravelTime, const std::string& outputFile) noexcept {
+    template <typename NETWORK_TYPE>
+    inline static void applyMinTravelTime(NETWORK_TYPE& network, const double minTravelTime,
+        const std::string& outputFile) noexcept
+    {
         network.printInfo();
         network.applyMinTravelTime(minTravelTime);
         network.printInfo();
@@ -493,57 +511,60 @@ private:
 };
 
 class WriteIntermediateToCSV : public ParameterizedCommand {
-
 public:
-   WriteIntermediateToCSV(BasicShell& shell) :
-	   ParameterizedCommand(shell, "writeIntermediateToCSV", "Writes all the intermediate Data into csv files.") {
-	addParameter("Intermediate Binary");
-	addParameter("Output file");
-   }
+    WriteIntermediateToCSV(BasicShell& shell)
+        : ParameterizedCommand(shell, "writeIntermediateToCSV", "Writes all the intermediate Data into csv files.")
+    {
+        addParameter("Intermediate Binary");
+        addParameter("Output file");
+    }
 
-   virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string networkFile = getParameter("Intermediate Binary");
         const std::string outputFile = getParameter("Output file");
 
-	Intermediate::Data network = Intermediate::Data::FromBinary(networkFile);
-	network.writeCSV(outputFile);
-   }
+        Intermediate::Data network = Intermediate::Data::FromBinary(networkFile);
+        network.writeCSV(outputFile);
+    }
 };
 
 class WriteRAPTORToCSV : public ParameterizedCommand {
-
 public:
-   WriteRAPTORToCSV(BasicShell& shell) :
-	   ParameterizedCommand(shell, "writeRAPTORToCSV", "Writes all the RAPTOR Data into csv files.") {
-	addParameter("RAPTOR Binary");
-	addParameter("Output file");
-   }
+    WriteRAPTORToCSV(BasicShell& shell)
+        : ParameterizedCommand(shell, "writeRAPTORToCSV", "Writes all the RAPTOR Data into csv files.")
+    {
+        addParameter("RAPTOR Binary");
+        addParameter("Output file");
+    }
 
-   virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string networkFile = getParameter("RAPTOR Binary");
         const std::string outputFile = getParameter("Output file");
 
-	RAPTOR::Data network = RAPTOR::Data::FromBinary(networkFile);
-	network.writeCSV(outputFile);
-   }
+        RAPTOR::Data network = RAPTOR::Data::FromBinary(networkFile);
+        network.writeCSV(outputFile);
+    }
 };
 
 class WriteTripBasedToCSV : public ParameterizedCommand {
-
 public:
-   WriteTripBasedToCSV(BasicShell& shell) :
-	   ParameterizedCommand(shell, "writeTripBasedToCSV", "Writes all the TripBased Data into csv files.") {
-	addParameter("Trip Based Binary");
-	addParameter("Output file");
-   }
+    WriteTripBasedToCSV(BasicShell& shell)
+        : ParameterizedCommand(shell, "writeTripBasedToCSV", "Writes all the TripBased Data into csv files.")
+    {
+        addParameter("Trip Based Binary");
+        addParameter("Output file");
+    }
 
-   virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string networkFile = getParameter("Trip Based Binary");
         const std::string outputFile = getParameter("Output file");
 
-	TripBased::Data network = TripBased::Data(networkFile);
-	network.raptorData.writeCSV(outputFile);
+        TripBased::Data network = TripBased::Data(networkFile);
+        network.raptorData.writeCSV(outputFile);
 
-	Graph::toEdgeListCSV(outputFile + ".transfers", network.stopEventGraph);
-   }
+        Graph::toEdgeListCSV(outputFile + ".transfers", network.stopEventGraph);
+    }
 };

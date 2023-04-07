@@ -1,12 +1,10 @@
 #pragma once
 
-#include "Classes/GraphInterface.h"
-
-#include "Utils/Utils.h"
-
 #include "Classes/DynamicGraph.h"
-#include "Classes/StaticGraph.h"
 #include "Classes/EdgeList.h"
+#include "Classes/GraphInterface.h"
+#include "Classes/StaticGraph.h"
+#include "Utils/Utils.h"
 
 using NoVertexAttributes = List<>;
 using WithCoordinates = List<Attribute<Coordinates, Geometry::Point>>;
