@@ -1,0 +1,9 @@
+parseGTFS ../../Datasets/GTFS/s_re/ ../../Datasets/s_re/gtfs.binary
+gtfsToIntermediate ../../Datasets/s_re/gtfs.binary 20230326 20230327 false false ../../Datasets/s_re/intermediate.binary
+reduceToMaximumConnectedComponent ../../Datasets/s_re/intermediate.binary ../../Datasets/s_re/intermediate.binary
+reduceGraph ../../Datasets/s_re/intermediate.binary ../../Datasets/s_re/intermediate.binary
+makeOneHopTransfers ../../Datasets/s_re/intermediate.binary 86400 ../../Datasets/s_re/intermediate.binary true
+reduceToMaximumConnectedComponent ../../Datasets/s_re/intermediate.binary ../../Datasets/s_re/intermediate.binary
+reduceGraph ../../Datasets/s_re/intermediate.binary ../../Datasets/s_re/intermediate.binary
+intermediateToRAPTOR ../../Datasets/s_re/intermediate.binary ../../Datasets/s_re/raptor.binary
+createLayoutGraph ../../Datasets/s_re/raptor.binary ../../Datasets/s_re/raptor.layout.graph true

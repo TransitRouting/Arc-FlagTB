@@ -1,2 +1,2 @@
-raptorToTripBased ../../Datasets/RNV/raptor.binary ../../Datasets/RNV/trip.binary ../../Datasets/RNV/raptor.partition32.txt
-computeArcFlagTB ../../Datasets/RNV/trip.binary ../../Datasets/RNV/trip.binary None
+raptorToTripBased ../../Datasets/s_re/raptor.binary ../../Datasets/s_re/trip.binary ../../Datasets/s_re/raptor.partition128.txt
+computeArcFlagTB ../../Datasets/s_re/trip.binary ../../Datasets/s_re/trip.binary None

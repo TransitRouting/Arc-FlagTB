@@ -1,9 +1,0 @@
-parseGTFS ../../Datasets/GTFS/RNV/ ../../Datasets/RNV/gtfs.binary
-gtfsToIntermediate ../../Datasets/RNV/gtfs.binary 20230326 20230327 false false ../../Datasets/RNV/intermediate.binary
-reduceToMaximumConnectedComponent ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
-reduceGraph ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
-makeOneHopTransfers ../../Datasets/RNV/intermediate.binary 86400 ../../Datasets/RNV/intermediate.binary true
-reduceToMaximumConnectedComponent ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
-reduceGraph ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
-intermediateToRAPTOR ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/raptor.binary
-createLayoutGraph ../../Datasets/RNV/raptor.binary ../../Datasets/RNV/raptor.layout.graph true
