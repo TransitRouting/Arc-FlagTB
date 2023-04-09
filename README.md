@@ -126,3 +126,36 @@ Number of removed edges:      1003183 (87%)
 Saving the compressed flags!
 Done with compressed flags!
 ```
+To now test the query performance, one can call the following:
+
+```
+> runTransitiveArcTripBasedQueries /home/patrick/Documents/Arc-FlagTB/test/trip.binary 1000
+Loading static graph from /home/patrick/Documents/Arc-FlagTB/test/trip.binary.raptor.graph
+Loading static graph from /home/patrick/Documents/Arc-FlagTB/test/trip.binary.graph
+Trip-Based public transit data:
+   Number of Stops:                   828
+   Number of Routes:                2,755
+   Number of Trips:                 8,408
+   Number of Stop Events:         100,389
+   Number of Connections:          91,981
+   Number of Transfers:           142,605
+   Number of Vertices:                828
+   Number of Edges:                   160
+   First Day:                           0
+   Last Day:                            2
+   Bounding Box:             [(2.35912, 44.5061) | (22.7764, 56.1501)]
+   Number Of Partitions:               32
+Rounds: 5.09
+Scanned trips: 140.52
+Scanned stops: 770.43
+Relaxed transfers: 1,933.84
+Enqueued trips: 1,982.10
+Added journeys: 2.18
+Scan initial transfers: 0µs
+Evaluate initial transfers: 3µs
+Scan trips: 20µs
+Total time: 24µs
+Avg. journeys: 1.30
+```
+
+**Note** testing the (original) TB performance will result in faster TB queries than before computing Arc-Flags, since we deleted unnecessary edges in the process. So if you want to compare the Arc-TB performance against the (orignal) TB, you should test the performance of the (original) **before** computing the Arc-Flags.
