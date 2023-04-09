@@ -1,2 +1,2 @@
-raptorToTripBased ../../Datasets/s_re/raptor.binary ../../Datasets/s_re/trip.binary ../../Datasets/s_re/raptor.partition128.txt
-computeArcFlagTB ../../Datasets/s_re/trip.binary ../../Datasets/s_re/trip.binary None
+raptorToTripBased ../test/raptor.binary ../test/trip.binary ../test/exports/raptor.partition32.txt
+computeArcFlagTB ../test/trip.binary ../test/trip.binary None false false

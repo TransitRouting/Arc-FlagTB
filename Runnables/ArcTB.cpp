@@ -15,6 +15,9 @@ int main(int argc, char** argv)
 
     new ParseGTFS(shell);
     new GTFSToIntermediate(shell);
+    new WriteTripBasedToCSV(shell);
+    new WriteLayoutGraphToGraphML(shell);
+    new WriteTripBasedToGraphML(shell);
 
     new IntermediateMakeTransitive(shell);
     new ReduceGraph(shell);

@@ -158,5 +158,7 @@ public:
 
         raptor.createGraphForMETIS(RAPTOR::TRIP_WEIGHTED | RAPTOR::TRANSFER_WEIGHTED, true);
         raptor.writeMETISFile(outputFile, true);
+
+	Graph::toGML(outputFile, raptor.layoutGraph);
     }
 };

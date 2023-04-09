@@ -253,3 +253,107 @@ private:
         graph.writeBinary(getParameter("Output file"));
     }
 };
+
+class WriteIntermediateToCSV : public ParameterizedCommand {
+public:
+    WriteIntermediateToCSV(BasicShell& shell)
+        : ParameterizedCommand(shell, "writeIntermediateToCSV", "Writes all the intermediate Data into csv files.")
+    {
+        addParameter("Intermediate Binary");
+        addParameter("Output file");
+    }
+
+    virtual void execute() noexcept
+    {
+        const std::string networkFile = getParameter("Intermediate Binary");
+        const std::string outputFile = getParameter("Output file");
+
+        Intermediate::Data network = Intermediate::Data::FromBinary(networkFile);
+        network.writeCSV(outputFile);
+    }
+};
+
+class WriteRAPTORToCSV : public ParameterizedCommand {
+public:
+    WriteRAPTORToCSV(BasicShell& shell)
+        : ParameterizedCommand(shell, "writeRAPTORToCSV", "Writes all the RAPTOR Data into csv files.")
+    {
+        addParameter("RAPTOR Binary");
+        addParameter("Output file");
+    }
+
+    virtual void execute() noexcept
+    {
+        const std::string networkFile = getParameter("RAPTOR Binary");
+        const std::string outputFile = getParameter("Output file");
+
+        RAPTOR::Data network = RAPTOR::Data::FromBinary(networkFile);
+        network.writeCSV(outputFile);
+    }
+};
+
+class WriteLayoutGraphToGraphML : public ParameterizedCommand {
+public:
+    WriteLayoutGraphToGraphML(BasicShell& shell)
+        : ParameterizedCommand(shell, "writeLayoutGraphToGraphML", "Writes the Layout Graph into a GraphML file.")
+    {
+        addParameter("RAPTOR Binary");
+        addParameter("Output file (Layout Graph)");
+    }
+
+    virtual void execute() noexcept
+    {
+        const std::string networkFile = getParameter("RAPTOR Binary");
+        const std::string outputFileLayout = getParameter("Output file (Layout Graph)");
+
+        RAPTOR::Data network = RAPTOR::Data(networkFile);
+        network.createGraphForMETIS(RAPTOR::TRIP_WEIGHTED | RAPTOR::TRANSFER_WEIGHTED, true);
+
+	Graph::toGML(outputFileLayout, network.layoutGraph);
+    }
+};
+
+class WriteTripBasedToCSV : public ParameterizedCommand {
+public:
+    WriteTripBasedToCSV(BasicShell& shell)
+        : ParameterizedCommand(shell, "writeTripBasedToCSV", "Writes all the TripBased Data into csv files.")
+    {
+        addParameter("Trip Based Binary");
+        addParameter("Output file");
+    }
+
+    virtual void execute() noexcept
+    {
+        const std::string networkFile = getParameter("Trip Based Binary");
+        const std::string outputFile = getParameter("Output file");
+
+        TripBased::Data network = TripBased::Data(networkFile);
+        network.raptorData.writeCSV(outputFile);
+
+        Graph::toEdgeListCSV(outputFile + "transfers", network.stopEventGraph);
+    }
+};
+
+class WriteTripBasedToGraphML : public ParameterizedCommand {
+public:
+    WriteTripBasedToGraphML(BasicShell& shell)
+        : ParameterizedCommand(shell, "writeTripBasedToGraphML", "Writes the StopEvent Graph into a GraphML file.")
+    {
+        addParameter("Trip Based Binary");
+        addParameter("Output file (StopEvent Graph)");
+        addParameter("Output file (Layout Graph)");
+    }
+
+    virtual void execute() noexcept
+    {
+        const std::string networkFile = getParameter("Trip Based Binary");
+        const std::string outputFileStopEvent = getParameter("Output file (StopEvent Graph)");
+        const std::string outputFileLayout = getParameter("Output file (Layout Graph)");
+
+        TripBased::Data network = TripBased::Data(networkFile);
+        network.raptorData.createGraphForMETIS(RAPTOR::TRIP_WEIGHTED | RAPTOR::TRANSFER_WEIGHTED, true);
+
+	Graph::toGML(outputFileLayout, network.raptorData.layoutGraph);
+        Graph::toGML(outputFileStopEvent, network.stopEventGraph);
+    }
+};

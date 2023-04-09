@@ -60,3 +60,69 @@ Additionally, query performance can be evaluated by using the following commands
 * ``runTransitiveTripBasedQueries`` runs Trip-Based queries. Note that some *transferedges* are deleted (during the Flag Computation), since unnecessary edges are not needed for correct queries. Hence by comparing the performance of Arc-Flag TB and the original TB, make sure to not pass the already 'smaller' Trip-Based binary to test the original algorithm.
 
 * ``runTransitiveArcTripBasedQueries`` runs Arc-Flag TB queries. Note that an additional third parameter can be used to switch from / to the compressed Arc-Flag TB variant.
+
+## Example
+
+In the directory ``test`` is an example GTFS datasets (IC/ICE from [gtfs.de](https://gtfs.de/de/feeds/de_fv/)). You can run the executable ``ARCTB`` and inside, call ``runScript prepLayoutGraph.script``. The last command executed by the script should produces the following output:
+
+```
+> createLayoutGraph ../test/raptor.binary ../test/exports/raptor.layout.graph true
+Loading static graph from ../test/raptor.binary.graph
+RAPTOR public transit data:
+   Number of Stops:                   828
+   Number of Routes:                2,755
+   Number of Trips:                 8,408
+   Number of Stop Events:         100,389
+   Number of Connections:          91,981
+   Number of Vertices:                828
+   Number of Edges:                   160
+   First Day:                           0
+   Last Day:                            2
+   Bounding Box:             [(2.35912, 44.5061) | (22.7764, 56.1501)]
+   Number of partitions:                1
+METIS-Graph creating with:
+	trip weighted
+	transfer weighted
+100.00% (1ms)                                   
+Graph has been created!
+Number of vertices:	828
+Number of edges:	4024
+100.00% (0ms)                                   
+Finished creating metis file ../test/exports/raptor.layout.graph
+```
+
+After partitioning the layoutgraph (there is an example with k=32 inside the ``test/exports`` folder), you can run ``ARCTB`` again and call ``runScript arcFlagTB.script``. This yields the following:
+
+```
+> computeArcFlagTB ../test/trip.binary ../test/trip.binary None false false
+Loading static graph from ../test/trip.binary.raptor.graph
+Loading static graph from ../test/trip.binary.graph
+Trip-Based public transit data:
+   Number of Stops:                   828
+   Number of Routes:                2,755
+   Number of Trips:                 8,408
+   Number of Stop Events:         100,389
+   Number of Connections:          91,981
+   Number of Transfers:         1,145,788
+   Number of Vertices:                828
+   Number of Edges:                   160
+   First Day:                           0
+   Last Day:                            2
+   Bounding Box:             [(2.35912, 44.5061) | (22.7764, 56.1501)]
+   Number Of Partitions:               32
+Computing ARCFlags with 6 threads.
+Collecting all departure times
+100.00% (2ms)                                   
+Collecting done, we now sort all the departure times!
+Now starting the preprocessing!
+100.00% (446ms)                                 
+Done! Now bitwise or-ing all the edges from the threads!
+Preprocessing done!
+Now deleting unnecessary edges
+ARC-FLAG Stats:
+Number of Flags set:          332051 (7%)
+Number of removed edges:      1003183 (87%)
+100.00% (45ms)                                  
+Saving the compressed flags!
+Done with compressed flags!
+```
