@@ -775,18 +775,15 @@ public:
 
     virtual void execute() noexcept
     {
-        const bool runCompressedQueries = getParameter<bool>("Compressed?");
-        if (runCompressedQueries)
-            std::cout << "Running Arc-Flag TB Compressed Queries!\n";
         const std::string inputFile = getParameter("Trip-Based input file");
         TripBased::Data tripBasedData(inputFile);
         tripBasedData.printInfo();
-        TripBased::ARCTransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData, runCompressedQueries,
-            inputFile);
 
         const size_t n = getParameter<size_t>("Number of queries");
         const std::vector<StopQuery> queries = generateRandomStopQueries(tripBasedData.numberOfStops(), n);
 
+        TripBased::ARCTransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData, getParameter<bool>("Compressed?"),
+            inputFile);
         double numJourneys = 0;
         for (const StopQuery& query : queries) {
             algorithm.run(query.source, query.departureTime, query.target);

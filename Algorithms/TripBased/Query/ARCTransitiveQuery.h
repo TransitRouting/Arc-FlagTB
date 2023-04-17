@@ -1,3 +1,22 @@
+/**********************************************************************************
+
+ Copyright (c) 2023 Patrick Steil
+
+ MIT License
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
+ files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
+ modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
+ is furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+**********************************************************************************/
 #pragma once
 
 #include "../../../DataStructures/Container/Set.h"
@@ -146,7 +165,6 @@ public:
         sourceStop = source;
         targetStop = target;
         sourceDepartureTime = departureTime;
-        // set target flag
         targetFlag = data.getPartitionCell(StopId(target));
         computeInitialAndFinalTransfers();
         evaluateInitialTransfers();
@@ -162,7 +180,7 @@ public:
     inline int getEarliestArrivalNumberOfTrips() const noexcept
     {
         const int eat = targetLabels.back().arrivalTime;
-        for (size_t i = 0; i < targetLabels.size(); i++) {
+        for (size_t i = 0; i < targetLabels.size(); ++i) {
             if (targetLabels[i].arrivalTime == eat)
                 return i;
         }
@@ -185,7 +203,7 @@ public:
     inline std::vector<RAPTOR::ArrivalLabel> getArrivals() const noexcept
     {
         std::vector<RAPTOR::ArrivalLabel> result;
-        for (size_t i = 0; i < targetLabels.size(); i++) {
+        for (size_t i = 0; i < targetLabels.size(); ++i) {
             if (targetLabels[i].arrivalTime >= INFTY)
                 continue;
             if ((result.size() >= 1) && (result.back().arrivalTime == targetLabels[i].arrivalTime))
@@ -278,9 +296,9 @@ private:
                 } else {
                     if (label.departureTimes[labelIndex + tripIndex - 1] < stopDepartureTime)
                         continue;
-                    tripIndex--;
+                    --tripIndex;
                     while ((tripIndex > 0) && (label.departureTimes[labelIndex + tripIndex - 1] >= stopDepartureTime)) {
-                        tripIndex--;
+                        --tripIndex;
                     }
                 }
                 enqueue(firstTrip + tripIndex, StopIndex(stopIndex + 1));
@@ -303,7 +321,7 @@ private:
             targetLabels.emplace_back(targetLabels.back());
             // Evaluate final transfers in order to check if the target is
             // reachable
-            for (size_t i = roundBegin; i < roundEnd; i++) {
+            for (size_t i = roundBegin; i < roundEnd; ++i) {
                 const TripLabel& label = queue[i];
                 profiler.countMetric(METRIC_SCANNED_TRIPS);
                 for (StopEventId j = label.begin; j < label.end; j++) {
@@ -317,7 +335,7 @@ private:
                 }
             }
             // Find the range of transfers for each trip
-            for (size_t i = roundBegin; i < roundEnd; i++) {
+            for (size_t i = roundBegin; i < roundEnd; ++i) {
                 TripLabel& label = queue[i];
                 for (StopEventId j = label.begin; j < label.end; j++) {
                     if (data.arrivalEvents[j].arrivalTime >= minArrivalTime)
@@ -327,11 +345,21 @@ private:
                 edgeRanges[i].end = data.stopEventGraph.beginEdgeFrom(Vertex(label.end));
             }
             // Relax the transfers for each trip
-            for (size_t i = roundBegin; i < roundEnd; i++) {
-                const EdgeRange& label = edgeRanges[i];
-                for (Edge edge = label.begin; edge < label.end; ++edge) {
-                    profiler.countMetric(METRIC_RELAXED_TRANSFERS);
-                    enqueue(edge, i);
+            if (compressed) {
+                for (size_t i = roundBegin; i < roundEnd; ++i) {
+                    const EdgeRange& label = edgeRanges[i];
+                    for (Edge edge = label.begin; edge < label.end; ++edge) {
+                        profiler.countMetric(METRIC_RELAXED_TRANSFERS);
+                        enqueueComp(edge, i);
+                    }
+                }
+            } else {
+                for (size_t i = roundBegin; i < roundEnd; ++i) {
+                    const EdgeRange& label = edgeRanges[i];
+                    for (Edge edge = label.begin; edge < label.end; ++edge) {
+                        profiler.countMetric(METRIC_RELAXED_TRANSFERS);
+                        enqueue(edge, i);
+                    }
                 }
             }
 
@@ -357,13 +385,20 @@ private:
     {
         profiler.countMetric(METRIC_ENQUEUES);
         const EdgeLabel& label = edgeLabels[edge];
-        if (compressed) {
-            if (!compressedFlags[compressedIndizes[edge]][targetFlag] || reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent))
-                return;
-        } else {
-            if (!label.arcFlags[targetFlag] || reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent))
-                return;
-        }
+        if (!label.arcFlags[targetFlag] || reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent))
+            return;
+        queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + reachedIndex(label.trip)), parent);
+        ++queueSize;
+        AssertMsg(queueSize <= queue.size(), "Queue is overfull!");
+        reachedIndex.update(label.trip, StopIndex(label.stopEvent - label.firstEvent));
+    }
+
+    inline void enqueueComp(const Edge edge, const size_t parent) noexcept
+    {
+        profiler.countMetric(METRIC_ENQUEUES);
+        const EdgeLabel& label = edgeLabels[edge];
+        if (!compressedFlags[compressedIndizes[edge]][targetFlag] || reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent))
+            return;
         queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + reachedIndex(label.trip)), parent);
         ++queueSize;
         AssertMsg(queueSize <= queue.size(), "Queue is overfull!");
@@ -424,7 +459,7 @@ private:
     inline std::pair<StopEventId, Edge> getParent(const TripLabel& parentLabel,
         const StopEventId departureStopEvent) const noexcept
     {
-        for (StopEventId i = parentLabel.begin; i < parentLabel.end; i++) {
+        for (StopEventId i = parentLabel.begin; i < parentLabel.end; ++i) {
             for (const Edge edge : data.stopEventGraph.edgesFrom(Vertex(i))) {
                 if (edgeLabels[edge].stopEvent == departureStopEvent)
                     return std::make_pair(i, edge);
@@ -441,7 +476,7 @@ private:
         // length 0
         const TripId trip = data.tripOfStopEvent[parentLabel.begin];
         const StopEventId end = data.firstStopEventOfTrip[trip + 1];
-        for (StopEventId i = parentLabel.begin; i < end; i++) {
+        for (StopEventId i = parentLabel.begin; i < end; ++i) {
             const int timeToTarget = transferToTarget[data.arrivalEvents[i].stop];
             if (timeToTarget == INFTY)
                 continue;
@@ -481,7 +516,6 @@ private:
 
     Profiler profiler;
 
-    // target flag
     int targetFlag;
 
     std::vector<std::vector<bool>> compressedFlags;

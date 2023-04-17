@@ -1,22 +1,22 @@
 /**********************************************************************************
- Copyright (c) 2022 Patrick Steil
- MIT License
- Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions: The above copyright notice and this
-permission notice shall be included in all copies or substantial portions of
-the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
-EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
-OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-**********************************************************************************/
 
+ Copyright (c) 2023 Patrick Steil
+
+ MIT License
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
+ files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
+ modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
+ is furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+**********************************************************************************/
 #pragma once
 
 #include <numeric>
@@ -72,7 +72,7 @@ public:
         collectAllDepTimes(minDepartureTime, maxDepartureTime, true);
 
         if (verbose)
-            std::cout << "Now starting the preprocessing!\n";
+            std::cout << "Starting the computation!\n";
         Progress progress(data.numberOfStops());
 
         const int numCores = numberOfCores();
@@ -87,7 +87,7 @@ public:
             CalculateARCFlagsProfile calcARCFlag(data, flagsPerThread[threadId], collectedDepTimes, minDepartureTime,
                 maxDepartureTime, routeLabels);
 
-// one thread handles one trip (and every stopEvent on the trip)
+// one thread handles one stop
 #pragma omp for schedule(dynamic)
             for (size_t stop = 0; stop < data.numberOfStops(); ++stop) {
                 calcARCFlag.run(Vertex(stop), buffer);
@@ -96,9 +96,6 @@ public:
         }
 
         progress.finished();
-
-        if (verbose)
-            std::cout << "Done! Now bitwise or-ing all the edges from the threads!\n";
 
         // now bitwiseor every edge
         std::vector<std::vector<bool>>& toSetFlags(stopEventGraphDynamic.get(ARCFlag));
@@ -229,13 +226,13 @@ public:
     void collectAllDepTimes(const int minDepartureTime = 0, const int maxDepartureTime = 86399,
         const bool verbose = true) noexcept
     {
+        if (verbose)
+            std::cout << "Start by collecting all the departure stopevents into the approriate stop bucket!\n";
         for (StopId stop(0); stop < data.numberOfStops(); ++stop) {
             collectedDepTimes[stop].clear();
             collectedDepTimes[stop].reserve((int)data.numberOfTrips()); // adjustable
         }
 
-        if (verbose)
-            std::cout << "Collecting all departure times\n";
         Progress progress(data.numberOfRoutes());
         for (const RouteId route : data.routes()) {
             const size_t numberOfStops = data.numberOfStopsInRoute(route);
@@ -272,14 +269,12 @@ public:
             ++progress;
         }
 
-        progress.finished();
-
-        if (verbose)
-            std::cout << "Collecting done, we now sort all the departure times!\n";
         for (StopId stop(0); stop < data.numberOfStops(); ++stop) {
             std::stable_sort(collectedDepTimes[stop].begin(), collectedDepTimes[stop].end(),
                 [](const TripStopIndex a, const TripStopIndex b) { return a.depTime > b.depTime; });
         }
+
+        progress.finished();
     }
 
 private:

@@ -5,6 +5,7 @@
 
 #include "../../Algorithms/TripBased/Preprocessing/CompressARCFlags.h"
 #include "../../Algorithms/TripBased/Preprocessing/ComputeARCFlagsProfile.h"
+#include "../../Algorithms/TripBased/Preprocessing/RangeRAPTOR/ComputeARCFlagsProfileRAPTOR.h"
 #include "../../Algorithms/TripBased/Preprocessing/StopEventGraphBuilder.h"
 #include "../../DataStructures/Graph/Graph.h"
 #include "../../DataStructures/RAPTOR/Data.h"
@@ -137,6 +138,68 @@ private:
     }
 };
 
+// RAPTOR with ULTRA Conditions
+class ComputeArcFlagTBRAPTOR : public ParameterizedCommand {
+public:
+    ComputeArcFlagTBRAPTOR(BasicShell& shell)
+        : ParameterizedCommand(shell, "computeArcFlagTBRAPTOR",
+            "Computes Arc-Flags for the given RAPTOR Data and the "
+            "given Partition File (from KaHIP) using the RangeRAPTOR with ULTRA conditions.")
+    {
+        addParameter("Input file (RAPTOR Data)");
+        addParameter("Output file (Trip Data)");
+        addParameter("Input file (Partition File)", "None");
+        addParameter("Verbose", "true");
+        addParameter("Compressing", "true");
+        addParameter("Number of threads", "max");
+        addParameter("Pin multiplier", "1");
+    }
+
+    virtual void execute() noexcept
+    {
+        const std::string inputFile = getParameter("Input file (RAPTOR Data)");
+        const std::string partitionFile = getParameter("Input file (Partition File)");
+        const std::string outputFile = getParameter("Output file (Trip Data)");
+        const bool verbose = getParameter<bool>("Verbose");
+        const bool compress = getParameter<bool>("Compressing");
+        const size_t pinMultiplier = getParameter<size_t>("Pin multiplier");
+
+        RAPTOR::Data raptor(inputFile);
+        if (partitionFile != "None") {
+            raptor.updatePartitionValuesFromFile(partitionFile, verbose);
+        }
+        raptor.useImplicitDepartureBufferTimes();
+        raptor.useImplicitArrivalBufferTimes();
+        raptor.printInfo();
+
+        if (raptor.getNumberOfPartitionCells() == 1) {
+            std::cout << "Number of Partition Cells is 1?\n";
+            return;
+        }
+
+        TripBased::Data trip(raptor);
+
+        TripBased::ComputeARCFlagsProfileRAPTOR arcFlagComputer(raptor, trip, getNumberOfThreads(), pinMultiplier);
+        arcFlagComputer.computeARCFlags(verbose);
+
+        trip.serialize(outputFile);
+
+        if (compress) {
+            TripBased::CompressARCFlags(outputFile);
+        }
+    }
+
+private:
+    inline size_t getNumberOfThreads() const noexcept
+    {
+        if (getParameter("Number of threads") == "max") {
+            return numberOfCores();
+        } else {
+            return getParameter<int>("Number of threads");
+        }
+    }
+};
+
 class CreateLayoutGraph : public ParameterizedCommand {
 public:
     CreateLayoutGraph(BasicShell& shell)
@@ -159,6 +222,6 @@ public:
         raptor.createGraphForMETIS(RAPTOR::TRIP_WEIGHTED | RAPTOR::TRANSFER_WEIGHTED, true);
         raptor.writeMETISFile(outputFile, true);
 
-	Graph::toGML(outputFile, raptor.layoutGraph);
+        Graph::toGML(outputFile, raptor.layoutGraph);
     }
 };

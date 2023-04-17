@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
+#include "../../../Helpers/Assert.h"
 #include "../../../Helpers/Ranges/Range.h"
 #include "../../../Helpers/Vector/Permutation.h"
-#include "../../../assert.h"
 #include "CHData.h"
 #include "WitnessSearch.h"
 

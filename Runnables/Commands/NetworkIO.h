@@ -309,7 +309,7 @@ public:
         RAPTOR::Data network = RAPTOR::Data(networkFile);
         network.createGraphForMETIS(RAPTOR::TRIP_WEIGHTED | RAPTOR::TRANSFER_WEIGHTED, true);
 
-	Graph::toGML(outputFileLayout, network.layoutGraph);
+        Graph::toGML(outputFileLayout, network.layoutGraph);
     }
 };
 
@@ -353,7 +353,7 @@ public:
         TripBased::Data network = TripBased::Data(networkFile);
         network.raptorData.createGraphForMETIS(RAPTOR::TRIP_WEIGHTED | RAPTOR::TRANSFER_WEIGHTED, true);
 
-	Graph::toGML(outputFileLayout, network.raptorData.layoutGraph);
+        Graph::toGML(outputFileLayout, network.raptorData.layoutGraph);
         Graph::toGML(outputFileStopEvent, network.stopEventGraph);
     }
 };

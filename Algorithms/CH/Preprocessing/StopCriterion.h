@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "../../../Helpers/Assert.h"
 #include "../../../Helpers/Vector/Permutation.h"
-#include "../../../assert.h"
 #include "CHData.h"
 
 namespace CH {

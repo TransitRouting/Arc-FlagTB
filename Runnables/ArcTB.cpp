@@ -28,6 +28,7 @@ int main(int argc, char** argv)
     new RAPTORToTripBased(shell);
     new CreateLayoutGraph(shell);
     new ComputeArcFlagTB(shell);
+    new ComputeArcFlagTBRAPTOR(shell);
 
     new RunTransitiveRAPTORQueries(shell);
     new RunTransitiveTripBasedQueries(shell);

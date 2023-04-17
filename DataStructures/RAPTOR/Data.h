@@ -953,7 +953,7 @@ public:
     {
         IO::serialize(fileName, firstRouteSegmentOfStop, firstStopIdOfRoute, firstStopEventOfRoute, routeSegments,
             stopIds, stopEvents, stopData, routeData, implicitDepartureBufferTimes,
-            implicitArrivalBufferTimes, numberOfPartitions);
+            implicitArrivalBufferTimes);
         transferGraph.writeBinary(fileName + ".graph");
     }
 
@@ -961,7 +961,9 @@ public:
     {
         IO::deserialize(fileName, firstRouteSegmentOfStop, firstStopIdOfRoute, firstStopEventOfRoute, routeSegments,
             stopIds, stopEvents, stopData, routeData, implicitDepartureBufferTimes,
-            implicitArrivalBufferTimes, numberOfPartitions);
+            implicitArrivalBufferTimes);
+        // Quick and dirty to read old files
+        numberOfPartitions = 1;
         transferGraph.readBinary(fileName + ".graph");
     }
 
