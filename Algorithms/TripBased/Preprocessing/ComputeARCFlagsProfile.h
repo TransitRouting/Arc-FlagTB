@@ -42,10 +42,8 @@ public:
         collectedDepTimes.assign(data.numberOfStops(), {});
         Graph::copy(data.stopEventGraph, stopEventGraphDynamic);
 
-        // copy flags for every thread => bitWiseOr in the end
-        std::vector<bool> emptyFlagOneEdge(data.getNumberOfPartitionCells(), false);
-        std::vector<std::vector<bool>> initialFlags(data.stopEventGraph.numEdges(), emptyFlagOneEdge);
-        flagsPerThread.assign(numberOfThreads, initialFlags);
+        std::vector<uint8_t> emptyFlagOneEdge(data.getNumberOfPartitionCells(), 0);
+        uint8InitialFlags.assign(data.stopEventGraph.numEdges(), emptyFlagOneEdge);
 
         for (const RouteId route : data.raptorData.routes()) {
             const size_t numberOfStops = data.numberOfStopsInRoute(route);
@@ -81,10 +79,9 @@ public:
         {
             int threadId = omp_get_thread_num();
             pinThreadToCoreId((threadId * pinMultiplier) % numCores);
-            AssertMsg(omp_get_num_threads() == numberOfThreads,
-                "Number of threads is " << omp_get_num_threads() << ", but should be " << numberOfThreads << "!");
+            AssertMsg(omp_get_num_threads() == numberOfThreads, "Number of threads is " << omp_get_num_threads() << ", but should be " << numberOfThreads << "!");
 
-            CalculateARCFlagsProfile calcARCFlag(data, flagsPerThread[threadId], collectedDepTimes, minDepartureTime,
+            CalculateARCFlagsProfile calcARCFlag(data, uint8InitialFlags, collectedDepTimes, minDepartureTime,
                 maxDepartureTime, routeLabels);
 
 // one thread handles one stop
@@ -97,8 +94,25 @@ public:
 
         progress.finished();
 
-        // now bitwiseor every edge
         std::vector<std::vector<bool>>& toSetFlags(stopEventGraphDynamic.get(ARCFlag));
+
+        omp_set_num_threads(numberOfThreads);
+#pragma omp parallel
+        {
+            int threadId = omp_get_thread_num();
+            pinThreadToCoreId((threadId * pinMultiplier) % numCores);
+            AssertMsg(omp_get_num_threads() == numberOfThreads,
+                "Number of threads is " << omp_get_num_threads() << ", but should be " << numberOfThreads << "!");
+#pragma omp for schedule(dynamic)
+            for (size_t edge = 0; edge < toSetFlags.size(); ++edge) {
+                for (int i(0); i < data.getNumberOfPartitionCells(); ++i) {
+                    toSetFlags[edge][i] = (bool)uint8InitialFlags[edge][i];
+                }
+            }
+        }
+
+        /*
+        // now bitwiseor every edge
 
         // idea: one thread handles one edge => goes through all flags of threads
         omp_set_num_threads(numberOfThreads);
@@ -128,6 +142,7 @@ public:
         }
         // free up memory
         std::vector<std::vector<std::vector<bool>>>().swap(flagsPerThread);
+        */
 
         if (fixingDepTime) {
             if (verbose)
@@ -278,8 +293,7 @@ public:
     }
 
 private:
-    std::vector<std::vector<std::vector<bool>>> flagsPerThread;
-    std::vector<std::vector<size_t>> counterPerThread;
+    std::vector<std::vector<uint8_t>> uint8InitialFlags;
     Data& data;
     const int numberOfThreads;
     const int pinMultiplier;

@@ -131,11 +131,11 @@ private:
     };
 
 public:
-    CalculateARCFlagsProfile(Data& data, std::vector<std::vector<bool>>& flagsOfThread,
+    CalculateARCFlagsProfile(Data& data, std::vector<std::vector<uint8_t>>& uint8Flags,
         std::vector<std::vector<TripStopIndex>>& collectedDepTimes, int minDepartureTime,
         int maxDepartureTime, std::vector<TripBased::RouteLabel>& routeLabels)
         : data(data)
-        , flagsOfThread(flagsOfThread)
+        , uint8Flags(uint8Flags)
         , numberOfPartitions(data.raptorData.numberOfPartitions)
         , transferFromSource(data.numberOfStops(), INFTY)
         , lastSource(StopId(0))
@@ -274,9 +274,9 @@ public:
                 } else {
                     if (label.departureTimes[labelIndex + tripIndex - 1] < stopDepartureTime)
                         continue;
-                    tripIndex--;
+                    --tripIndex;
                     while ((tripIndex > 0) && (label.departureTimes[labelIndex + tripIndex - 1] >= stopDepartureTime)) {
-                        tripIndex--;
+                        --tripIndex;
                     }
                 }
                 enqueue(firstTrip + tripIndex, StopIndex(stopIndex + 1));
@@ -381,7 +381,7 @@ private:
         const StopEventId firstEvent = data.firstStopEventOfTrip[trip];
         queue[queueSize] = TripLabel(StopEventId(firstEvent + index), StopEventId(firstEvent + reachedIndex(trip, 1)));
         tripLabelEdge[queueSize] = std::make_pair(noEdge, noStopEvent); // noStopEvent since this is the first trip
-        queueSize++;
+        ++queueSize;
         AssertMsg(queueSize <= queue.size(), "Queue is overfull!");
         reachedIndex.update(trip, index, 1);
     }
@@ -394,7 +394,7 @@ private:
             return;
         queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + reachedIndex(label.trip, n + 1)), parent);
         tripLabelEdge[queueSize] = std::make_pair(edge, fromStopEventId);
-        queueSize++;
+        ++queueSize;
         AssertMsg(queueSize <= queue.size(), "Queue is overfull!");
         reachedIndex.update(label.trip, StopIndex(label.stopEvent - label.firstEvent), n + 1);
     }
@@ -488,7 +488,7 @@ private:
                                 alreadyInVector[(int)targetTrip] = true;
                             }
                             // flag this edge
-                            flagsOfThread[edge][targetFlag] = true;
+                            uint8Flags[edge][targetFlag] = 1;
                         }
                     }
                 }
@@ -545,7 +545,7 @@ private:
                 bufferedJourney.push_back(BufferJourneyLeg(tripId, StopId(departureStop), arrivalStop));
             parent = label.parent;
             if (edge != noEdge)
-                flagsOfThread[edge][targetCell] = true;
+                uint8Flags[edge][targetCell] = 1;
         }
     }
 
@@ -562,34 +562,10 @@ private:
         return std::make_pair(noEdge, noStopEvent);
     }
 
-    /*
-    inline void unwindJourney(const TargetLabel& targetLabel, const int
-    targetCell, const int n) noexcept { StopEventId departureStopEvent(0);
-        StopEventId arrivalStopEvent(0);
-        TripId tripId(0);
-
-        u_int32_t parent = targetLabel.parent;
-
-        while (parent != u_int32_t(-1)) {
-            AssertMsg(parent < queueSize, "Parent " << parent << " is out of
-    range!");
-
-            const TripLabel& label = queue[parent];
-            // this is to get a fast acces of the edge
-            std::pair<Edge, StopEventId>& pairOfTripLabel =
-    tripLabelEdge[parent]; parent = label.parent;
-
-            // add Flags to edge
-            if (pairOfTripLabel.first != noEdge)
-    flagsOfThread[pairOfTripLabel.first][targetCell] = true;
-        }
-    }
-    */
-
 private:
     Data& data;
 
-    std::vector<std::vector<bool>>& flagsOfThread;
+    std::vector<std::vector<uint8_t>>& uint8Flags;
 
     int numberOfPartitions;
     std::vector<int> transferFromSource;

@@ -953,17 +953,25 @@ public:
     {
         IO::serialize(fileName, firstRouteSegmentOfStop, firstStopIdOfRoute, firstStopEventOfRoute, routeSegments,
             stopIds, stopEvents, stopData, routeData, implicitDepartureBufferTimes,
-            implicitArrivalBufferTimes);
+            implicitArrivalBufferTimes, numberOfPartitions);
         transferGraph.writeBinary(fileName + ".graph");
     }
 
     inline void deserialize(const std::string& fileName) noexcept
     {
-        IO::deserialize(fileName, firstRouteSegmentOfStop, firstStopIdOfRoute, firstStopEventOfRoute, routeSegments,
+        // Quick and dirty to read old files
+        try {
+            IO::deserialize(fileName, firstRouteSegmentOfStop, firstStopIdOfRoute, firstStopEventOfRoute, routeSegments,
+            stopIds, stopEvents, stopData, routeData, implicitDepartureBufferTimes,
+            implicitArrivalBufferTimes, numberOfPartitions);
+        }
+        catch (const std::exception& e) {
+            std::cout << "Tried reading additional information from the binary, now filling with default value!\n";
+            IO::deserialize(fileName, firstRouteSegmentOfStop, firstStopIdOfRoute, firstStopEventOfRoute, routeSegments,
             stopIds, stopEvents, stopData, routeData, implicitDepartureBufferTimes,
             implicitArrivalBufferTimes);
-        // Quick and dirty to read old files
-        numberOfPartitions = 1;
+            numberOfPartitions = 1;
+        }
         transferGraph.readBinary(fileName + ".graph");
     }
 
