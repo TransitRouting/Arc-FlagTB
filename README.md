@@ -1,3 +1,4 @@
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/f5d222d1d67144609e81d63cc9acf883)](https://app.codacy.com/gh/TransitRouting/Arc-FlagTB/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Arc-Flag Trip-Based Public Transit Routing (Arc-Flag TB)
