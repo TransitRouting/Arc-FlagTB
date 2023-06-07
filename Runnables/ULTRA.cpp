@@ -26,6 +26,7 @@ int main(int argc, char** argv)
     new ValidateEventToEventShortcuts(shell);
 
     new RunTransitiveCSAQueries(shell);
+    new RunTransitiveProfileCSAQueries(shell);
     new RunDijkstraCSAQueries(shell);
     new RunHLCSAQueries(shell);
     new RunULTRACSAQueries(shell);

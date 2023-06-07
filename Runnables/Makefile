@@ -6,7 +6,7 @@ RELEASE=-ffast-math -ftree-vectorize -Wfatal-errors -DNDEBUG
 
 
 all: ArcTBRelease NetworkRelease ULTRARelease 
-# all: ArcTBDebug # NetworkDebug ULTRADebug
+# all: ArcTBDebug NetworkDebug ULTRADebug
 
 NetworkDebug:
 	$(CC) $(FLAGS) $(OPTIMIZATION) $(DEBUG) -o Network Network.cpp

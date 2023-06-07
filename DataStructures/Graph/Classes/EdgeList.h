@@ -579,7 +579,7 @@ public:
     {
         vertexAttributes.serialize(fileName, separator);
         edgeAttributes.serialize(fileName, separator);
-        Graph::writeStatisticsFile(*this, fileName, separator);
+        // Graph::writeStatisticsFile(*this, fileName, separator);
     }
 
     inline void readBinary(const std::string& fileName, const std::string& separator = ".", bool debug = true) noexcept

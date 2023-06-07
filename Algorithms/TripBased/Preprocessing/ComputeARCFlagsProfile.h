@@ -27,7 +27,7 @@
 #include "../../../Helpers/Console/Progress.h"
 #include "../../../Helpers/MultiThreading.h"
 #include "../../../Helpers/String/String.h"
-#include "CalculateARCFlagsProfile.h"
+#include "CalculateARCFlagsProfileOLD.h"
 
 namespace TripBased {
 
@@ -94,7 +94,7 @@ public:
 
         progress.finished();
 
-        std::vector<std::vector<bool>>& toSetFlags(stopEventGraphDynamic.get(ARCFlag));
+        /*std::vector<std::vector<bool>>& toSetFlags(stopEventGraphDynamic.get(ARCFlag));
 
         omp_set_num_threads(numberOfThreads);
 #pragma omp parallel
@@ -110,6 +110,14 @@ public:
                 }
             }
         }
+	*/
+	for (Edge edge : stopEventGraphDynamic.edges()) {
+		std::vector<bool> flags(data.getNumberOfPartitionCells(), false);
+		for (int i(0); i < data.getNumberOfPartitionCells(); ++i) {
+			flags[i] = (bool) uint8InitialFlags[edge][i];
+		}
+		stopEventGraphDynamic.set(ARCFlag, edge, flags);
+	}
 
         /*
         // now bitwiseor every edge
@@ -177,7 +185,7 @@ public:
                                     Edge originalEdge = stopEventGraphDynamic.findEdge(
                                         fromVertex, Vertex(stopEventGraphDynamic.get(ToVertex, edge)));
                                     if (originalEdge != noEdge) {
-                                        bitWiseOr(toSetFlags[originalEdge], toSetFlags[edge]);
+                                        bitWiseOr(stopEventGraphDynamic.get(ARCFlag, originalEdge), stopEventGraphDynamic.get(ARCFlag, edge));
                                     }
                                 }
                             }

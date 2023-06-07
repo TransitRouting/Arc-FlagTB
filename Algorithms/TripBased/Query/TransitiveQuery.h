@@ -118,7 +118,7 @@ public:
         }
         profiler.registerPhases({ PHASE_SCAN_INITIAL, PHASE_EVALUATE_INITIAL, PHASE_SCAN_TRIPS });
         profiler.registerMetrics({ METRIC_ROUNDS, METRIC_SCANNED_TRIPS, METRIC_SCANNED_STOPS, METRIC_RELAXED_TRANSFERS,
-            METRIC_ENQUEUES, METRIC_ADD_JOURNEYS });
+            METRIC_ENQUEUES, METRIC_ADD_JOURNEYS, METRIC_COUNT_DISTANCE });
     }
 
     inline void run(const Vertex source, const int departureTime, const Vertex target) noexcept
@@ -342,8 +342,16 @@ private:
     {
         profiler.countMetric(METRIC_ENQUEUES);
         const EdgeLabel& label = edgeLabels[edge];
-        if (reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent))
+        if (reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent)) [[likely]]
             return;
+        /*
+        // check speed & distance to target pruning
+        const long distToTarget = geoDistanceInCM(data.raptorData.stopData[data.getStopOfStopEvent(label.stopEvent)].coordinates, data.raptorData.stopData[lastTarget].coordinates);
+        if (data.raptorData.stopEvents[label.stopEvent].departureTime + distToTarget / (100.0 * data.raptorData.maxSpeed) >= minArrivalTime) {
+            profiler.countMetric(METRIC_COUNT_DISTANCE);
+            return;
+        }
+        */
         queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + reachedIndex(label.trip)), parent);
         queueSize++;
         AssertMsg(queueSize <= queue.size(), "Queue is overfull!");

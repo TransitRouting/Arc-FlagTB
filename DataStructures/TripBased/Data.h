@@ -37,7 +37,7 @@ public:
                 routeOfTrip.emplace_back(route);
                 firstStopIdOfTrip.emplace_back(firstStopId);
                 firstStopEventOfTrip.emplace_back(firstStopEvent);
-                for (StopIndex i = StopIndex(0); i < tripLength; i++) {
+                for (StopIndex i = StopIndex(0); i < tripLength; ++i) {
                     tripOfStopEvent.emplace_back(trip);
                     indexOfStopEvent.emplace_back(i);
                     arrivalEvents.emplace_back(raptorData.stopEvents[arrivalEvents.size()].arrivalTime,
@@ -252,13 +252,13 @@ public:
             tripsBegin + (((time - firstDeparture) * (tripsEnd - tripsBegin - 1)) / (lastDeparture - firstDeparture)));
         if (getStopEvent(trip, route.stopIndex).departureTime < time) {
             while (getStopEvent(trip, route.stopIndex).departureTime < time) {
-                trip++;
+                ++trip;
             }
         } else {
             while (getStopEvent(trip, route.stopIndex).departureTime >= time) {
-                trip--;
+                --trip;
             }
-            trip++;
+            ++trip;
         }
         return trip;
     }

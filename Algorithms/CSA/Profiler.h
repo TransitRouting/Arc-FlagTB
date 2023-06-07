@@ -21,11 +21,12 @@ typedef enum {
     PHASE_FINAL_TRANSFERS,
     PHASE_UPWARD_SWEEP,
     PHASE_DOWNWARD_SEARCH,
+    PHASE_REACHABLE_EA_QUERY,
     NUM_PHASES
 } Phase;
 
 constexpr const char* PhaseNames[] = { "Clear", "Initialization", "Connection scan",
-    "Final transfers", "Final upward sweep", "Final downward search" };
+    "Final transfers", "Final upward sweep", "Final downward search", "One Reachability-EA Query" };
 
 typedef enum {
     METRIC_CONNECTIONS,

@@ -1,9 +1,9 @@
-parseGTFS ../test/gtfs/ ../test/gtfs.binary
-gtfsToIntermediate ../test/gtfs.binary 20230408 20230409 false false ../test/intermediate.binary
-reduceToMaximumConnectedComponent ../test/intermediate.binary ../test/intermediate.binary
-reduceGraph ../test/intermediate.binary ../test/intermediate.binary
-makeOneHopTransfers ../test/intermediate.binary 86400 ../test/intermediate.binary true
-reduceToMaximumConnectedComponent ../test/intermediate.binary ../test/intermediate.binary
-reduceGraph ../test/intermediate.binary ../test/intermediate.binary
-intermediateToRAPTOR ../test/intermediate.binary ../test/raptor.binary
-createLayoutGraph ../test/raptor.binary ../test/exports/raptor.layout.graph true
+parseGTFS ../../Datasets/RNV/gtfs/ ../../Datasets/RNV/gtfs.binary
+gtfsToIntermediate ../../Datasets/RNV/gtfs.binary 20220315 20220316 true false ../../Datasets/RNV/intermediate.binary
+reduceGraph ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
+reduceToMaximumConnectedComponent ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
+makeIntermediateTransitive ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
+reduceGraph ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
+makeOneHopTransfers ../../Datasets/RNV/intermediate.binary 86400 ../../Datasets/RNV/intermediate.binary true
+intermediateToRAPTOR ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/raptor.binary
+createLayoutGraph ../../Datasets/RNV/raptor.binary ../../Datasets/RNV/raptor.layout.graph true

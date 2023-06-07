@@ -8,6 +8,7 @@
 #include "../../Algorithms/CSA/CSA.h"
 #include "../../Algorithms/CSA/DijkstraCSA.h"
 #include "../../Algorithms/CSA/HLCSA.h"
+#include "../../Algorithms/CSA/ProfileCSA.h"
 #include "../../Algorithms/CSA/ULTRACSA.h"
 #include "../../Algorithms/RAPTOR/Bounded/BoundedMcRAPTOR.h"
 #include "../../Algorithms/RAPTOR/DijkstraRAPTOR.h"
@@ -25,8 +26,12 @@
 #include "../../Algorithms/RAPTOR/ULTRAMcRAPTOR.h"
 #include "../../Algorithms/RAPTOR/ULTRARAPTOR.h"
 #include "../../Algorithms/TripBased/BoundedMcQuery/BoundedMcQuery.h"
+#include "../../Algorithms/TripBased/Query/ARCProfileQuery.h"
 #include "../../Algorithms/TripBased/Query/ARCTransitiveQuery.h"
+#include "../../Algorithms/TripBased/Query/ARCTransitiveQueryComp.h"
 #include "../../Algorithms/TripBased/Query/McQuery.h"
+#include "../../Algorithms/TripBased/Query/ProfileOneToAllQuery.h"
+#include "../../Algorithms/TripBased/Query/ProfileQuery.h"
 #include "../../Algorithms/TripBased/Query/Query.h"
 #include "../../Algorithms/TripBased/Query/TransitiveQuery.h"
 #include "../../DataStructures/CSA/Data.h"
@@ -646,6 +651,36 @@ public:
     }
 };
 
+class RunTransitiveProfileCSAQueries : public ParameterizedCommand {
+public:
+    RunTransitiveProfileCSAQueries(BasicShell& shell)
+        : ParameterizedCommand(shell, "runTransitiveProfileCSAQueries",
+            "Runs the given number of random transitive ProfileCSA queries.")
+    {
+        addParameter("CSA input file");
+        addParameter("Number of queries");
+    }
+
+    virtual void execute() noexcept
+    {
+        CSA::Data csaData = CSA::Data::FromBinary(getParameter("CSA input file"));
+        csaData.sortConnectionsAscending();
+        csaData.printInfo();
+        CSA::ProfileCSA<true, CSA::AggregateProfiler> algorithm(csaData);
+
+        const size_t n = getParameter<size_t>("Number of queries");
+        const std::vector<StopQuery> queries = generateRandomStopQueries(csaData.numberOfStops(), n);
+
+        double numJourneys = 0;
+        for (const StopQuery& query : queries) {
+            algorithm.run(query.source, query.target, 0, 86400);
+            numJourneys += algorithm.numberOfJourneys(query.source);
+        }
+        algorithm.getProfiler().printStatistics();
+        std::cout << "Avg. journeys: " << String::prettyDouble(numJourneys / n) << std::endl;
+    }
+};
+
 class RunDijkstraCSAQueries : public ParameterizedCommand {
 public:
     RunDijkstraCSAQueries(BasicShell& shell)
@@ -740,24 +775,157 @@ public:
     {
         addParameter("Trip-Based input file");
         addParameter("Number of queries");
+        addParameter("Save Data to Files?", "false");
+    }
+
+    virtual void execute() noexcept
+    {
+	const std::string tripFile = getParameter("Trip-Based input file");
+	const bool SAVE = getParameter<bool>("Save Data to Files?");
+        TripBased::Data tripBasedData(tripFile);
+        tripBasedData.printInfo();
+        TripBased::TransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData);
+
+        const size_t n = getParameter<size_t>("Number of queries");
+        const std::vector<StopQuery> queries = generateRandomStopQueries(tripBasedData.numberOfStops(), n);
+        if (SAVE) IO::serialize(tripFile + ".queries", queries);
+
+        std::vector<std::vector<RAPTOR::Journey>> journeys = {};
+        journeys.reserve(n);
+
+        for (const StopQuery& query : queries) {
+            algorithm.run(query.source, query.departureTime, query.target);
+            journeys.push_back(algorithm.getJourneys());
+        }
+        algorithm.getProfiler().printStatistics();
+        if (SAVE) IO::serialize(tripFile + ".tbJourneys", journeys);
+    }
+};
+
+class RunTransitiveProfileTripBasedQueries : public ParameterizedCommand {
+public:
+    RunTransitiveProfileTripBasedQueries(BasicShell& shell)
+        : ParameterizedCommand(shell, "runTransitiveProfileTripBasedQueries",
+            "Runs the given number of random transitive TripBased queries with a time range of [0, 24 hours).")
+    {
+        addParameter("Trip-Based input file");
+        addParameter("Number of queries");
     }
 
     virtual void execute() noexcept
     {
         TripBased::Data tripBasedData(getParameter("Trip-Based input file"));
         tripBasedData.printInfo();
-        TripBased::TransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData);
+        TripBased::ProfileQuery<TripBased::AggregateProfiler> algorithm(tripBasedData);
 
         const size_t n = getParameter<size_t>("Number of queries");
         const std::vector<StopQuery> queries = generateRandomStopQueries(tripBasedData.numberOfStops(), n);
 
         double numJourneys = 0;
         for (const StopQuery& query : queries) {
-            algorithm.run(query.source, query.departureTime, query.target);
-            numJourneys += algorithm.getJourneys().size();
+            algorithm.run(query.source, query.target, 0, 24 * 60 * 60 - 1);
+            numJourneys += algorithm.getAllJourneys().size();
         }
         algorithm.getProfiler().printStatistics();
         std::cout << "Avg. journeys: " << String::prettyDouble(numJourneys / n) << std::endl;
+    }
+};
+
+class RunTransitiveProfileOneToAllTripBasedQueries : public ParameterizedCommand {
+public:
+    RunTransitiveProfileOneToAllTripBasedQueries(BasicShell& shell)
+        : ParameterizedCommand(shell, "runTransitiveProfileOneToAllTripBasedQueries",
+            "Runs the given number of random transitive TripBased queries.")
+    {
+        addParameter("Trip-Based input file");
+        addParameter("Number of queries");
+    }
+
+    virtual void execute() noexcept
+    {
+        TripBased::Data tripBasedData(getParameter("Trip-Based input file"));
+        tripBasedData.printInfo();
+        TripBased::ProfileOneToAllQuery<TripBased::AggregateProfiler> algorithm(tripBasedData);
+
+        const size_t n = getParameter<size_t>("Number of queries");
+        const std::vector<StopQuery> queries = generateRandomStopQueries(tripBasedData.numberOfStops(), n);
+
+        std::vector<Vertex> targets(tripBasedData.numberOfStops());
+        for (size_t i(0); i < tripBasedData.numberOfStops(); ++i)
+            targets[i] = Vertex(i);
+
+        for (const StopQuery& query : queries) {
+            algorithm.run(query.source, 0, 24 * 60 * 60 - 1, targets);
+        }
+        algorithm.getProfiler().printStatistics();
+    }
+};
+
+class TestTransitiveArcTripBasedQueries : public ParameterizedCommand {
+public:
+    TestTransitiveArcTripBasedQueries(BasicShell& shell)
+        : ParameterizedCommand(shell, "testTransitiveArcTripBasedQueries",
+            "Compares results from the Arc-Flag TB Query vs results from the TB Query.")
+    {
+        addParameter("Trip-Based input file");
+        addParameter("TB Journeys (binary) file");
+        addParameter("Queries (binary) file");
+    }
+
+    virtual void execute() noexcept
+    {
+        const std::string inputFile = getParameter("Trip-Based input file");
+        TripBased::Data tripBasedData(inputFile);
+        tripBasedData.printInfo();
+
+        std::vector<std::vector<RAPTOR::Journey>> originalTBJourneys = {};
+        IO::deserialize(getParameter("TB Journeys (binary) file"), originalTBJourneys);
+
+        std::vector<StopQuery> queries = {};
+        IO::deserialize(getParameter("Queries (binary) file"), queries);
+
+        std::vector<std::vector<RAPTOR::Journey>> arcTBJourneys = {};
+        arcTBJourneys.reserve(originalTBJourneys.size());
+
+        TripBased::ARCTransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData);
+
+        for (const StopQuery& query : queries) {
+            algorithm.run(query.source, query.departureTime, query.target);
+            arcTBJourneys.push_back(algorithm.getJourneys());
+        }
+        algorithm.getProfiler().printStatistics();
+
+        std::cout << "Comparing the two results!\n";
+
+        Assert(originalTBJourneys.size() == queries.size());
+        Assert(arcTBJourneys.size() == queries.size());
+
+        size_t totalRightJourneys(0);
+        size_t totalRightJourneysArc(0);
+        size_t foundRightJourneys(0);
+        size_t absolutWrong(0);
+        for (size_t i(0); i < queries.size(); ++i) {
+            totalRightJourneys += originalTBJourneys[i].size();
+            foundRightJourneys = 0;
+            for (size_t j(0); j < originalTBJourneys[i].size(); ++j) {
+                for (size_t k(0); k < arcTBJourneys[i].size(); ++k) {
+                    if (countTrips(originalTBJourneys[i][j]) == countTrips(arcTBJourneys[i][k]) && originalTBJourneys[i][j].back().arrivalTime >= arcTBJourneys[i][k].back().arrivalTime) {
+                        ++totalRightJourneysArc;
+                        ++foundRightJourneys;
+                    }
+                }
+            }
+            if (foundRightJourneys != originalTBJourneys[i].size()) {
+                ++absolutWrong;
+                std::cout << "Query from " << queries[i].source << " to " << queries[i].target << " @ " << String::secToString(queries[i].departureTime) << std::endl;
+                std::cout << "TB found the following set:\n";
+                for (auto j : originalTBJourneys[i]) {
+                    for (auto leg : j) std::cout << leg << std::endl;
+                }
+            }
+        }
+        std::cout << "Query errors:\nOptimal Journey found by TB:\t" << totalRightJourneys << "\nOptimal Journeys found by Arc TB:\t" << totalRightJourneysArc << "\nThis represents:\t" << ((float)totalRightJourneysArc / (float)totalRightJourneys) * 100 << " %\n";
+        std::cout << "Absolute Wrong Queries:\t" << absolutWrong << "\nThis represents:\t" << ((float)absolutWrong / queries.size()) * 100 << " %\n";
     }
 };
 
@@ -782,12 +950,53 @@ public:
         const size_t n = getParameter<size_t>("Number of queries");
         const std::vector<StopQuery> queries = generateRandomStopQueries(tripBasedData.numberOfStops(), n);
 
-        TripBased::ARCTransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData, getParameter<bool>("Compressed?"),
-            inputFile);
+	double numJourneys = 0;
+	if (getParameter<bool>("Compressed?")) {
+		TripBased::ARCTransitiveQueryComp<TripBased::AggregateProfiler> algorithm(tripBasedData,
+		    inputFile);
+		for (const StopQuery& query : queries) {
+		    algorithm.run(query.source, query.departureTime, query.target);
+		    numJourneys += algorithm.getJourneys().size();
+		}
+		algorithm.getProfiler().printStatistics();
+	} else {
+		TripBased::ARCTransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData);
+		for (const StopQuery& query : queries) {
+		    algorithm.run(query.source, query.departureTime, query.target);
+		    numJourneys += algorithm.getJourneys().size();
+		}
+		algorithm.getProfiler().printStatistics();
+	}
+
+        std::cout << "Avg. journeys: " << String::prettyDouble(numJourneys / n) << std::endl;
+    }
+};
+
+class RunTransitiveProfileArcTripBasedQueries : public ParameterizedCommand {
+public:
+    RunTransitiveProfileArcTripBasedQueries(BasicShell& shell)
+        : ParameterizedCommand(shell, "runTransitiveProfileArcTripBasedQueries",
+            "Runs the given number of random transitive Arc-Flag TB queries with a time range of [0, 24 hours).")
+    {
+        addParameter("Trip-Based input file");
+        addParameter("Number of queries");
+        addParameter("Compressed?", "false");
+    }
+
+    virtual void execute() noexcept
+    {
+        const std::string inputFile = getParameter("Trip-Based input file");
+        TripBased::Data tripBasedData(inputFile);
+        tripBasedData.printInfo();
+        TripBased::ARCProfileQuery<TripBased::AggregateProfiler> algorithm(tripBasedData, getParameter<bool>("Compressed?"), inputFile);
+
+        const size_t n = getParameter<size_t>("Number of queries");
+        const std::vector<StopQuery> queries = generateRandomStopQueries(tripBasedData.numberOfStops(), n);
+
         double numJourneys = 0;
         for (const StopQuery& query : queries) {
-            algorithm.run(query.source, query.departureTime, query.target);
-            numJourneys += algorithm.getJourneys().size();
+            algorithm.run(query.source, query.target, 0, 24 * 60 * 60 - 1);
+            numJourneys += algorithm.getAllJourneys().size();
         }
         algorithm.getProfiler().printStatistics();
         std::cout << "Avg. journeys: " << String::prettyDouble(numJourneys / n) << std::endl;

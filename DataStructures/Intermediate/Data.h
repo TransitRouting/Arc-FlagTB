@@ -89,7 +89,7 @@ private:
         AssertMsg(file, "Cannot open file " << fileName << '!');
         AssertMsg(file.is_open(), "Cannot open file " << fileName << '!');
         file << "intermediate_trip_id," << indexHeader << ',' << valueHeader << '\n';
-        for (size_t i = 0; i < vector.size(); i++) {
+        for (size_t i = 0; i < vector.size(); ++i) {
             for (const auto& entry : vector[i]) {
                 file << i << ',' << entry.first << ',' << entry.second << '\n';
             }
@@ -110,7 +110,7 @@ private:
                 int value;
                 while (in.readRow(index, value)) {
                     map[index] = value;
-                    count++;
+                    ++count;
                 }
                 return count;
             },
@@ -134,7 +134,7 @@ private:
                     if (tripID >= vector.size())
                         vector.resize(tripID + 1);
                     vector[tripID][index] = value;
-                    count++;
+                    ++count;
                 }
                 return count;
             },
@@ -201,18 +201,18 @@ public:
             std::vector<GTFS::StopTime>& stopTimes = stopTimeTrips[tripId];
             std::sort(stopTimes.begin(), stopTimes.end());
             int offset = 0;
-            for (size_t i = 1; i < stopTimes.size(); i++) {
+            for (size_t i = 1; i < stopTimes.size(); ++i) {
                 if (stopTimes[i - 1].departureTime == stopTimes[i].arrivalTime + offset)
-                    offset++;
+                    ++offset;
                 stopTimes[i].arrivalTime += offset;
                 stopTimes[i].departureTime += offset;
                 if (stopTimes[i - 1].departureTime >= stopTimes[i].arrivalTime) {
-                    timeTravelTrips++;
+                    ++timeTravelTrips;
                     stopTimes.clear();
                 }
             }
             if (stopTimes.empty()) {
-                emptyTrips++;
+                ++emptyTrips;
                 continue;
             }
             const GTFS::Trip& trip = gtfs.trips[tripIds[tripId]];
@@ -278,7 +278,7 @@ public:
     }
 
     inline static Data FromCSV(const std::string& fileNameBase, const std::string& stopFileName = "stops.csv",
-        const std::string& stopEventFileName = "stopEvenents.csv",
+        const std::string& stopEventFileName = "stopEvents.csv",
         const std::string& tripFileName = "trips.csv",
         const std::string& transferFileName = "transfers.csv") noexcept
     {
@@ -331,9 +331,9 @@ public:
             data.stops.emplace_back(stop);
         }
         for (const auto& route : raptorCopy.routes()) {
-            for (size_t i = 0; i < raptorCopy.numberOfTripsInRoute(route); i++) {
+            for (size_t i = 0; i < raptorCopy.numberOfTripsInRoute(route); ++i) {
                 data.trips.emplace_back("", raptorCopy.routeData[route].name, raptorCopy.routeData[route].type);
-                for (StopIndex stopIndex(0); stopIndex < raptorCopy.numberOfStopsInRoute(route); stopIndex++) {
+                for (StopIndex stopIndex(0); stopIndex < raptorCopy.numberOfStopsInRoute(route); ++stopIndex) {
                     const StopId stop = raptorCopy.stopArrayOfRoute(route)[stopIndex];
                     const auto& stopEvent = raptorCopy.tripOfRoute(route, i)[stopIndex];
                     data.trips.back().stopEvents.emplace_back(stop, stopEvent.arrivalTime, stopEvent.departureTime);
@@ -423,7 +423,7 @@ public:
                 const double travelTime = (distance / speedInKMH) * 0.036;
                 transferGraph.addEdge(other, stop).set(TravelTime, travelTime);
                 transferGraph.addEdge(stop, other).set(TravelTime, travelTime);
-                edgeCount++;
+                ++edgeCount;
             }
         }
         transferGraph.packEdges();
@@ -441,16 +441,16 @@ public:
                 newGraph.set(Coordinates, newGraph.addVertex(), transferGraph.get(Coordinates, vertex));
                 newGraph.set(Coordinates, newGraph.addVertex(), transferGraph.get(Coordinates, vertex));
                 if (transferGraph.inDegree(vertex) == 0 || transferGraph.outDegree(vertex) == 0) {
-                    isolatedVertices++;
+                    ++isolatedVertices;
                 }
             }
         }
         std::cout << "   Number of isolated vertices: " << String::prettyInt(isolatedVertices) << std::endl;
         for (const Vertex vertex : transferGraph.vertices()) {
-            const Vertex from = (isStop(vertex)) ? (vertex) : (Vertex((vertex * 2) - numberOfStops()));
+            const Vertex from = (isStop(vertex)) ? (vertex) : (Vertex((vertex << 1) - numberOfStops()));
             for (const Edge edge : transferGraph.edgesFrom(vertex)) {
                 Vertex to = transferGraph.get(ToVertex, edge);
-                to = (isStop(to)) ? (to) : (Vertex((to * 2) - numberOfStops() + 1));
+                to = (isStop(to)) ? (to) : (Vertex((to << 1) - numberOfStops() + 1));
                 newGraph.addEdge(from, to).set(TravelTime, transferGraph.get(TravelTime, edge));
             }
         }
@@ -491,7 +491,7 @@ public:
                 from = nearestOldVerticesOfNewVertex[newVertex][0];
             }
             oldVertexOfNewVertex[newVertex] = from;
-            for (size_t i = 0; i < nearestOldVerticesOfNewVertex[newVertex].size(); i++) {
+            for (size_t i = 0; i < nearestOldVerticesOfNewVertex[newVertex].size(); ++i) {
                 const Vertex oldVertex = nearestOldVerticesOfNewVertex[newVertex][i];
                 if (i > 0 || distanceToNewVertex[oldVertex] > maxUnificationDistanceInCM) {
                     if (distanceToNewVertex[oldVertex] <= maxConnectingDistanceInCM) {
@@ -534,7 +534,7 @@ public:
             vertices.emplace_back(vertex);
         }
         size_t deletionCount = 0;
-        for (size_t i = 0; i < vertices.size(); i++) {
+        for (size_t i = 0; i < vertices.size(); ++i) {
             const Vertex vertex = vertices[i];
             if (isStop(vertex))
                 continue;
@@ -571,7 +571,7 @@ public:
                 if (transferGraph.outDegree(to) <= 2)
                     vertices.emplace_back(to);
                 deleteVertex[vertex] = true;
-                deletionCount++;
+                ++deletionCount;
             }
         }
         transferGraph.deleteVertices(deleteVertex, true);
@@ -611,7 +611,7 @@ public:
     template <typename DELETE_VERTEX>
     inline void deleteVertices(const DELETE_VERTEX& deleteVertex) noexcept
     {
-        for (size_t i = 0; i < trips.size(); i++) {
+        for (size_t i = 0; i < trips.size(); ++i) {
             bool deleteTrip = false;
             for (const StopEvent& stopEvent : trips[i].stopEvents) {
                 if (deleteVertex(stopEvent.stopId)) {
@@ -622,7 +622,7 @@ public:
             if (deleteTrip) {
                 trips[i] = trips.back();
                 trips.pop_back();
-                i--;
+                --i;
             }
         }
         for (const Vertex vertex : transferGraph.vertices()) {
@@ -722,7 +722,7 @@ public:
     inline void duplicateTrips(const int timeOffset = 24 * 60 * 60) noexcept
     {
         const size_t oldTripCount = trips.size();
-        for (size_t i = 0; i < oldTripCount; i++) {
+        for (size_t i = 0; i < oldTripCount; ++i) {
             trips.emplace_back(trips[i], timeOffset);
         }
     }
@@ -732,7 +732,7 @@ public:
         std::vector<bool> deleteVertex(transferGraph.numVertices(), true);
         std::vector<bool> hasStopEvents(numberOfStops(), false);
         int invalidTrips = 0;
-        for (size_t i = 0; i < trips.size(); i++) {
+        for (size_t i = 0; i < trips.size(); ++i) {
             bool deleteTrip = trips[i].stopEvents.size() < 2;
             for (const StopEvent& stopEvent : trips[i].stopEvents) {
                 if (stopEvent.stopId >= stops.size()) {
@@ -743,8 +743,8 @@ public:
             if (deleteTrip) {
                 trips[i] = trips.back();
                 trips.pop_back();
-                invalidTrips++;
-                i--;
+                ++invalidTrips;
+                --i;
             } else {
                 for (const StopEvent& stopEvent : trips[i].stopEvents) {
                     deleteVertex[stopEvent.stopId] = false;
@@ -754,12 +754,12 @@ public:
         }
         std::sort(trips.begin(), trips.end());
         std::vector<size_t> duplicateTrips;
-        for (size_t i = 1; i < trips.size(); i++) {
+        for (size_t i = 1; i < trips.size(); ++i) {
             if (trips[i].dominates(trips[i - 1])) {
                 duplicateTrips.emplace_back(i - 1);
             }
         }
-        for (size_t i = duplicateTrips.size() - 1; i < duplicateTrips.size(); i--) {
+        for (size_t i = duplicateTrips.size() - 1; i < duplicateTrips.size(); --i) {
             trips[duplicateTrips[i]] = trips.back();
             trips.pop_back();
         }
@@ -810,7 +810,7 @@ public:
         permutation = Permutation(Construct::Invert, order);
         permutation.permutate(stops);
         stops.resize(newStops.size());
-        for (size_t i = 0; i < trips.size(); i++) {
+        for (size_t i = 0; i < trips.size(); ++i) {
             for (StopEvent& stopEvent : trips[i].stopEvents) {
                 stopEvent.stopId = permutation.permutate(stopEvent.stopId);
             }
@@ -825,7 +825,7 @@ public:
     inline void removeTripsWithoutBicycleTransport(const std::vector<bool>& bicycleTransportIsAllowedForTrip) noexcept
     {
         std::vector<Trip> filteredTrips;
-        for (size_t i = 0; i < trips.size(); i++) {
+        for (size_t i = 0; i < trips.size(); ++i) {
             if (bicycleTransportIsAllowedForTrip[i]) {
                 filteredTrips.emplace_back(trips[i]);
             }
@@ -840,7 +840,7 @@ private:
     {
         size_t j = routes.size();
         routes.emplace_back(std::vector<Intermediate::Trip> { trips[0] });
-        for (size_t i = 1; i < trips.size(); i++) {
+        for (size_t i = 1; i < trips.size(); ++i) {
             if (equals(trips[i].stopEvents, trips[i - 1].stopEvents)) {
                 bool added = false;
                 for (size_t k = j; k < routes.size(); k++) {
@@ -909,7 +909,7 @@ public:
         std::sort(sortedTrips.begin(), sortedTrips.end());
         std::vector<std::vector<Intermediate::Trip>> routes;
         routes.emplace_back(std::vector<Intermediate::Trip> { sortedTrips[0] });
-        for (size_t i = 1; i < sortedTrips.size(); i++) {
+        for (size_t i = 1; i < sortedTrips.size(); ++i) {
             if (equals(sortedTrips[i].stopEvents, sortedTrips[i - 1].stopEvents)) {
                 routes.back().emplace_back(sortedTrips[i]);
             } else {
@@ -924,7 +924,7 @@ public:
         TransferGraph result;
         result.addVertices(transferGraph.numVertices());
         for (const Trip& trip : trips) {
-            for (size_t i = 1; i < trip.stopEvents.size(); i++) {
+            for (size_t i = 1; i < trip.stopEvents.size(); ++i) {
                 if (trip.stopEvents[i - 1].stopId == trip.stopEvents[i].stopId)
                     continue;
                 const size_t numEdges = result.numEdges();
@@ -1001,7 +1001,7 @@ public:
 
     inline TripId addOrUpdateTrip(const Trip& trip) noexcept
     {
-        for (TripId i = TripId(0); i < trips.size(); i++) {
+        for (TripId i = TripId(0); i < trips.size(); ++i) {
             if (trips[i].matches(trip)) {
                 trips[i].update(trip);
                 return i;
@@ -1022,7 +1022,7 @@ public:
     {
         Permutation splitPermutation = permutation.splitAt(numberOfStops());
         if (!permutateStops) {
-            for (size_t i = 0; i < numberOfStops(); i++) {
+            for (size_t i = 0; i < numberOfStops(); ++i) {
                 splitPermutation[i] = i;
             }
         }
@@ -1155,7 +1155,7 @@ public:
     }
 
     inline void writeCSV(const std::string& fileNameBase, const std::string& stopFileName = "stops.csv",
-        const std::string& stopEventFileName = "stopEvenents.csv",
+        const std::string& stopEventFileName = "stopEvents.csv",
         const std::string& tripFileName = "trips.csv",
         const std::string& transferFileName = "transfers.csv") const noexcept
     {
@@ -1166,9 +1166,26 @@ public:
     }
 
     inline void writeCSV(const std::string& fileNameBase, const std::vector<size_t> tripIds,
-        const std::string& stopEventFileName = "stopEvenents.realtime.csv") const noexcept
+        const std::string& stopEventFileName = "stopEvents.realtime.csv") const noexcept
     {
         writeStopEventCSV(fileNameBase + stopEventFileName, tripIds);
+    }
+
+    // get maximum speed of all trips
+    inline double maxSpeedOfAllTrips() const
+    {
+        double maxSpeed = 0.0; // [m/s]
+        for (auto& trip : trips) {
+            for (size_t i(1); i < trip.stopEvents.size(); ++i) {
+                const double speed = geoDistanceInCM(stops[trip.stopEvents[i - 1].stopId].coordinates,
+                                         stops[trip.stopEvents[i].stopId].coordinates)
+                    / (100.0 * (trip.stopEvents[i].arrivalTime - trip.stopEvents[i - 1].departureTime));
+                if (maxSpeed >= speed)
+                    continue;
+                maxSpeed = speed;
+            }
+        }
+        return maxSpeed;
     }
 
 protected:
@@ -1180,7 +1197,7 @@ protected:
         AssertMsg(file, "Cannot open file " << fileName << "!");
         AssertMsg(file.is_open(), "Cannot open file " << fileName << "!");
         file << idHeader << "," << TYPE::CSV_HEADER << "\n";
-        for (size_t i = 0; i < data.size(); i++) {
+        for (size_t i = 0; i < data.size(); ++i) {
             file << i << "," << data[i].toCSV() << "\n";
         }
         file.close();
@@ -1194,7 +1211,7 @@ protected:
         AssertMsg(file.is_open(), "Cannot open file " << fileName << "!");
         file << "trip_id,stop_event_index," << StopEvent::CSV_HEADER << "\n";
         for (size_t i : tripIds) {
-            for (size_t j = 0; j < trips[i].stopEvents.size(); j++) {
+            for (size_t j = 0; j < trips[i].stopEvents.size(); ++j) {
                 file << i << "," << j << "," << trips[i].stopEvents[j].toCSV() << "\n";
             }
         }
@@ -1235,7 +1252,7 @@ protected:
                     if (stopID >= stops.size())
                         stops.resize(stopID + 1, Stop("NOT_NAMED", Geometry::Point(), -1));
                     stops[stopID] = stop;
-                    count++;
+                    ++count;
                 }
                 return count;
             },
@@ -1257,7 +1274,7 @@ protected:
                     if (tripID >= trips.size())
                         trips.resize(tripID + 1, Trip("NOT_NAMED", "NOT_NAMED", -1));
                     trips[tripID] = trip;
-                    count++;
+                    ++count;
                 }
                 return count;
             },
@@ -1282,7 +1299,7 @@ protected:
                     if (index >= trip.stopEvents.size())
                         trip.stopEvents.resize(index + 1, StopEvent(noStop, -1, -2));
                     trip.stopEvents[index] = stopEvent;
-                    count++;
+                    ++count;
                 }
                 return count;
             },
@@ -1311,7 +1328,7 @@ protected:
                     if (!transferGraph.isVertex(to) || stops[to].minTransferTime == -1)
                         continue;
                     transferGraph.addEdge(from, to).set(TravelTime, travelTime);
-                    count++;
+                    ++count;
                 }
                 return count;
             },

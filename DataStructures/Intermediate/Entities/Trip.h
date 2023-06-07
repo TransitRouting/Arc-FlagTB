@@ -179,13 +179,13 @@ inline bool isOffset(const Trip& a, const Trip& b) noexcept
         "Shifted property can only be tested for trips of equal size!");
     if (a.stopEvents.size() == 0)
         return true;
-    int ofset = a.stopEvents.front().departureTime - b.stopEvents.front().departureTime;
-    if (a.stopEvents.back().arrivalTime - b.stopEvents.back().arrivalTime != ofset)
+    int offset = a.stopEvents.front().departureTime - b.stopEvents.front().departureTime;
+    if (a.stopEvents.back().arrivalTime - b.stopEvents.back().arrivalTime != offset)
         return false;
     for (size_t i = 1; i < a.stopEvents.size() - 1; i++) {
-        if (a.stopEvents[i].arrivalTime - b.stopEvents[i].arrivalTime != ofset)
+        if (a.stopEvents[i].arrivalTime - b.stopEvents[i].arrivalTime != offset)
             return false;
-        if (a.stopEvents[i].departureTime - b.stopEvents[i].departureTime != ofset)
+        if (a.stopEvents[i].departureTime - b.stopEvents[i].departureTime != offset)
             return false;
     }
     return true;

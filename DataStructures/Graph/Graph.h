@@ -18,6 +18,7 @@ using WithTravelTimeAndBundleSize = List<Attribute<TravelTime, int>, Attribute<B
 using WithReverseEdges = List<Attribute<ReverseEdge, Edge>>;
 using WithCapacity = List<Attribute<Capacity, int>>;
 using WithWeight = List<Attribute<Weight, int>>;
+using WithWeightAndCoordinatesAndSize = List<Attribute<Weight, int>, Attribute<Coordinates, Geometry::Point>, Attribute<Size, size_t>>;
 using WithViaVertex = List<Attribute<ViaVertex, Vertex>>;
 using WithViaVertexAndWeight = List<Attribute<ViaVertex, Vertex>, Attribute<Weight, int>>;
 using WithReverseEdgesAndViaVertex = List<Attribute<ReverseEdge, Edge>, Attribute<ViaVertex, Vertex>>;
@@ -53,8 +54,12 @@ using CondensationGraph = DynamicGraph<WithSize, WithTravelTime>;
 using BundledGraph = StaticGraph<WithCoordinates, WithTravelTimeAndBundleSize>;
 using DynamicBundledGraph = DynamicGraph<WithCoordinates, WithTravelTimeAndBundleSize>;
 
+using StaticGraphWithReverseEdge = StaticGraph<NoVertexAttributes, WithReverseEdges>;
+using DynamicGraphWithReverseEdge = DynamicGraph<NoVertexAttributes, WithReverseEdges>;
+
 // Arc-Flag TB
 using DynamicGraphWithWeights = DynamicGraph<WithWeight, WithWeight>;
+using DynamicGraphWithWeightsAndCoordinatesAndSize = DynamicGraph<WithWeightAndCoordinatesAndSize, WithWeight>;
 
 // New Attributes
 using WithARCFlag = List<Attribute<ARCFlag, std::vector<bool>>>;

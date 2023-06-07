@@ -23,7 +23,7 @@ Moritz Potthoff, Jonas Sauer
 In: Proceedings of the 24th Workshop on Algorithm Engineering and Experiments (ALENEX'22), SIAM, pages 145–157, 2022 [pdf](https://epubs.siam.org/doi/epdf/10.1137/1.9781611977042.12) [arXiv](https://arxiv.org/abs/2110.12954)
 
 * *Efficient Algorithms for Fully Multimodal Journey Planning*
-Moritz Potthoff, Jonas
+Moritz Potthoff, Jonas Sauer
 Accepted for publication at the 22nd Symposium on Algorithmic Approaches for Transportation Modelling, Optimization, and Systems (ATMOS'22)
 
 ## Usage

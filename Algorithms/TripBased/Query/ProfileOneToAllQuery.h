@@ -382,7 +382,6 @@ private:
         int travelTime(-1);
         StopId stop(-1);
         Vertex transferStop(-1);
-        long maxMinArrivalTime(0);
         while (roundBegin < roundEnd && n < 16) {
             profiler.countMetric(METRIC_ROUNDS);
             // Evaluate final transfers in order to check if the target is
@@ -393,7 +392,6 @@ private:
                 for (StopEventId j = label.begin; j < label.end; ++j) {
                     stop = data.arrivalEvents[j].stop;
                     profiler.countMetric(METRIC_SCANNED_STOPS);
-                    // IMPORTANT! continue, not break
                     if (data.arrivalEvents[j].arrivalTime >= minArrivalTimeFastLookUp[stop][n])
                         continue;
                     addTargetLabel(stop, data.arrivalEvents[j].arrivalTime, i, n);
@@ -408,17 +406,31 @@ private:
                     }
                 }
             }
+            // Find the range of transfers for each trip
             for (size_t i = roundBegin; i < roundEnd; ++i) {
                 TripLabel& label = queue[i];
-                // pruning idea
-                maxMinArrivalTime = 0;
+                // Jonas: pruning idea
+                /* maxMinArrivalTime = 0;
                 for (StopEventId j(label.begin); j < label.end; ++j) {
                     maxMinArrivalTime = std::max(maxMinArrivalTime, minArrivalTimeFastLookUp[data.arrivalEvents[j].stop][n]);
                 }
                 if (data.arrivalEvents[label.begin].arrivalTime > maxMinArrivalTime)
                     continue;
+                */
+                StopEventId oldEnd = label.end;
+                label.end = label.begin;
+                for (StopEventId j(label.begin); j < oldEnd; ++j) {
+                    const int arrivalTime = data.arrivalEvents[j].arrivalTime;
+                    const StopId stop = data.arrivalEvents[j].stop;
+                    if (minArrivalTimeFastLookUp[stop][n] < arrivalTime)
+                        continue;
+                    label.end = StopEventId(j + 1);
+                }
                 edgeRanges[i].begin = data.stopEventGraph.beginEdgeFrom(Vertex(label.begin));
                 edgeRanges[i].end = data.stopEventGraph.beginEdgeFrom(Vertex(label.end));
+            }
+            // Relax the transfers for each trip
+            for (size_t i = roundBegin; i < roundEnd; ++i) {
                 for (Edge edge = edgeRanges[i].begin; edge < edgeRanges[i].end; edge++) {
                     profiler.countMetric(METRIC_ENQUEUES);
                     enqueue(edge, i, n);

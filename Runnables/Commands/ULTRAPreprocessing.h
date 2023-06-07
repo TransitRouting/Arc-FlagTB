@@ -11,6 +11,7 @@
 #include "../../Algorithms/TripBased/Preprocessing/ShortcutAugmenter.h"
 #include "../../Algorithms/TripBased/Preprocessing/StopEventGraphBuilder.h"
 #include "../../Algorithms/TripBased/Preprocessing/ULTRABuilder.h"
+#include "../../Algorithms/TripBased/Preprocessing/ULTRABuilderTransitive.h"
 #include "../../DataStructures/Graph/Graph.h"
 #include "../../DataStructures/RAPTOR/Data.h"
 #include "../../DataStructures/TripBased/Data.h"
@@ -266,6 +267,47 @@ private:
         data.serialize(outputFile);
     }
 };
+
+class ComputeTransitiveEventToEventShortcuts : public ParameterizedCommand {
+
+public:
+    ComputeTransitiveEventToEventShortcuts(BasicShell& shell) :
+        ParameterizedCommand(shell, "computeTransitiveEventToEventShortcuts", "Computes transitive event-to-event transfer shortcuts using ULTRA and saves the resulting network in Trip-Based format.") {
+        addParameter("Input file");
+        addParameter("Output file");
+        addParameter("Number of threads", "max");
+        addParameter("Pin multiplier", "1");
+    }
+
+    virtual void execute() noexcept {
+        const std::string inputFile = getParameter("Input file");
+        const std::string outputFile = getParameter("Output file");
+        const int numberOfThreads = getNumberOfThreads();
+        const int pinMultiplier = getParameter<int>("Pin multiplier");
+
+        RAPTOR::Data raptor(inputFile);
+        raptor.printInfo();
+        TripBased::Data data(raptor);
+
+        TripBased::ULTRABuilderTransitive<false> shortcutGraphBuilder(data);
+        std::cout << "Computing transitive event-to-event ULTRA shortcuts (parallel with " << numberOfThreads << " threads)." << std::endl;
+        shortcutGraphBuilder.computeShortcuts(ThreadPinning(numberOfThreads, pinMultiplier));
+        Graph::move(std::move(shortcutGraphBuilder.getStopEventGraph()), data.stopEventGraph);
+
+        data.printInfo();
+        data.serialize(outputFile);
+    }
+
+private:
+    inline int getNumberOfThreads() const noexcept {
+        if (getParameter("Number of threads") == "max") {
+            return numberOfCores();
+        } else {
+            return getParameter<int>("Number of threads");
+        }
+    }
+};
+
 
 class RAPTORToTripBased : public ParameterizedCommand {
 public:

@@ -15,12 +15,12 @@
 
 namespace CSA {
 
-template <bool PATH_RETRIEVAL = true, typename PROFILER = NoProfiler>
+template <bool PATH_RETRIEVAL = true, typename PROFILER = NoProfiler, bool LIMITED_WALKING = true>
 class CSA {
 public:
     constexpr static bool PathRetrieval = PATH_RETRIEVAL;
     using Profiler = PROFILER;
-    using Type = CSA<PathRetrieval, Profiler>;
+    using Type = CSA<PathRetrieval, Profiler, LIMITED_WALKING>;
     using TripFlag = Meta::IF<PathRetrieval, ConnectionId, bool>;
 
 private:
@@ -56,7 +56,7 @@ public:
         profiler.initialize();
     }
 
-    inline void run(const StopId source, const int departureTime, const StopId target = noStop) noexcept
+    inline void run(const StopId source, int departureTime, const StopId target = noStop) noexcept
     {
         profiler.start();
 
@@ -159,6 +159,7 @@ private:
             const Connection& connection = data.connections[i];
             if (targetStop != noStop && connection.departureTime > arrivalTime[targetStop])
                 break;
+
             if (connectionIsReachable(connection, i)) {
                 profiler.countMetric(METRIC_CONNECTIONS);
                 arrivalByTrip(connection.arrivalStopId, connection.arrivalTime, connection.tripId);
@@ -194,7 +195,7 @@ private:
 
     inline void arrivalByTrip(const StopId stop, const int time, const TripId trip) noexcept
     {
-        if (arrivalTime[stop] <= time)
+        if (LIMITED_WALKING && arrivalTime[stop] <= time)
             return;
         profiler.countMetric(METRIC_STOPS_BY_TRIP);
         arrivalTime[stop] = time;

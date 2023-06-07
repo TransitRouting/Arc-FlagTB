@@ -603,15 +603,185 @@ public:
 
     inline void serialize(const std::string& fileName) const noexcept
     {
-        IO::serialize(fileName, connections, stopData, tripData);
+        IO::serialize(fileName, connections, stopData, tripData); //, adjTrip, adjStop, connectionsStop, connectionsTrip);
         transferGraph.writeBinary(fileName + ".graph");
     }
 
     inline void deserialize(const std::string& fileName) noexcept
     {
-        IO::deserialize(fileName, connections, stopData, tripData);
+        IO::deserialize(fileName, connections, stopData, tripData); //, adjTrip, adjStop, connectionsStop, connectionsTrip);
         transferGraph.readBinary(fileName + ".graph");
     }
+
+    inline void createGraphForMETIS(const bool verbose = true) noexcept
+    {
+        layoutGraph.clear();
+        layoutGraph.addVertices(stopData.size());
+
+        for (Vertex vertex : layoutGraph.vertices())
+            layoutGraph.set(Weight, vertex, 1);
+
+        size_t amountOfWork = numberOfConnections() + transferGraph.numEdges();
+
+        Progress progCreatingGraph(amountOfWork);
+
+        for (auto& connection : connections) {
+            Vertex from(connection.departureStopId);
+            Vertex to(connection.arrivalStopId);
+
+            if (from == to)
+                continue;
+            Edge edgeHeadTail = layoutGraph.findEdge(from, to);
+
+            if (edgeHeadTail != noEdge) {
+                layoutGraph.set(Weight, edgeHeadTail, layoutGraph.get(Weight, edgeHeadTail) + 1);
+                Edge edgeTailHead = layoutGraph.findEdge(to, from);
+                AssertMsg(edgeTailHead != noEdge, "A reverse edge is missing!\n");
+                layoutGraph.set(Weight, edgeTailHead, layoutGraph.get(Weight, edgeTailHead) + 1);
+            } else {
+                layoutGraph.addEdge(from, to).set(Weight, 1);
+                layoutGraph.addEdge(to, from).set(Weight, 1);
+            }
+
+            progCreatingGraph++;
+        }
+
+        for (const auto [transferEdge, from] : transferGraph.edgesWithFromVertex()) {
+            Vertex to = transferGraph.get(ToVertex, transferEdge);
+            if (to == Vertex(from))
+                continue;
+            AssertMsg(layoutGraph.isVertex(from), "from Vertex is not a valid Vertex!\n");
+            AssertMsg(layoutGraph.isVertex(to), "to Vertex is not a valid Vertex!\n");
+            Edge edge = layoutGraph.findEdge(Vertex(from), to);
+            if (edge == noEdge) {
+                layoutGraph.addEdge(Vertex(from), to).set(Weight, INFTY);
+                layoutGraph.addEdge(to, Vertex(from)).set(Weight, INFTY);
+            }
+
+            progCreatingGraph++;
+        }
+
+        progCreatingGraph.finished();
+        AssertMsg(!(layoutGraph.edges().size() & 1), "The number of edges is uneven, thus we check that every edge "
+                                                     "has a reverse edge in the graph!\n");
+        if (verbose)
+            std::cout << "Graph has been created!\nNumber of vertices:\t" << layoutGraph.numVertices()
+                      << "\nNumber of edges:\t" << layoutGraph.edges().size() << "\n";
+    }
+
+    inline void writeMETISFile(const std::string& fileName, const bool verbose = true) noexcept
+    {
+        Progress progWritingMETIS(stopData.size());
+
+        unsigned long n = layoutGraph.numVertices();
+        unsigned long m = layoutGraph.numEdges() >> 1; // halbieren
+
+        std::ofstream metisFile(fileName);
+
+        // n [NUMBER of nodes]  m [NUMBER of edges]     f [int]
+        // f values:
+        /*
+                f values:
+        1 :     edge-weighted graph
+        10:     node-weighted graph
+        11:     edge & node - weighted graph
+         */
+
+        metisFile << n << " " << m << " 11";
+
+        for (StopId stop(0); stop < numberOfStops(); ++stop) {
+            metisFile << "\n"
+                      << layoutGraph.get(Weight, Vertex(stop)) << " ";
+            for (Edge edge : layoutGraph.edgesFrom(Vertex(stop))) {
+                metisFile << layoutGraph.get(ToVertex, edge).value() + 1 << " " << layoutGraph.get(Weight, edge) << " ";
+            }
+            progWritingMETIS++;
+        }
+        metisFile.close();
+        progWritingMETIS.finished();
+
+        if (verbose)
+            std::cout << "Finished creating metis file " << fileName << "\n";
+    }
+
+    /*
+    // Create Additional Journey Datastructures
+    inline void createJourneyExtrDatastructures(const bool verbose = true) noexcept
+    {
+        if (verbose)
+            std::cout << "Computing the additional datastructures needed for faster journey extraction ...\n";
+
+        adjTrip.assign(numberOfTrips() + 1, 0);
+        adjStop.assign(numberOfStops() + 1, 0);
+        connectionsTrip.assign(numberOfConnections(), ConnectionId(0));
+        connectionsStop.assign(numberOfConnections(), ConnectionId(0));
+
+        // compute number of connections passing through stop
+        for (auto& connection : connections) {
+            ++adjTrip[connection.tripId];
+            ++adjStop[connection.arrivalStopId];
+        }
+
+        // prefix sums (for adjStop and adjTrip)
+
+        int sum(0);
+        for (size_t i(0); i < adjStop.size(); ++i) {
+            int tmp = adjStop[i];
+            adjStop[i] = sum;
+            sum += tmp;
+        }
+
+        Assert((size_t)adjStop[0] == (size_t)0);
+        Assert((size_t)adjStop[numberOfStops()] == (size_t)numberOfConnections());
+
+        sum = 0;
+        for (size_t i(0); i < adjTrip.size(); ++i) {
+            int tmp = adjTrip[i];
+            adjTrip[i] = sum;
+            sum += tmp;
+        }
+
+        Assert((size_t)adjTrip[0] == (size_t)0);
+        Assert((size_t)adjTrip[numberOfTrips()] == (size_t)numberOfConnections());
+
+        // Put connections into correct bucket
+
+        AssertMsg(Vector::isSorted(connections), "Connections must be sorted in ascending order!");
+
+        std::vector<int> stopOffset(numberOfStops(), 0);
+        std::vector<int> tripOffset(numberOfTrips(), 0);
+
+        Progress progress(numberOfConnections() + adjStop.size());
+
+        for (ConnectionId i(0); i < numberOfConnections(); ++i) {
+            auto currentTripId = connections[i].tripId;
+            auto currentStopId = connections[i].arrivalStopId;
+
+            int tripPositionToInsert = adjTrip[currentTripId] + tripOffset[currentTripId];
+            int stopPositionToInsert = adjStop[currentStopId] + stopOffset[currentStopId];
+
+            ++tripOffset[currentTripId];
+            ++stopOffset[currentStopId];
+
+            connectionsTrip[tripPositionToInsert] = i;
+            connectionsStop[stopPositionToInsert] = i;
+            progress++;
+        }
+
+        // sort the connectionIds in connectionsStop by arrivalTime
+
+        for (size_t i(0); i < adjStop.size() - 1; ++i) {
+            std::stable_sort(connectionsStop.begin() + adjStop[i], connectionsStop.begin() + adjStop[i + 1], [this](const auto& lhs, const auto& rhs) {
+                return connections[lhs].arrivalTime < connections[rhs].arrivalTime;
+            });
+            progress++;
+        }
+        progress.finished();
+
+        if (verbose)
+            std::cout << "Finished creating the datastructures!\n";
+    }
+*/
 
 private:
     inline void permutate(const Permutation& fullPermutation, const Permutation& stopPermutation) noexcept
@@ -637,6 +807,16 @@ public:
     std::vector<Trip> tripData;
 
     TransferGraph transferGraph;
+
+    DynamicGraphWithWeights layoutGraph;
+
+    // Journey Extraction - Additional Datastructures
+    /*
+    std::vector<int> adjTrip;
+    std::vector<ConnectionId> connectionsTrip;
+    std::vector<int> adjStop;
+    std::vector<ConnectionId> connectionsStop;
+    */
 };
 
 } // namespace CSA

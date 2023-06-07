@@ -19,8 +19,6 @@
 **********************************************************************************/
 #pragma once
 
-#include <unordered_map>
-
 #include "../../../DataStructures/Container/Set.h"
 #include "../../../DataStructures/RAPTOR/Entities/ArrivalLabel.h"
 #include "../../../DataStructures/RAPTOR/Entities/Journey.h"
@@ -28,21 +26,9 @@
 #include "../../../DataStructures/TripBased/Data.h"
 #include "../../../Helpers/String/String.h"
 #include "../Query/ProfileReachedIndex.h"
+#include "../Query/ReachedIndex.h"
 
 namespace TripBased {
-
-struct BufferJourneyLeg {
-    BufferJourneyLeg(const TripId tripId = noTripId, const StopId start = StopId(0), const StopId end = StopId(0))
-        : tripId(tripId)
-        , start(start)
-        , end(end)
-    {
-    }
-
-    TripId tripId;
-    StopId start;
-    StopId end;
-};
 
 struct TripStopIndex {
     TripStopIndex(const TripId trip = noTripId, const StopIndex stopIndex = StopIndex(-1), const int depTime = never)
@@ -111,10 +97,11 @@ private:
 
     struct TargetLabel {
         TargetLabel(const long arrivalTime = INFTY, const u_int32_t parent = -1,
-            const StopEventId fromStopEventId = noStopEvent)
+            const StopEventId fromStopEventId = noStopEvent, const int run = -1)
             : arrivalTime(arrivalTime)
             , parent(parent)
             , fromStopEventId(fromStopEventId)
+            , run(run)
         {
         }
 
@@ -123,17 +110,19 @@ private:
             arrivalTime = INFTY;
             parent = -1;
             fromStopEventId = noStopEvent;
+            run = -1;
         }
 
         long arrivalTime;
         u_int32_t parent;
         StopEventId fromStopEventId;
+        int run;
     };
 
 public:
     CalculateARCFlagsProfile(Data& data, std::vector<std::vector<uint8_t>>& uint8Flags,
-        std::vector<std::vector<TripStopIndex>>& collectedDepTimes, int minDepartureTime,
-        int maxDepartureTime, std::vector<TripBased::RouteLabel>& routeLabels)
+        std::vector<std::vector<TripStopIndex>>& collectedDepTimes,
+        std::vector<TripBased::RouteLabel>& routeLabels)
         : data(data)
         , uint8Flags(uint8Flags)
         , numberOfPartitions(data.raptorData.numberOfPartitions)
@@ -142,48 +131,53 @@ public:
         , reachedRoutes(data.numberOfRoutes())
         , queue(data.numberOfStopEvents())
         , queueSize(0)
-        , reachedIndex(data)
+        , profileReachedIndex(data)
+        , runReachedIndex(data)
         , stopsToUpdate(data.numberOfStops())
         , edgeLabels(data.stopEventGraph.numEdges())
         , sourceStop(noStop)
-        , minDepartureTime(minDepartureTime)
-        , maxDepartureTime(maxDepartureTime)
         , collectedDepTimes(collectedDepTimes)
         , tripLabelEdge(data.numberOfStopEvents(), std::make_pair(noEdge, noStopEvent))
         , routeLabels(routeLabels)
+        , previousTripLookup(data.numberOfTrips())
+        , timestamp(0)
     {
-        // init empty version
         emptyTargetLabels.assign(16, TargetLabel());
         emptyTargetLabelChanged.assign(16, false);
         emptyMinArrivalTimeFastLookUp.assign(16, INFTY);
-        emptyBufferJourneyForOneStop.assign(16, {}); // init with 16 empty vector
 
         targetLabels.assign(data.raptorData.stopData.size(), emptyTargetLabels);
         targetLabelChanged.assign(data.raptorData.stopData.size(), emptyTargetLabelChanged);
         minArrivalTimeFastLookUp.assign(data.raptorData.stopData.size(), emptyMinArrivalTimeFastLookUp);
-        bufferedJourneys.assign(data.numberOfStops(), emptyBufferJourneyForOneStop);
 
         for (const Edge edge : data.stopEventGraph.edges()) {
             edgeLabels[edge].stopEvent = StopEventId(data.stopEventGraph.get(ToVertex, edge) + 1);
             edgeLabels[edge].trip = data.tripOfStopEvent[data.stopEventGraph.get(ToVertex, edge)];
             edgeLabels[edge].firstEvent = data.firstStopEventOfTrip[edgeLabels[edge].trip];
         }
+
+        // pre load every previous trip since we need to look this up quite often
+        for (const RouteId route : data.routes()) {
+            TripId firstTrip = data.firstTripOfRoute[route];
+            for (const TripId trip : data.tripsOfRoute(route)) {
+                previousTripLookup[trip] = TripId(trip - 1);
+            }
+            previousTripLookup[firstTrip] = firstTrip;
+        }
     }
 
-    inline void run(const Vertex source, const bool buffer = true) noexcept
+    inline void run(const Vertex source) noexcept
     {
-        run(StopId(source), minDepartureTime, maxDepartureTime, buffer);
+        run(StopId(source));
     }
 
-    inline void run(const StopId source, const int minDepTime, const int maxDepTime, const bool buffer = true) noexcept
+    inline void run(const StopId source) noexcept
     {
         sourceStop = source;
-        minDepartureTime = minDepTime;
-        maxDepartureTime = maxDepTime;
         std::vector<RAPTOR::Journey> journeyOfRound;
 
-        // clear everything
-        clear();
+        // reset everything
+        reset();
 
         computeInitialAndFinalTransfers();
 
@@ -193,38 +187,29 @@ public:
 
         // we get the depTimes from the main file that calls this thread
         // collectDepartures();
-        // note: vector is not duplicate free
         size_t i(0), j(0);
-        while (i < collectedDepTimes[source].size()) {
-            stopsToUpdate.clear();
+
+        while (i < collectedDepTimes[sourceStop].size()) {
+            ++timestamp;
+
+            // clear (without reset)
+            clear();
+
             // now we collect all the trips and stop sequences at a certain
-            // timestamp and perform one normal query THIS IS IMPORTANT
-            queueSize = 0;
-            while (j < collectedDepTimes[source].size() && collectedDepTimes[source][i].depTime == collectedDepTimes[source][j].depTime) {
-                enqueue(collectedDepTimes[source][j].trip, StopIndex(collectedDepTimes[source][j].stopIndex + 1));
+            // timestamp and perform one normal query
+            while (j < collectedDepTimes[sourceStop].size() && collectedDepTimes[sourceStop][i].depTime == collectedDepTimes[sourceStop][j].depTime) {
+                enqueue(collectedDepTimes[sourceStop][j].trip, StopIndex(collectedDepTimes[sourceStop][j].stopIndex + 1));
                 ++j;
             }
-            // start BFS phase
+
             scanTrips();
-            if (buffer) {
-                for (const StopId target : stopsToUpdate) {
-                    emptyBuffer(target, collectedDepTimes[source][j - 1].depTime, target);
-                    unwindJourneys(target, buffer);
-                }
-            } else {
-                for (const StopId target : stopsToUpdate) {
-                    unwindJourneys(target, buffer);
-                }
-            }
-            // update and go to next timestamp
+
+            // unwind and flag all Journeys
+            for (const StopId target : stopsToUpdate) {
+                unwindJourneys(target);
+	    }
+
             i = j;
-            // this is needed to check which targetLabels have changed
-            targetLabelChanged.assign(data.raptorData.stopData.size(), emptyTargetLabelChanged);
-        }
-        if (buffer) {
-            for (StopId target : data.stops()) {
-                emptyBuffer(target, 0, target, false);
-            }
         }
     }
 
@@ -232,11 +217,8 @@ public:
     {
         evaluateInitialTransfers();
         scanTrips();
-        for (const StopId target : stopsToUpdate) {
+        for (const StopId target : stopsToUpdate)
             unwindJourneys(target);
-        }
-        targetLabelChanged.assign(data.raptorData.stopData.size(), emptyTargetLabelChanged);
-        stopsToUpdate.clear();
     }
 
     inline void evaluateInitialTransfers() noexcept
@@ -285,7 +267,7 @@ public:
             }
         }
     }
-    inline void unwindJourneys(const StopId& target, const bool buffer = true) noexcept
+    inline void unwindJourneys(const StopId& target) noexcept
     {
         int bestArrivalTime = INFTY;
         int counter(0);
@@ -295,17 +277,23 @@ public:
             if ((!targetLabelChanged[target][counter++]) || label.arrivalTime >= bestArrivalTime)
                 continue;
             bestArrivalTime = label.arrivalTime;
-            getJourneyAndUnwind(label, partition, target, counter - 1, buffer);
+            getJourneyAndUnwind(label, partition, target);
         }
     }
 
 private:
+    inline void reset() noexcept
+    {
+        profileReachedIndex.clear();
+        minArrivalTimeFastLookUp.assign(data.raptorData.stopData.size(), emptyMinArrivalTimeFastLookUp);
+        targetLabels.assign(data.raptorData.stopData.size(), emptyTargetLabels);
+        clear();
+    }
+
     inline void clear() noexcept
     {
         queueSize = 0;
-        reachedIndex.clear();
-        targetLabels.assign(data.raptorData.stopData.size(), emptyTargetLabels);
-        minArrivalTimeFastLookUp.assign(data.raptorData.stopData.size(), emptyMinArrivalTimeFastLookUp);
+        runReachedIndex.clear();
         targetLabelChanged.assign(data.raptorData.stopData.size(), emptyTargetLabelChanged);
         stopsToUpdate.clear();
     }
@@ -330,29 +318,27 @@ private:
         size_t roundBegin = 0;
         size_t roundEnd = queueSize;
         u_int8_t n = 1;
-        // init stuff before loop
         int travelTime(-1);
         StopId stop(-1);
         Vertex transferStop(-1);
-        while (roundBegin < roundEnd && n < 15) {
+
+        while (roundBegin < roundEnd && n < 16) {
             // Evaluate final transfers in order to check if the target is
             // reachable
             for (size_t i = roundBegin; i < roundEnd; ++i) {
                 const TripLabel& label = queue[i];
                 for (StopEventId j = label.begin; j < label.end; ++j) {
                     stop = data.arrivalEvents[j].stop;
-                    // IMPORTANT! continue, not break
-                    if (data.arrivalEvents[j].arrivalTime >= minArrivalTimeFastLookUp[stop][n])
-                        continue;
-                    addTargetLabel(stop, data.arrivalEvents[j].arrivalTime, i, n, j);
-                    AssertMsg(data.raptorData.transferGraph.isVertex(stop),
-                        "This stop is not represented in the transfergraph!\n");
-                    for (const Edge edge : data.raptorData.transferGraph.edgesFrom(stop)) {
-                        transferStop = data.raptorData.transferGraph.get(ToVertex, edge);
-                        if (!data.isStop(transferStop))
-                            continue;
-                        travelTime = data.raptorData.transferGraph.get(TravelTime, edge);
-                        addTargetLabel(StopId(transferStop), data.arrivalEvents[j].arrivalTime + travelTime, i, n, j);
+                    if (addTargetLabel(stop, data.arrivalEvents[j].arrivalTime, i, n, j)) {
+                        AssertMsg(data.raptorData.transferGraph.isVertex(stop),
+                            "This stop is not represented in the transfergraph!\n");
+                        for (const Edge edge : data.raptorData.transferGraph.edgesFrom(stop)) {
+                            transferStop = data.raptorData.transferGraph.get(ToVertex, edge);
+                            if (!data.isStop(transferStop))
+                                continue;
+                            travelTime = data.raptorData.transferGraph.get(TravelTime, edge);
+                            addTargetLabel(StopId(transferStop), data.arrivalEvents[j].arrivalTime + travelTime, i, n, j);
+                        }
                     }
                 }
             }
@@ -362,7 +348,6 @@ private:
                     if (data.arrivalEvents[j].arrivalTime > minArrivalTimeFastLookUp[data.arrivalEvents[j].stop][n])
                         continue;
                     for (Edge edge : data.stopEventGraph.edgesFrom(Vertex(j))) {
-                        // also pass the fromStopEvent j
                         enqueue(edge, i, n, j);
                     }
                 }
@@ -374,150 +359,86 @@ private:
         }
     }
 
+    /*
+    inline TripId getPreviousTripInRoute(const TripId trip) noexcept
+    {
+        const TripId firstTripId = data.firstTripOfRoute[data.routeOfTrip[trip]];
+
+        AssertMsg(firstTripId <= trip, "We found a trip that is earlier than the first trip of the same route!\n");
+        if (trip > firstTripId)
+            return TripId(trip - 1);
+        return firstTripId;
+    }
+    */
+
     inline void enqueue(const TripId trip, const StopIndex index) noexcept
     {
-        if (reachedIndex.alreadyReached(trip, index, 1))
+        if (runReachedIndex.alreadyReached(trip, index)) [[likely]]
+            return;
+        const TripId prevTrip = previousTripLookup[trip];
+        if (prevTrip != trip && profileReachedIndex.alreadyReached(prevTrip, index, 1)) [[likely]]
             return;
         const StopEventId firstEvent = data.firstStopEventOfTrip[trip];
-        queue[queueSize] = TripLabel(StopEventId(firstEvent + index), StopEventId(firstEvent + reachedIndex(trip, 1)));
+        queue[queueSize] = TripLabel(StopEventId(firstEvent + index), StopEventId(firstEvent + runReachedIndex(trip)));
         tripLabelEdge[queueSize] = std::make_pair(noEdge, noStopEvent); // noStopEvent since this is the first trip
         ++queueSize;
         AssertMsg(queueSize <= queue.size(), "Queue is overfull!");
-        reachedIndex.update(trip, index, 1);
+
+        runReachedIndex.update(trip, index);
+        profileReachedIndex.update(trip, index, 1);
     }
 
     inline void enqueue(const Edge edge, const size_t parent, const u_int8_t n,
         const StopEventId fromStopEventId) noexcept
     {
         const EdgeLabel& label = edgeLabels[edge];
-        if (reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent, n + 1))
+        if (runReachedIndex.alreadyReached(label.trip, StopIndex(label.stopEvent - label.firstEvent))) [[likely]]
             return;
-        queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + reachedIndex(label.trip, n + 1)), parent);
+        const TripId prevTrip = previousTripLookup[label.trip];
+        if (prevTrip != label.trip && profileReachedIndex.alreadyReached(prevTrip, StopIndex(label.stopEvent - label.firstEvent), n + 1)) [[likely]]
+            return;
+        queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + runReachedIndex(label.trip)), parent);
         tripLabelEdge[queueSize] = std::make_pair(edge, fromStopEventId);
         ++queueSize;
         AssertMsg(queueSize <= queue.size(), "Queue is overfull!");
-        reachedIndex.update(label.trip, StopIndex(label.stopEvent - label.firstEvent), n + 1);
+
+        runReachedIndex.update(label.trip, StopIndex(label.stopEvent - label.firstEvent));
+        profileReachedIndex.update(label.trip, StopIndex(label.stopEvent - label.firstEvent), n + 1);
     }
 
-    inline void addTargetLabel(const StopId stop, const int newArrivalTime, const u_int32_t parent = -1,
+    inline bool addTargetLabel(const StopId stop, const int newArrivalTime, const u_int32_t parent = -1,
         const u_int8_t n = 0, const StopEventId fromStopEventId = noStopEvent) noexcept
     {
-        if (newArrivalTime < minArrivalTimeFastLookUp[stop][n]) {
-            targetLabels[stop][n].arrivalTime = newArrivalTime;
-            targetLabels[stop][n].parent = parent;
-            targetLabels[stop][n].fromStopEventId = fromStopEventId;
+        // discard *ONLY* if there is no improvement or if same arrival time but we already found it this round
+        if (newArrivalTime > minArrivalTimeFastLookUp[stop][n])
+            return false;
+        if (newArrivalTime == minArrivalTimeFastLookUp[stop][n] && targetLabels[stop][n].run == timestamp)
+            return false;
 
-            targetLabelChanged[stop][n] = true;
-            // add stop to update next round
-            stopsToUpdate.insert(stop);
+        targetLabels[stop][n].arrivalTime = newArrivalTime;
+        targetLabels[stop][n].parent = parent;
+        targetLabels[stop][n].fromStopEventId = fromStopEventId;
+        targetLabels[stop][n].run = timestamp;
 
-            minArrivalTimeFastLookUp[stop][n] = newArrivalTime;
+        targetLabelChanged[stop][n] = true;
+
+        stopsToUpdate.insert(stop);
+
+        minArrivalTimeFastLookUp[stop][n] = newArrivalTime;
 
 #pragma omp simd
-            for (int i = n + 1; i < 16; ++i) {
-                if (targetLabels[stop][i].arrivalTime > targetLabels[stop][n].arrivalTime) {
-                    targetLabels[stop][i].clear();
-                }
-                if (minArrivalTimeFastLookUp[stop][i] > newArrivalTime)
-                    minArrivalTimeFastLookUp[stop][i] = newArrivalTime;
+        for (int i = n + 1; i < 16; ++i) {
+            if (targetLabels[stop][i].arrivalTime > targetLabels[stop][n].arrivalTime) {
+                targetLabels[stop][i].clear();
             }
+            if (minArrivalTimeFastLookUp[stop][i] > newArrivalTime)
+                minArrivalTimeFastLookUp[stop][i] = newArrivalTime;
         }
+        return true;
     }
 
-    inline void emptyBuffer(const StopId target, const int lowerTimeBound, const StopId stop,
-        const bool checkIfTargetLabelChanged = true) noexcept
+    inline void getJourneyAndUnwind(const TargetLabel& targetLabel, const int targetCell, const StopId target) noexcept
     {
-        // 1) need to find which targetLabel changed and get the journey
-        // description 2) need to "dive" into the journey description for every
-        // trip within the time range 3) set every transfer for the target flag
-        int targetFlag = data.getPartitionCell(stop);
-
-        alreadyInVector.clear();
-
-        for (u_int8_t n(0); n < targetLabelChanged[target].size(); ++n) {
-            if (checkIfTargetLabelChanged && !targetLabelChanged[target][n])
-                continue;
-
-            std::vector<BufferJourneyLeg>& bestBufferedJourney = bufferedJourneys[stop][n];
-
-            // if there is no journey, or of length 1, skip it
-            if (bestBufferedJourney.size() <= 1)
-                continue;
-
-            // loop over trips of first routeId that depart until lowerTimeBound
-            // NOTE: bestBufferedJourney is reversed
-
-            std::vector<TripId> tripsToScan = {};
-            std::vector<TripId> nextTripsToScan = {};
-
-            // throw all "first" tripIds into the vector
-            TripId latestTrip = bestBufferedJourney.back().tripId;
-            RouteId currentRouteId = data.routeOfTrip[latestTrip];
-            StopIndex stopIndex = getStopIndexOfStopInRouteId(bestBufferedJourney.back().start, currentRouteId);
-            AssertMsg(stopIndex != noStopIndex, "StopIndex has not been found!");
-            TripId currentTripId = data.getEarliestTrip(currentRouteId, stopIndex, lowerTimeBound);
-
-            while (currentTripId < latestTrip) {
-                tripsToScan.push_back(currentTripId);
-                ++currentTripId;
-            }
-
-            for (u_int8_t i(0); i < bestBufferedJourney.size() - 1; ++i) {
-                BufferJourneyLeg& currentElement = bestBufferedJourney[bestBufferedJourney.size() - 1 - i];
-                currentRouteId = data.routeOfTrip[currentElement.tripId];
-
-                // get currentStopIndex of
-                // bestBufferedJourney[bestBufferedJourney.size() - 1 - i].end
-                stopIndex = getStopIndexOfStopInRouteId(bestBufferedJourney[bestBufferedJourney.size() - 1 - i].end,
-                    currentRouteId);
-                AssertMsg(stopIndex != noStopIndex, "StopIndex for Stop " << bestBufferedJourney[bestBufferedJourney.size() - 1 - i].end << " and Route " << currentRouteId << " has not been found!\n");
-
-                // since we don't need trip that is already flagged
-                alreadyInVector[(int)bestBufferedJourney[bestBufferedJourney.size() - 1 - i - 1].tripId] = true;
-                RouteId targetRoute = data.routeOfTrip[bestBufferedJourney[bestBufferedJourney.size() - 1 - i - 1].tripId];
-                TripId targetTrip(0);
-
-                for (TripId currentTripId : tripsToScan) {
-                    // check transfer from currentTripId at stopIndex
-                    for (Edge edge :
-                        data.stopEventGraph.edgesFrom(Vertex(data.getStopEventId(currentTripId, stopIndex)))) {
-                        targetTrip = data.tripOfStopEvent[data.stopEventGraph.get(ToVertex, edge)];
-                        if (data.routeOfTrip[targetTrip] == targetRoute) {
-                            if (!alreadyInVector[(int)targetTrip]) {
-                                nextTripsToScan.push_back(targetTrip);
-                                alreadyInVector[(int)targetTrip] = true;
-                            }
-                            // flag this edge
-                            uint8Flags[edge][targetFlag] = 1;
-                        }
-                    }
-                }
-                // swap the two vectors
-                tripsToScan.clear();
-                tripsToScan.swap(nextTripsToScan);
-            }
-        }
-    }
-
-    inline StopIndex getStopIndexOfStopInRouteId(const StopId stop, const RouteId routeId)
-    {
-        AssertMsg(data.isStop(stop) && data.isRoute(routeId), "Stop and / or Route are / is not valid!\n");
-        StopIndex stopIndex(0);
-        for (StopId currentStop : data.raptorData.stopsOfRoute(routeId)) {
-            if (currentStop == stop)
-                return stopIndex;
-            ++stopIndex;
-        }
-        Ensure(false, "Stop " << stop << " could not be found in Route " << routeId << "!");
-        return noStopIndex;
-    }
-
-    inline void getJourneyAndUnwind(const TargetLabel& targetLabel, const int targetCell, const StopId target,
-        const int n, const bool buffer = true) noexcept
-    {
-        std::vector<BufferJourneyLeg>& bufferedJourney = bufferedJourneys[target][n];
-        bufferedJourney.clear();
-
         u_int32_t parent = targetLabel.parent;
         if (parent == u_int32_t(-1))
             return;
@@ -535,29 +456,27 @@ private:
                 : getParent(label, StopEventId(departureStopEvent + 1));
 
             AssertMsg(arrivalStopEvent != noStopEvent, "arrivalStopEvent is null");
-            StopId arrivalStop = data.getStopOfStopEvent(arrivalStopEvent);
 
             departureStopEvent = StopEventId(label.begin - 1);
             departureStop = data.getStopOfStopEvent(departureStopEvent);
-            TripId tripId = data.tripOfStopEvent[departureStopEvent];
 
-            if (buffer)
-                bufferedJourney.push_back(BufferJourneyLeg(tripId, StopId(departureStop), arrivalStop));
             parent = label.parent;
-            if (edge != noEdge)
+            if (edge != noEdge) {
                 uint8Flags[edge][targetCell] = 1;
+	    }
         }
     }
 
     inline std::pair<Edge, StopEventId> getParent(const TripLabel& parentLabel,
         const StopEventId departureStopEvent) const noexcept
     {
-        for (StopEventId i = parentLabel.begin; i < parentLabel.end; i++) {
+        for (StopEventId i = parentLabel.begin; i < parentLabel.end; ++i) {
             for (const Edge edge : data.stopEventGraph.edgesFrom(Vertex(i))) {
-                if (edgeLabels[edge].stopEvent == departureStopEvent)
+                if (edgeLabels[edge].stopEvent == departureStopEvent) {
                     return std::make_pair(edge, i);
-            }
-        }
+		}
+	    }
+	}
         Ensure(false, "Could not find parent stop event!");
         return std::make_pair(noEdge, noStopEvent);
     }
@@ -575,7 +494,8 @@ private:
 
     std::vector<TripLabel> queue;
     size_t queueSize;
-    ProfileReachedIndex reachedIndex;
+    ProfileReachedIndex profileReachedIndex;
+    ReachedIndex runReachedIndex;
 
     // for every stop
     std::vector<std::vector<TargetLabel>> targetLabels;
@@ -591,8 +511,6 @@ private:
     std::vector<EdgeLabel> edgeLabels;
 
     StopId sourceStop;
-    int minDepartureTime;
-    int maxDepartureTime;
 
     std::vector<std::vector<TripStopIndex>>& collectedDepTimes;
 
@@ -600,15 +518,9 @@ private:
     std::vector<std::pair<Edge, StopEventId>> tripLabelEdge;
 
     std::vector<TripBased::RouteLabel>& routeLabels;
+    std::vector<TripId> previousTripLookup;
 
-    // Buffering Journey
-    // bufferedJourneys[STOP] = { std::vector<BufferJourneyLeg>,
-    // std::vector<BufferJourneyLeg>, (...), std::vector<BufferJourneyLeg>} for
-    // all 16 Transfers
-    std::vector<std::vector<std::vector<BufferJourneyLeg>>> bufferedJourneys;
-    std::vector<std::vector<BufferJourneyLeg>> emptyBufferJourneyForOneStop;
-
-    std::unordered_map<int, bool> alreadyInVector;
+    int timestamp;
 };
 
 } // namespace TripBased

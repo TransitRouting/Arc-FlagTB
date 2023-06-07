@@ -74,11 +74,10 @@ public:
         const std::vector<std::vector<Intermediate::Trip>>& routes) noexcept
     {
         Data data;
-        // set the default value of numberOfPartitions to 1
         data.numberOfPartitions = 1;
+        data.maxSpeed = std::min(inter.maxSpeedOfAllTrips(), 42.0);
 
         for (const Intermediate::Stop& stop : inter.stops) {
-            // default partition is set to 0
             data.stopData.emplace_back(stop);
         }
         std::vector<std::vector<RouteSegment>> routeSegmentsOfStop(inter.stops.size());
@@ -861,6 +860,7 @@ public:
                   << std::endl;
         std::cout << "   Number of Routes:         " << std::setw(12) << String::prettyInt(numberOfRoutes())
                   << std::endl;
+        std::cout << "   Max Speed [m/s]:          " << std::setw(12) << String::prettyDouble(maxSpeed) << std::endl;
         std::cout << "   Number of Trips:          " << std::setw(12) << String::prettyInt(tripCount) << std::endl;
         std::cout << "   Number of Stop Events:    " << std::setw(12) << String::prettyInt(stopEventCount) << std::endl;
         std::cout << "   Number of Connections:    " << std::setw(12) << String::prettyInt(stopEventCount - tripCount)
@@ -953,7 +953,7 @@ public:
     {
         IO::serialize(fileName, firstRouteSegmentOfStop, firstStopIdOfRoute, firstStopEventOfRoute, routeSegments,
             stopIds, stopEvents, stopData, routeData, implicitDepartureBufferTimes,
-            implicitArrivalBufferTimes, numberOfPartitions);
+            implicitArrivalBufferTimes, numberOfPartitions, maxSpeed);
         transferGraph.writeBinary(fileName + ".graph");
     }
 
@@ -962,14 +962,13 @@ public:
         // Quick and dirty to read old files
         try {
             IO::deserialize(fileName, firstRouteSegmentOfStop, firstStopIdOfRoute, firstStopEventOfRoute, routeSegments,
-            stopIds, stopEvents, stopData, routeData, implicitDepartureBufferTimes,
-            implicitArrivalBufferTimes, numberOfPartitions);
-        }
-        catch (const std::exception& e) {
+                stopIds, stopEvents, stopData, routeData, implicitDepartureBufferTimes,
+                implicitArrivalBufferTimes, numberOfPartitions, maxSpeed);
+        } catch (const std::exception& e) {
             std::cout << "Tried reading additional information from the binary, now filling with default value!\n";
             IO::deserialize(fileName, firstRouteSegmentOfStop, firstStopIdOfRoute, firstStopEventOfRoute, routeSegments,
-            stopIds, stopEvents, stopData, routeData, implicitDepartureBufferTimes,
-            implicitArrivalBufferTimes);
+                stopIds, stopEvents, stopData, routeData, implicitDepartureBufferTimes,
+                implicitArrivalBufferTimes);
             numberOfPartitions = 1;
         }
         transferGraph.readBinary(fileName + ".graph");
@@ -1210,11 +1209,14 @@ public:
                 std::cout << "\tnode weighted by amount of trips through it\n";
         }
         layoutGraph.clear();
-        // layoutGraph.addVertices(stopData.size());
-        layoutGraph.addVertices(transferGraph.numVertices());
+        layoutGraph.addVertices(stopData.size());
+        // layoutGraph.addVertices(transferGraph.numVertices());
 
-        for (Vertex vertex : layoutGraph.vertices())
+        for (Vertex vertex : layoutGraph.vertices()) {
             layoutGraph.set(Weight, vertex, 1);
+	    layoutGraph.set(Coordinates, vertex, stopData[vertex].coordinates);
+	    layoutGraph.set(Size, vertex, stopData[vertex].partition);
+	}
 
         size_t amountOfWork = numberOfRoutes();
 
@@ -1317,6 +1319,7 @@ public:
         metisFile.close();
         progWritingMETIS.finished();
 
+        layoutGraph.writeBinary(fileName + ".binary");
         if (verbose)
             std::cout << "Finished creating metis file " << fileName << "\n";
     }
@@ -1401,7 +1404,9 @@ public:
     bool implicitArrivalBufferTimes;
 
     int numberOfPartitions;
-    DynamicGraphWithWeights layoutGraph;
+    DynamicGraphWithWeightsAndCoordinatesAndSize layoutGraph;
+
+    double maxSpeed { 0.0 };
 };
 
 } // namespace RAPTOR

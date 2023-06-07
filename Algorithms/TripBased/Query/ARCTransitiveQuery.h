@@ -25,7 +25,7 @@
 #include "../../../DataStructures/RAPTOR/Entities/Journey.h"
 #include "../../../DataStructures/TripBased/Data.h"
 #include "Profiler.h"
-#include "ReachedIndex.h"
+#include "TimestampedReachedIndex.h"
 
 namespace TripBased {
 
@@ -61,17 +61,15 @@ private:
 
     struct EdgeLabel {
         EdgeLabel(const StopEventId stopEvent = noStopEvent, const TripId trip = noTripId,
-            const StopEventId firstEvent = noStopEvent, const std::vector<bool> arcFlags = {})
+            const StopEventId firstEvent = noStopEvent)
             : stopEvent(stopEvent)
             , trip(trip)
             , firstEvent(firstEvent)
-            , arcFlags(arcFlags)
         {
         }
         StopEventId stopEvent;
         TripId trip;
         StopEventId firstEvent;
-        std::vector<bool> arcFlags;
     };
 
     struct RouteLabel {
@@ -99,9 +97,8 @@ private:
     };
 
 public:
-    ARCTransitiveQuery(Data& data, const bool compressed = false, const std::string name = "")
+    ARCTransitiveQuery(Data& data)
         : data(data)
-        , compressed(compressed)
         , reverseTransferGraph(data.raptorData.transferGraph)
         , transferFromSource(data.numberOfStops(), INFTY)
         , transferToTarget(data.numberOfStops(), INFTY)
@@ -121,18 +118,22 @@ public:
         , sourceDepartureTime(never)
         , targetFlag(0)
     {
-        compressedFlags = {};
-        compressedIndizes = {};
-        if (compressed) {
-            IO::deserialize(name + ".graph.index", compressedIndizes);
-            IO::deserialize(name + ".graph.flagscompressed", compressedFlags);
-        }
         reverseTransferGraph.revert();
+
+        // load flags into more cache efficient vector
+        allFlagsCacheEfficient.assign(data.raptorData.numberOfPartitions * data.stopEventGraph.numEdges(), false);
+        startIndex = 0;
+
         for (const Edge edge : data.stopEventGraph.edges()) {
             edgeLabels[edge].stopEvent = StopEventId(data.stopEventGraph.get(ToVertex, edge) + 1);
             edgeLabels[edge].trip = data.tripOfStopEvent[data.stopEventGraph.get(ToVertex, edge)];
             edgeLabels[edge].firstEvent = data.firstStopEventOfTrip[edgeLabels[edge].trip];
-            edgeLabels[edge].arcFlags = data.stopEventGraph.get(ARCFlag, edge);
+            // edgeLabels[edge].arcFlags = data.stopEventGraph.get(ARCFlag, edge);
+
+            // load the flags
+            for (int k(0); k < data.raptorData.numberOfPartitions; ++k) {
+                allFlagsCacheEfficient[edge + data.stopEventGraph.numEdges() * k] = data.stopEventGraph.get(ARCFlag, edge)[k];
+            }
         }
         for (const RouteId route : data.raptorData.routes()) {
             const size_t numberOfStops = data.numberOfStopsInRoute(route);
@@ -165,7 +166,10 @@ public:
         sourceStop = source;
         targetStop = target;
         sourceDepartureTime = departureTime;
+
         targetFlag = data.getPartitionCell(StopId(target));
+        startIndex = data.stopEventGraph.numEdges() * targetFlag;
+
         computeInitialAndFinalTransfers();
         evaluateInitialTransfers();
         scanTrips();
@@ -226,6 +230,7 @@ private:
         targetLabels.resize(1);
         targetLabels[0] = TargetLabel();
         minArrivalTime = INFTY;
+        startIndex = 0;
     }
 
     inline void computeInitialAndFinalTransfers() noexcept
@@ -329,7 +334,7 @@ private:
                     if (data.arrivalEvents[j].arrivalTime >= minArrivalTime)
                         break;
                     const int timeToTarget = transferToTarget[data.arrivalEvents[j].stop];
-                    if (timeToTarget != INFTY) {
+                    if (timeToTarget != INFTY) [[unlikely]] {
                         addTargetLabel(data.arrivalEvents[j].arrivalTime + timeToTarget, i);
                     }
                 }
@@ -345,15 +350,6 @@ private:
                 edgeRanges[i].end = data.stopEventGraph.beginEdgeFrom(Vertex(label.end));
             }
             // Relax the transfers for each trip
-            if (compressed) {
-                for (size_t i = roundBegin; i < roundEnd; ++i) {
-                    const EdgeRange& label = edgeRanges[i];
-                    for (Edge edge = label.begin; edge < label.end; ++edge) {
-                        profiler.countMetric(METRIC_RELAXED_TRANSFERS);
-                        enqueueComp(edge, i);
-                    }
-                }
-            } else {
                 for (size_t i = roundBegin; i < roundEnd; ++i) {
                     const EdgeRange& label = edgeRanges[i];
                     for (Edge edge = label.begin; edge < label.end; ++edge) {
@@ -361,7 +357,6 @@ private:
                         enqueue(edge, i);
                     }
                 }
-            }
 
             roundBegin = roundEnd;
             roundEnd = queueSize;
@@ -384,20 +379,10 @@ private:
     inline void enqueue(const Edge edge, const size_t parent) noexcept
     {
         profiler.countMetric(METRIC_ENQUEUES);
-        const EdgeLabel& label = edgeLabels[edge];
-        if (!label.arcFlags[targetFlag] || reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent))
+        if (!allFlagsCacheEfficient[startIndex + edge]) [[likely]]
             return;
-        queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + reachedIndex(label.trip)), parent);
-        ++queueSize;
-        AssertMsg(queueSize <= queue.size(), "Queue is overfull!");
-        reachedIndex.update(label.trip, StopIndex(label.stopEvent - label.firstEvent));
-    }
-
-    inline void enqueueComp(const Edge edge, const size_t parent) noexcept
-    {
-        profiler.countMetric(METRIC_ENQUEUES);
         const EdgeLabel& label = edgeLabels[edge];
-        if (!compressedFlags[compressedIndizes[edge]][targetFlag] || reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent))
+        if (reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent)) [[likely]]
             return;
         queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + reachedIndex(label.trip)), parent);
         ++queueSize;
@@ -449,8 +434,6 @@ private:
             parent = label.parent;
         }
         const int timeFromSource = transferFromSource[departureStop];
-        // result.emplace_back(sourceStop, departureStop, lastTime -
-        // timeFromSource, lastTime, noEdge);
         result.emplace_back(sourceStop, departureStop, sourceDepartureTime + timeFromSource, lastTime, noEdge);
         Vector::reverse(result);
         return result;
@@ -489,7 +472,6 @@ private:
 
 private:
     Data& data;
-    const bool compressed;
 
     TransferGraph reverseTransferGraph;
     std::vector<int> transferFromSource;
@@ -502,7 +484,7 @@ private:
     std::vector<TripLabel> queue;
     std::vector<EdgeRange> edgeRanges;
     size_t queueSize;
-    ReachedIndex reachedIndex;
+    TimestampedReachedIndex reachedIndex;
 
     std::vector<TargetLabel> targetLabels;
     int minArrivalTime;
@@ -518,8 +500,12 @@ private:
 
     int targetFlag;
 
-    std::vector<std::vector<bool>> compressedFlags;
-    std::vector<unsigned long int> compressedIndizes;
+    // Idea to store flags more cache efficient
+    // [ #1 | #2 | (...) | #k ] -> one such block #j:
+    // #j = [ bool bool bool (...) bool ] (the j-th flag for every edge in the stopEventGraph)
+    // -> startIndex determines the first Index (basically just targetFlag * size of one block)
+    std::vector<bool> allFlagsCacheEfficient;
+    size_t startIndex;
 };
 
 } // namespace TripBased

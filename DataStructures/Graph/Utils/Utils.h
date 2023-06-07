@@ -239,4 +239,32 @@ inline void writeStatisticsFile(const GRAPH& graph, const std::string& fileNameB
     statistics.close();
 }
 
+// Pagerank Algorithm - Patrick Steil 29/04/2023
+template <typename GRAPH>
+inline std::vector<double> pagerank(const GRAPH& originalGraph, const GRAPH& graph, double damping = 0.85, double epsilon = 1e-8)
+{
+    // original graph is the original graph, graph the reverted for faster lookup
+    std::vector<double> pr(graph.numVertices(), 1.0 / graph.numVertices());
+    std::vector<double> new_pr(graph.numVertices());
+
+    while (true) {
+        double diff = 0.0;
+
+        for (Vertex i : graph.vertices()) {
+            new_pr[i] = (1.0 - damping) / graph.numVertices();
+            for (Vertex j : graph.outgoingNeighbors(i)) {
+                new_pr[i] += damping * pr[j] / (originalGraph.outDegree(j));
+            }
+
+            diff += abs(new_pr[i] - pr[i]);
+        }
+
+        if (diff < epsilon)
+            break;
+
+        pr = new_pr;
+    }
+
+    return pr;
+}
 } // namespace Graph
