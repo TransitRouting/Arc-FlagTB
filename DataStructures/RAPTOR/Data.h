@@ -1214,9 +1214,9 @@ public:
 
         for (Vertex vertex : layoutGraph.vertices()) {
             layoutGraph.set(Weight, vertex, 1);
-	    layoutGraph.set(Coordinates, vertex, stopData[vertex].coordinates);
-	    layoutGraph.set(Size, vertex, stopData[vertex].partition);
-	}
+            layoutGraph.set(Coordinates, vertex, stopData[vertex].coordinates);
+            layoutGraph.set(Size, vertex, stopData[vertex].partition);
+        }
 
         size_t amountOfWork = numberOfRoutes();
 

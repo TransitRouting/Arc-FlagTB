@@ -271,15 +271,17 @@ private:
 class ComputeTransitiveEventToEventShortcuts : public ParameterizedCommand {
 
 public:
-    ComputeTransitiveEventToEventShortcuts(BasicShell& shell) :
-        ParameterizedCommand(shell, "computeTransitiveEventToEventShortcuts", "Computes transitive event-to-event transfer shortcuts using ULTRA and saves the resulting network in Trip-Based format.") {
+    ComputeTransitiveEventToEventShortcuts(BasicShell& shell)
+        : ParameterizedCommand(shell, "computeTransitiveEventToEventShortcuts", "Computes transitive event-to-event transfer shortcuts using ULTRA and saves the resulting network in Trip-Based format.")
+    {
         addParameter("Input file");
         addParameter("Output file");
         addParameter("Number of threads", "max");
         addParameter("Pin multiplier", "1");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string inputFile = getParameter("Input file");
         const std::string outputFile = getParameter("Output file");
         const int numberOfThreads = getNumberOfThreads();
@@ -299,7 +301,8 @@ public:
     }
 
 private:
-    inline int getNumberOfThreads() const noexcept {
+    inline int getNumberOfThreads() const noexcept
+    {
         if (getParameter("Number of threads") == "max") {
             return numberOfCores();
         } else {
@@ -307,7 +310,6 @@ private:
         }
     }
 };
-
 
 class RAPTORToTripBased : public ParameterizedCommand {
 public:

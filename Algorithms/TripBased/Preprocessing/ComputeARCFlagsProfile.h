@@ -110,14 +110,14 @@ public:
                 }
             }
         }
-	*/
-	for (Edge edge : stopEventGraphDynamic.edges()) {
-		std::vector<bool> flags(data.getNumberOfPartitionCells(), false);
-		for (int i(0); i < data.getNumberOfPartitionCells(); ++i) {
-			flags[i] = (bool) uint8InitialFlags[edge][i];
-		}
-		stopEventGraphDynamic.set(ARCFlag, edge, flags);
-	}
+        */
+        for (Edge edge : stopEventGraphDynamic.edges()) {
+            std::vector<bool> flags(data.getNumberOfPartitionCells(), false);
+            for (int i(0); i < data.getNumberOfPartitionCells(); ++i) {
+                flags[i] = (bool)uint8InitialFlags[edge][i];
+            }
+            stopEventGraphDynamic.set(ARCFlag, edge, flags);
+        }
 
         /*
         // now bitwiseor every edge

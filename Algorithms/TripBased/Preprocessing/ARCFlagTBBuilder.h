@@ -62,7 +62,7 @@ public:
 
     void computeARCFlags(const bool verbose = true)
     {
-	Assert(data.getNumberOfPartitionCells() > 1);
+        Assert(data.getNumberOfPartitionCells() > 1);
         if (verbose) {
             std::cout << "Computing ARCFlags with " << numberOfThreads << " threads." << std::endl;
         }
@@ -78,7 +78,7 @@ public:
         const int numCores = numberOfCores();
         omp_set_num_threads(numberOfThreads);
 #pragma omp parallel
-		{
+        {
             int threadId = omp_get_thread_num();
             pinThreadToCoreId((threadId * pinMultiplier) % numCores);
             AssertMsg(omp_get_num_threads() == numberOfThreads, "Number of threads is " << omp_get_num_threads() << ", but should be " << numberOfThreads << "!");
@@ -96,17 +96,17 @@ public:
         progress.finished();
 
         // std::vector<std::vector<bool>>& toSetFlags(stopEventGraphDynamic.get(ARCFlag));
-	for (Edge edge : stopEventGraphDynamic.edges()) {
-		std::vector<bool> flags(data.getNumberOfPartitionCells(), false);
-		
-		for (int i(0); i < data.getNumberOfPartitionCells(); ++i) {
-			flags[i] = (bool) uint8InitialFlags[edge][i];
-		}
-		stopEventGraphDynamic.set(ARCFlag, edge, flags);
-		/* for (int i(0); i < data.getNumberOfPartitionCells(); ++i) {
-			toSetFlags[edge][i] = (bool)uint8InitialFlags[edge][i];
-		} */
-	}
+        for (Edge edge : stopEventGraphDynamic.edges()) {
+            std::vector<bool> flags(data.getNumberOfPartitionCells(), false);
+
+            for (int i(0); i < data.getNumberOfPartitionCells(); ++i) {
+                flags[i] = (bool)uint8InitialFlags[edge][i];
+            }
+            stopEventGraphDynamic.set(ARCFlag, edge, flags);
+            /* for (int i(0); i < data.getNumberOfPartitionCells(); ++i) {
+                    toSetFlags[edge][i] = (bool)uint8InitialFlags[edge][i];
+            } */
+        }
 
         if (verbose)
             std::cout << "Preprocessing done!\nNow deleting unnecessary edges\n";

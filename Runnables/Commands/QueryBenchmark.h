@@ -780,15 +780,16 @@ public:
 
     virtual void execute() noexcept
     {
-	const std::string tripFile = getParameter("Trip-Based input file");
-	const bool SAVE = getParameter<bool>("Save Data to Files?");
+        const std::string tripFile = getParameter("Trip-Based input file");
+        const bool SAVE = getParameter<bool>("Save Data to Files?");
         TripBased::Data tripBasedData(tripFile);
         tripBasedData.printInfo();
         TripBased::TransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData);
 
         const size_t n = getParameter<size_t>("Number of queries");
         const std::vector<StopQuery> queries = generateRandomStopQueries(tripBasedData.numberOfStops(), n);
-        if (SAVE) IO::serialize(tripFile + ".queries", queries);
+        if (SAVE)
+            IO::serialize(tripFile + ".queries", queries);
 
         std::vector<std::vector<RAPTOR::Journey>> journeys = {};
         journeys.reserve(n);
@@ -798,7 +799,8 @@ public:
             journeys.push_back(algorithm.getJourneys());
         }
         algorithm.getProfiler().printStatistics();
-        if (SAVE) IO::serialize(tripFile + ".tbJourneys", journeys);
+        if (SAVE)
+            IO::serialize(tripFile + ".tbJourneys", journeys);
     }
 };
 
@@ -920,7 +922,8 @@ public:
                 std::cout << "Query from " << queries[i].source << " to " << queries[i].target << " @ " << String::secToString(queries[i].departureTime) << std::endl;
                 std::cout << "TB found the following set:\n";
                 for (auto j : originalTBJourneys[i]) {
-                    for (auto leg : j) std::cout << leg << std::endl;
+                    for (auto leg : j)
+                        std::cout << leg << std::endl;
                 }
             }
         }
@@ -950,23 +953,23 @@ public:
         const size_t n = getParameter<size_t>("Number of queries");
         const std::vector<StopQuery> queries = generateRandomStopQueries(tripBasedData.numberOfStops(), n);
 
-	double numJourneys = 0;
-	if (getParameter<bool>("Compressed?")) {
-		TripBased::ARCTransitiveQueryComp<TripBased::AggregateProfiler> algorithm(tripBasedData,
-		    inputFile);
-		for (const StopQuery& query : queries) {
-		    algorithm.run(query.source, query.departureTime, query.target);
-		    numJourneys += algorithm.getJourneys().size();
-		}
-		algorithm.getProfiler().printStatistics();
-	} else {
-		TripBased::ARCTransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData);
-		for (const StopQuery& query : queries) {
-		    algorithm.run(query.source, query.departureTime, query.target);
-		    numJourneys += algorithm.getJourneys().size();
-		}
-		algorithm.getProfiler().printStatistics();
-	}
+        double numJourneys = 0;
+        if (getParameter<bool>("Compressed?")) {
+            TripBased::ARCTransitiveQueryComp<TripBased::AggregateProfiler> algorithm(tripBasedData,
+                inputFile);
+            for (const StopQuery& query : queries) {
+                algorithm.run(query.source, query.departureTime, query.target);
+                numJourneys += algorithm.getJourneys().size();
+            }
+            algorithm.getProfiler().printStatistics();
+        } else {
+            TripBased::ARCTransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData);
+            for (const StopQuery& query : queries) {
+                algorithm.run(query.source, query.departureTime, query.target);
+                numJourneys += algorithm.getJourneys().size();
+            }
+            algorithm.getProfiler().printStatistics();
+        }
 
         std::cout << "Avg. journeys: " << String::prettyDouble(numJourneys / n) << std::endl;
     }

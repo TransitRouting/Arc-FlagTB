@@ -82,15 +82,17 @@ private:
 class ComputeTransitiveEventToEventShortcuts : public ParameterizedCommand {
 
 public:
-    ComputeTransitiveEventToEventShortcuts(BasicShell& shell) :
-        ParameterizedCommand(shell, "computeTransitiveEventToEventShortcuts", "Computes transitive event-to-event transfer shortcuts using ULTRA and saves the resulting network in Trip-Based format.") {
+    ComputeTransitiveEventToEventShortcuts(BasicShell& shell)
+        : ParameterizedCommand(shell, "computeTransitiveEventToEventShortcuts", "Computes transitive event-to-event transfer shortcuts using ULTRA and saves the resulting network in Trip-Based format.")
+    {
         addParameter("Input file");
         addParameter("Output file");
         addParameter("Number of threads", "max");
         addParameter("Pin multiplier", "1");
     }
 
-    virtual void execute() noexcept {
+    virtual void execute() noexcept
+    {
         const std::string inputFile = getParameter("Input file");
         const std::string outputFile = getParameter("Output file");
         const int numberOfThreads = getNumberOfThreads();
@@ -110,7 +112,8 @@ public:
     }
 
 private:
-    inline int getNumberOfThreads() const noexcept {
+    inline int getNumberOfThreads() const noexcept
+    {
         if (getParameter("Number of threads") == "max") {
             return numberOfCores();
         } else {
@@ -118,7 +121,6 @@ private:
         }
     }
 };
-
 
 class ComputeArcFlagTB : public ParameterizedCommand {
 public:
@@ -150,9 +152,9 @@ public:
             return;
         }
 
-	TripBased::ARCFlagTBBuilder arcFlagComputer(trip, getNumberOfThreads(), pinMultiplier);
-	arcFlagComputer.computeARCFlags(verbose);
-	/* TripBased::ComputeARCFlagsProfile arcFlagComputer(trip, getNumberOfThreads(), pinMultiplier); */
+        TripBased::ARCFlagTBBuilder arcFlagComputer(trip, getNumberOfThreads(), pinMultiplier);
+        arcFlagComputer.computeARCFlags(verbose);
+        /* TripBased::ComputeARCFlagsProfile arcFlagComputer(trip, getNumberOfThreads(), pinMultiplier); */
         /* arcFlagComputer.computeARCFlags(true, true, verbose); */
 
         trip.serialize(outputFile);
@@ -175,25 +177,28 @@ private:
 
 class ApplyPartitionToTripBased : public ParameterizedCommand {
 public:
-	ApplyPartitionToTripBased(BasicShell& shell) : ParameterizedCommand(shell, "applyPartitionToTripBased", "Applies the given partition to the stops of the Trip-Based input and saves it.") {
-		addParameter("Input file (Trip Data)");
-		addParameter("Input file (Partition File)");
-		addParameter("Output file (Trip Data)");
-		addParameter("Verbose", "true");
-	}
+    ApplyPartitionToTripBased(BasicShell& shell)
+        : ParameterizedCommand(shell, "applyPartitionToTripBased", "Applies the given partition to the stops of the Trip-Based input and saves it.")
+    {
+        addParameter("Input file (Trip Data)");
+        addParameter("Input file (Partition File)");
+        addParameter("Output file (Trip Data)");
+        addParameter("Verbose", "true");
+    }
 
-	virtual void execute() noexcept {
-		const std::string inputFile = getParameter("Input file (Trip Data)");
-		const std::string outputFile = getParameter("Output file (Trip Data)");
-		const std::string partitionFile = getParameter("Input file (Partition File)");
-		const bool verbose = getParameter<bool>("Verbose");
+    virtual void execute() noexcept
+    {
+        const std::string inputFile = getParameter("Input file (Trip Data)");
+        const std::string outputFile = getParameter("Output file (Trip Data)");
+        const std::string partitionFile = getParameter("Input file (Partition File)");
+        const bool verbose = getParameter<bool>("Verbose");
 
-		TripBased::Data trip(inputFile);
-		trip.printInfo();
-		trip.updatePartitionValuesFromFile(partitionFile, verbose);
-		trip.printInfo();
-		trip.serialize(outputFile);
-	}
+        TripBased::Data trip(inputFile);
+        trip.printInfo();
+        trip.updatePartitionValuesFromFile(partitionFile, verbose);
+        trip.printInfo();
+        trip.serialize(outputFile);
+    }
 };
 
 class ComputeArcFlagTBRAPTOR : public ParameterizedCommand {

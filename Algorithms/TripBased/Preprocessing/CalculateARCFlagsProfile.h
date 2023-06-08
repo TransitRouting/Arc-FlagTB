@@ -207,7 +207,7 @@ public:
             // unwind and flag all Journeys
             for (const StopId target : stopsToUpdate) {
                 unwindJourneys(target);
-	    }
+            }
 
             i = j;
         }
@@ -371,12 +371,21 @@ private:
     }
     */
 
-    inline void enqueue(const TripId trip, const StopIndex index) noexcept
+    inline bool discard(const TripId trip, const StopIndex index, const int n = 1)
     {
         if (runReachedIndex.alreadyReached(trip, index)) [[likely]]
-            return;
+            return true;
+        if (profileReachedIndex(trip, 1) < index) [[likely]]
+            return true;
+        if (n > 1 && profileReachedIndex.alreadyReached(trip, index, n)) [[likely]]
+            return true;
         const TripId prevTrip = previousTripLookup[trip];
-        if (prevTrip != trip && profileReachedIndex.alreadyReached(prevTrip, index, 1)) [[likely]]
+        return (prevTrip != trip && profileReachedIndex.alreadyReached(prevTrip, index, n + 1));
+    }
+
+    inline void enqueue(const TripId trip, const StopIndex index) noexcept
+    {
+        if (discard(trip, index))
             return;
         const StopEventId firstEvent = data.firstStopEventOfTrip[trip];
         queue[queueSize] = TripLabel(StopEventId(firstEvent + index), StopEventId(firstEvent + runReachedIndex(trip)));
@@ -392,10 +401,7 @@ private:
         const StopEventId fromStopEventId) noexcept
     {
         const EdgeLabel& label = edgeLabels[edge];
-        if (runReachedIndex.alreadyReached(label.trip, StopIndex(label.stopEvent - label.firstEvent))) [[likely]]
-            return;
-        const TripId prevTrip = previousTripLookup[label.trip];
-        if (prevTrip != label.trip && profileReachedIndex.alreadyReached(prevTrip, StopIndex(label.stopEvent - label.firstEvent), n + 1)) [[likely]]
+        if (discard(label.trip, StopIndex(label.stopEvent - label.firstEvent), n))
             return;
         queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + runReachedIndex(label.trip)), parent);
         tripLabelEdge[queueSize] = std::make_pair(edge, fromStopEventId);
@@ -463,7 +469,7 @@ private:
             parent = label.parent;
             if (edge != noEdge) {
                 uint8Flags[edge][targetCell] = 1;
-	    }
+            }
         }
     }
 
@@ -474,9 +480,9 @@ private:
             for (const Edge edge : data.stopEventGraph.edgesFrom(Vertex(i))) {
                 if (edgeLabels[edge].stopEvent == departureStopEvent) {
                     return std::make_pair(edge, i);
-		}
-	    }
-	}
+                }
+            }
+        }
         Ensure(false, "Could not find parent stop event!");
         return std::make_pair(noEdge, noStopEvent);
     }

@@ -350,13 +350,13 @@ private:
                 edgeRanges[i].end = data.stopEventGraph.beginEdgeFrom(Vertex(label.end));
             }
             // Relax the transfers for each trip
-                for (size_t i = roundBegin; i < roundEnd; ++i) {
-                    const EdgeRange& label = edgeRanges[i];
-                    for (Edge edge = label.begin; edge < label.end; ++edge) {
-                        profiler.countMetric(METRIC_RELAXED_TRANSFERS);
-                        enqueue(edge, i);
-                    }
+            for (size_t i = roundBegin; i < roundEnd; ++i) {
+                const EdgeRange& label = edgeRanges[i];
+                for (Edge edge = label.begin; edge < label.end; ++edge) {
+                    profiler.countMetric(METRIC_RELAXED_TRANSFERS);
+                    enqueue(edge, i);
                 }
+            }
 
             roundBegin = roundEnd;
             roundEnd = queueSize;

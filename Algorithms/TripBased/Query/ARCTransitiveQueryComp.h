@@ -120,8 +120,8 @@ public:
     {
         compressedFlags = {};
         compressedIndizes = {};
-            IO::deserialize(name + ".graph.index", compressedIndizes);
-            IO::deserialize(name + ".graph.flagscompressed", compressedFlags);
+        IO::deserialize(name + ".graph.index", compressedIndizes);
+        IO::deserialize(name + ".graph.flagscompressed", compressedFlags);
 
         reverseTransferGraph.revert();
 
@@ -343,13 +343,13 @@ private:
                 edgeRanges[i].end = data.stopEventGraph.beginEdgeFrom(Vertex(label.end));
             }
             // Relax the transfers for each trip
-	for (size_t i = roundBegin; i < roundEnd; ++i) {
-	    const EdgeRange& label = edgeRanges[i];
-	    for (Edge edge = label.begin; edge < label.end; ++edge) {
-		profiler.countMetric(METRIC_RELAXED_TRANSFERS);
-		enqueueComp(edge, i);
-	    }
-	}
+            for (size_t i = roundBegin; i < roundEnd; ++i) {
+                const EdgeRange& label = edgeRanges[i];
+                for (Edge edge = label.begin; edge < label.end; ++edge) {
+                    profiler.countMetric(METRIC_RELAXED_TRANSFERS);
+                    enqueueComp(edge, i);
+                }
+            }
             roundBegin = roundEnd;
             roundEnd = queueSize;
         }

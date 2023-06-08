@@ -26,10 +26,10 @@ public:
     inline void clear() noexcept
     {
         ++timestamp;
-	if (timestamp == 0) {
-		labels = defaultLabels;
-		std::fill(timestamps.begin(), timestamps.end(), 0);
-    	}
+        if (timestamp == 0) {
+            labels = defaultLabels;
+            std::fill(timestamps.begin(), timestamps.end(), 0);
+        }
     }
 
     inline StopIndex operator()(const TripId trip) noexcept
@@ -56,7 +56,8 @@ public:
     }
 
 private:
-    inline u_int8_t& getLabel(const TripId trip) noexcept {
+    inline u_int8_t& getLabel(const TripId trip) noexcept
+    {
         if (timestamps[trip] != timestamp) {
             labels[trip] = defaultLabels[trip];
             timestamps[trip] = timestamp;
