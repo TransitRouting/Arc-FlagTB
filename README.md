@@ -1,14 +1,41 @@
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Arc-Flag Trip-Based Public Transit Routing (Arc-Flag TB)
 This repository is based on the ULTRA framework. For more information, see [ULTRA on GitHub](https://github.com/kit-algo/ULTRA). To get actual GTFS data, see [gtfs.de](https://gtfs.de/) or [transit.land](https://www.transit.land/). In addition, it is worth stopping by [here](https://www.youtube.com/watch?v=dQw4w9WgXcQ).
 
 This repository contains the code for
-* *Arc-Flags Meet Trip-Based Public Transit Routing (Arc-Flag TB)* 
-Ernestine Großmann, Jonas Sauer, Christian Schulz, Patrick Steil 
-[arXiv](https://arxiv.org/abs/2302.07168)
 
-But also for the following publications:
+UnLimited TRAnsfers for Multi-Modal Route Planning: An Efficient Solution Moritz Baum, Valentin Buchhold, Jonas Sauer, Dorothea Wagner, Tobias Zündorf In: Proceedings of the 27th Annual European Symposium on Algorithms (ESA'19), Leibniz International Proceedings in Informatics, pages 14:1–14:16, 2019 pdf arXiv
+* *Arc-Flags Meet Trip-Based Public Transit Routing (Arc-Flag TB)* 
+Ernestine Großmann, Jonas Sauer, Christian Schulz, Patrick Steil
+In: Proceedings of the 21st International Symposium on Experimental Algorithms (SEA 2023), Schloss Dagstuhl - Leibniz-Zentrum für Informatik, pages 16:1-16:18, 2023
+[pdf](https://drops.dagstuhl.de/opus/volltexte/2023/18366/pdf/LIPIcs-SEA-2023-16.pdf)
+
+If you use this repository, please cite our work using
+
+```
+@InProceedings{gromann_et_al:LIPIcs.SEA.2023.16,
+	author	=	{Gro{\ss}mann, Ernestine and Sauer, Jonas and Schulz, Christian and Steil, Patrick},
+	title	=	{{Arc-Flags Meet Trip-Based Public Transit Routing}},
+	booktitle	=	{21st International Symposium on Experimental Algorithms (SEA 2023)},
+	pages	=	{16:1--16:18},
+	series	=	{Leibniz International Proceedings in Informatics (LIPIcs)},
+	ISBN	=	{978-3-95977-279-2},
+	ISSN	=	{1868-8969},
+	year	=	{2023},
+	volume	=	{265},
+	editor	=	{Georgiadis, Loukas},
+	publisher	=	{Schloss Dagstuhl -- Leibniz-Zentrum f{\"u}r Informatik},
+	address	=	{Dagstuhl, Germany},
+	URL	=	{https://drops.dagstuhl.de/opus/volltexte/2023/18366},
+	URN	=	{urn:nbn:de:0030-drops-183664},
+	doi	=	{10.4230/LIPIcs.SEA.2023.16},
+	annote	=	{Keywords: Public transit routing, graph algorithms, algorithm engineering}
+}
+```
+
+This repo also contains the code for the following publications:
 
 * *UnLimited TRAnsfers for Multi-Modal Route Planning: An Efficient Solution*
 Moritz Baum, Valentin Buchhold, Jonas Sauer, Dorothea Wagner, Tobias Zündorf
