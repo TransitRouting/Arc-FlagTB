@@ -15,23 +15,23 @@ In: Proceedings of the 21st International Symposium on Experimental Algorithms (
 If you use this repository, please cite our work using
 
 ```
-@InProceedings{gromann_et_al:LIPIcs.SEA.2023.16,
-	author	=	{Gro{\ss}mann, Ernestine and Sauer, Jonas and Schulz, Christian and Steil, Patrick},
-	title	=	{{Arc-Flags Meet Trip-Based Public Transit Routing}},
-	booktitle	=	{21st International Symposium on Experimental Algorithms (SEA 2023)},
-	pages	=	{16:1--16:18},
-	series	=	{Leibniz International Proceedings in Informatics (LIPIcs)},
-	ISBN	=	{978-3-95977-279-2},
-	ISSN	=	{1868-8969},
-	year	=	{2023},
-	volume	=	{265},
-	editor	=	{Georgiadis, Loukas},
-	publisher	=	{Schloss Dagstuhl -- Leibniz-Zentrum f{\"u}r Informatik},
-	address	=	{Dagstuhl, Germany},
-	URL	=	{https://drops.dagstuhl.de/opus/volltexte/2023/18366},
-	URN	=	{urn:nbn:de:0030-drops-183664},
-	doi	=	{10.4230/LIPIcs.SEA.2023.16},
-	annote	=	{Keywords: Public transit routing, graph algorithms, algorithm engineering}
+@inproceedings{gromann_et_al:LIPIcs.SEA.2023.16,
+	title        = {{Arc-Flags Meet Trip-Based Public Transit Routing}},
+	author       = {Gro{\ss}mann, Ernestine and Sauer, Jonas and Schulz, Christian and Steil, Patrick},
+	year         = 2023,
+	booktitle    = {21st International Symposium on Experimental Algorithms (SEA 2023)},
+	publisher    = {Schloss Dagstuhl -- Leibniz-Zentrum f{\"u}r Informatik},
+	address      = {Dagstuhl, Germany},
+	series       = {Leibniz International Proceedings in Informatics (LIPIcs)},
+	volume       = 265,
+	pages        = {16:1--16:18},
+	doi          = {10.4230/LIPIcs.SEA.2023.16},
+	isbn         = {978-3-95977-279-2},
+	issn         = {1868-8969},
+	url          = {https://drops.dagstuhl.de/opus/volltexte/2023/18366},
+	editor       = {Georgiadis, Loukas},
+	urn          = {urn:nbn:de:0030-drops-183664},
+	annote       = {Keywords: Public transit routing, graph algorithms, algorithm engineering}
 }
 ```
 
