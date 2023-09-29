@@ -25,7 +25,7 @@
 #include "../../../DataStructures/RAPTOR/Entities/RouteSegment.h"
 #include "../../../DataStructures/TripBased/Data.h"
 #include "../../../Helpers/String/String.h"
-#include "ProfileReachedIndex.h"
+#include "TimestampedProfileReachedIndex.h"
 #include "Profiler.h"
 
 namespace TripBased {
@@ -63,17 +63,15 @@ private:
 
     struct EdgeLabel {
         EdgeLabel(const StopEventId stopEvent = noStopEvent, const TripId trip = noTripId,
-            const StopEventId firstEvent = noStopEvent, const std::vector<bool> arcFlags = {})
+            const StopEventId firstEvent = noStopEvent)
             : stopEvent(stopEvent)
             , trip(trip)
             , firstEvent(firstEvent)
-            , arcFlags(arcFlags)
         {
         }
         StopEventId stopEvent;
         TripId trip;
         StopEventId firstEvent;
-        std::vector<bool> arcFlags;
     };
 
     struct RouteLabel {
@@ -121,9 +119,8 @@ private:
     };
 
 public:
-    ARCProfileQuery(const Data& data, const bool compressed = false, const std::string name = "")
+    ARCProfileQuery(const Data& data)
         : data(data)
-        , compressed(compressed)
         , reverseTransferGraph(data.raptorData.transferGraph)
         , transferFromSource(data.numberOfStops(), INFTY)
         , transferToTarget(data.numberOfStops(), INFTY)
@@ -143,14 +140,11 @@ public:
         , maxDepartureTime(never)
         , targetLabelChanged(16, false)
         , routeLabels(data.stopEventGraph.numEdges())
-        , targetFlag(0)
+	, targetFlag(0)
     {
-        compressedFlags = {};
-        compressedIndizes = {};
-        if (compressed) {
-            IO::deserialize(name + ".graph.index", compressedIndizes);
-            IO::deserialize(name + ".graph.flagscompressed", compressedFlags);
-        }
+        // load flags into more cache efficient vector
+        allFlagsCacheEfficient.assign(data.raptorData.numberOfPartitions * data.stopEventGraph.numEdges(), false);
+        startIndex = 0;
 
         collectedDepTimes.reserve(data.raptorData.numberOfTrips()); // can be adjusted
         allJourneys.reserve(32);
@@ -159,7 +153,10 @@ public:
             edgeLabels[edge].stopEvent = StopEventId(data.stopEventGraph.get(ToVertex, edge) + 1);
             edgeLabels[edge].trip = data.tripOfStopEvent[data.stopEventGraph.get(ToVertex, edge)];
             edgeLabels[edge].firstEvent = data.firstStopEventOfTrip[edgeLabels[edge].trip];
-            edgeLabels[edge].arcFlags = data.stopEventGraph.get(ARCFlag, edge);
+            // load the flags
+            for (int k(0); k < data.raptorData.numberOfPartitions; ++k) {
+                allFlagsCacheEfficient[edge + data.stopEventGraph.numEdges() * k] = data.stopEventGraph.get(ARCFlag, edge)[k];
+            }
         }
         for (const RouteId route : data.raptorData.routes()) {
             const size_t numberOfStops = data.numberOfStopsInRoute(route);
@@ -174,7 +171,7 @@ public:
             }
         }
 
-        profiler.registerPhases({ PHASE_SCAN_INITIAL, PHASE_COLLECT_DEPTIMES, PHASE_SCAN_TRIPS });
+        profiler.registerPhases({ PHASE_SCAN_INITIAL, PHASE_COLLECT_DEPTIMES, PHASE_SCAN_TRIPS, PHASE_GET_JOURNEYS });
         profiler.registerMetrics({ METRIC_ROUNDS, METRIC_SCANNED_TRIPS, METRIC_SCANNED_STOPS, METRIC_RELAXED_TRANSFERS,
             METRIC_ENQUEUES, METRIC_ADD_JOURNEYS });
     }
@@ -193,23 +190,29 @@ public:
     inline void run(const StopId source, const StopId target, const int minDepTime, const int maxDepTime) noexcept
     {
         profiler.start();
+	
         sourceStop = source;
         targetStop = target;
         minDepartureTime = minDepTime;
         maxDepartureTime = maxDepTime;
-        targetFlag = data.getPartitionCell(StopId(target));
         std::vector<RAPTOR::Journey> journeyOfRound;
+
+        targetFlag = data.getPartitionCell(StopId(target));
+        startIndex = data.stopEventGraph.numEdges() * targetFlag;
 
         // clear everything
         clear();
+
         computeInitialAndFinalTransfers();
         evaluateInitialTransfers();
         scanTrips();
+
         journeyOfRound = getJourneys();
         allJourneys.insert(allJourneys.end(), journeyOfRound.begin(), journeyOfRound.end());
         targetLabelChanged.assign(16, false);
 
         collectDepartures();
+
         // note: this vector is not duplicate free
         size_t i(0), j(0);
         while (i < collectedDepTimes.size()) {
@@ -220,17 +223,18 @@ public:
                 ++j;
             }
             scanTrips();
+
             journeyOfRound = getJourneys();
             allJourneys.insert(allJourneys.end(), journeyOfRound.begin(), journeyOfRound.end());
-            i = j;
-            // targetLabels.assign(16, TargetLabel());
             targetLabelChanged.assign(16, false);
+            i = j;
         }
         profiler.done();
     }
 
     inline void evaluateInitialTransfers() noexcept
     {
+	profiler.startPhase();
         reachedRoutes.clear();
         for (const RAPTOR::RouteSegment& route : data.raptorData.routesContainingStop(sourceStop)) {
             reachedRoutes.insert(route.routeId);
@@ -274,6 +278,7 @@ public:
                     break;
             }
         }
+	profiler.donePhase(PHASE_EVALUATE_INITIAL);
     }
 
     inline Profiler& getProfiler() noexcept
@@ -291,7 +296,7 @@ public:
         return allJourneys;
     }
 
-    inline std::vector<RAPTOR::Journey> getJourneys() const noexcept
+    inline std::vector<RAPTOR::Journey> getJourneys() noexcept
     {
         std::vector<RAPTOR::Journey> result;
         int bestArrivalTime = INFTY;
@@ -309,7 +314,11 @@ private:
     inline void clear() noexcept
     {
         queueSize = 0;
+
+	profiler.startPhase();
         reachedIndex.clear();
+	profiler.donePhase(PHASE_MAIN);
+
         targetLabels.assign(16, TargetLabel());
         minArrivalTimeFastLookUp.assign(16, INFTY);
         allJourneys.clear();
@@ -387,7 +396,6 @@ private:
         // sort collectedDepTimes desc
         std::stable_sort(collectedDepTimes.begin(), collectedDepTimes.end(),
             [](const TripStopIndex a, const TripStopIndex b) { return a.depTime > b.depTime; });
-        profiler.donePhase(PHASE_COLLECT_DEPTIMES);
     }
 
     inline void scanTrips() noexcept
@@ -400,16 +408,16 @@ private:
             profiler.countMetric(METRIC_ROUNDS);
             // Evaluate final transfers in order to check if the target is
             // reachable
-            for (size_t i = roundBegin; i < roundEnd; i++) {
+            for (size_t i = roundBegin; i < roundEnd; ++i) {
                 const TripLabel& label = queue[i];
                 profiler.countMetric(METRIC_SCANNED_TRIPS);
                 for (StopEventId j = label.begin; j < label.end; j++) {
                     profiler.countMetric(METRIC_SCANNED_STOPS);
                     // change the order back
                     const int timeToTarget = transferToTarget[data.arrivalEvents[j].stop];
-                    if (data.arrivalEvents[j].arrivalTime >= minArrivalTimeFastLookUp[n])
+                    if (data.arrivalEvents[j].arrivalTime >= minArrivalTimeFastLookUp[n]) [[unlikely]]
                         break;
-                    if (timeToTarget != INFTY) {
+                    if (timeToTarget != INFTY) [[unlikely]] {
                         addTargetLabel(data.arrivalEvents[j].arrivalTime + timeToTarget, i, n);
                     }
                 }
@@ -425,21 +433,11 @@ private:
                 edgeRanges[i].end = data.stopEventGraph.beginEdgeFrom(Vertex(label.end));
             }
             // Relax the transfers for each trip
-            if (compressed) {
-                for (size_t i = roundBegin; i < roundEnd; i++) {
-                    const EdgeRange& label = edgeRanges[i];
-                    for (Edge edge = label.begin; edge < label.end; edge++) {
-                        profiler.countMetric(METRIC_RELAXED_TRANSFERS);
-                        enqueueComp(edge, i, n);
-                    }
-                }
-            } else {
-                for (size_t i = roundBegin; i < roundEnd; i++) {
-                    const EdgeRange& label = edgeRanges[i];
-                    for (Edge edge = label.begin; edge < label.end; edge++) {
-                        profiler.countMetric(METRIC_RELAXED_TRANSFERS);
-                        enqueue(edge, i, n);
-                    }
+            for (size_t i = roundBegin; i < roundEnd; ++i) {
+                const EdgeRange& label = edgeRanges[i];
+                for (Edge edge = label.begin; edge < label.end; ++edge) {
+                    profiler.countMetric(METRIC_RELAXED_TRANSFERS);
+                    enqueue(edge, i, n);
                 }
             }
             roundBegin = roundEnd;
@@ -453,11 +451,11 @@ private:
     inline void enqueue(const TripId trip, const StopIndex index) noexcept
     {
         profiler.countMetric(METRIC_ENQUEUES);
-        if (reachedIndex.alreadyReached(trip, index, 1))
+        if (reachedIndex.alreadyReached(trip, index, 1)) [[unlikely]]
             return;
         const StopEventId firstEvent = data.firstStopEventOfTrip[trip];
         queue[queueSize] = TripLabel(StopEventId(firstEvent + index), StopEventId(firstEvent + reachedIndex(trip, 1)));
-        queueSize++;
+        ++queueSize;
         AssertMsg(queueSize <= queue.size(), "Queue is overfull!");
         reachedIndex.update(trip, index, 1);
     }
@@ -465,23 +463,13 @@ private:
     inline void enqueue(const Edge edge, const size_t parent, const u_int8_t n) noexcept
     {
         profiler.countMetric(METRIC_ENQUEUES);
+        if (!allFlagsCacheEfficient[startIndex + edge]) [[likely]]
+            return;
         const EdgeLabel& label = edgeLabels[edge];
-        if (!label.arcFlags[targetFlag] || reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent, n + 1))
+        if (reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent, n + 1)) [[unlikely]]
             return;
         queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + reachedIndex(label.trip, n + 1)), parent);
-        queueSize++;
-        AssertMsg(queueSize <= queue.size(), "Queue is overfull!");
-        reachedIndex.update(label.trip, StopIndex(label.stopEvent - label.firstEvent), n + 1);
-    }
-
-    inline void enqueueComp(const Edge edge, const size_t parent, const u_int8_t n) noexcept
-    {
-        profiler.countMetric(METRIC_ENQUEUES);
-        const EdgeLabel& label = edgeLabels[edge];
-        if (!compressedFlags[compressedIndizes[edge]][targetFlag] || reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent, n + 1))
-            return;
-        queue[queueSize] = TripLabel(label.stopEvent, StopEventId(label.firstEvent + reachedIndex(label.trip, n + 1)), parent);
-        queueSize++;
+        ++queueSize;
         AssertMsg(queueSize <= queue.size(), "Queue is overfull!");
         reachedIndex.update(label.trip, StopIndex(label.stopEvent - label.firstEvent), n + 1);
     }
@@ -489,7 +477,7 @@ private:
     inline void addTargetLabel(const int newArrivalTime, const u_int32_t parent = -1, const u_int8_t n = 0) noexcept
     {
         profiler.countMetric(METRIC_ADD_JOURNEYS);
-        if (newArrivalTime < minArrivalTimeFastLookUp[n]) {
+        if (newArrivalTime < minArrivalTimeFastLookUp[n]) [[likely]] {
             targetLabels[n].arrivalTime = newArrivalTime;
             targetLabels[n].parent = parent;
 
@@ -586,7 +574,6 @@ private:
 
 private:
     const Data& data;
-    const bool compressed;
 
     TransferGraph reverseTransferGraph;
     std::vector<int> transferFromSource;
@@ -599,7 +586,7 @@ private:
     std::vector<TripLabel> queue;
     std::vector<EdgeRange> edgeRanges;
     size_t queueSize;
-    ProfileReachedIndex reachedIndex;
+    TimestampedProfileReachedIndex reachedIndex;
 
     std::vector<TargetLabel> targetLabels;
     std::vector<int> minArrivalTimeFastLookUp;
@@ -619,9 +606,13 @@ private:
     Profiler profiler;
 
     int targetFlag;
-
-    std::vector<std::vector<bool>> compressedFlags;
-    std::vector<unsigned long int> compressedIndizes;
+    
+    // Idea to store flags more cache efficient
+    // [ #1 | #2 | (...) | #k ] -> one such block #j:
+    // #j = [ bool bool bool (...) bool ] (the j-th flag for every edge in the stopEventGraph)
+    // -> startIndex determines the first Index (basically just targetFlag * size of one block)
+    std::vector<bool> allFlagsCacheEfficient;
+    size_t startIndex;
 };
 
 } // namespace TripBased

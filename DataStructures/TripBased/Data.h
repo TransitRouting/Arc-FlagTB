@@ -313,7 +313,7 @@ public:
         std::cout << "   Last Day:                 " << std::setw(12) << String::prettyInt(lastDay / (60 * 60 * 24))
                   << std::endl;
         std::cout << "   Bounding Box:             " << std::setw(12) << raptorData.boundingBox() << std::endl;
-        std::cout << "   Number Of Partitions:     " << std::setw(12) << raptorData.numberOfPartitions << std::endl;
+        std::cout << "   Number Of Cells:          " << std::setw(12) << raptorData.numberOfPartitions << std::endl;
     }
 
     inline void serialize(const std::string& fileName) const noexcept

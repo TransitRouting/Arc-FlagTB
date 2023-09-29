@@ -874,7 +874,7 @@ public:
         std::cout << "   Last Day:                 " << std::setw(12) << String::prettyInt(lastDay / (60 * 60 * 24))
                   << std::endl;
         std::cout << "   Bounding Box:             " << std::setw(12) << boundingBox() << std::endl;
-        std::cout << "   Number of partitions:     " << std::setw(12) << numberOfPartitions << std::endl;
+        std::cout << "   Number of Cells:          " << std::setw(12) << numberOfPartitions << std::endl;
         if (!illFormedRoutes.empty()) {
             Enumeration text;
             for (size_t i = 0; i < illFormedRoutes.size(); i++) {
@@ -987,16 +987,16 @@ public:
         std::ofstream file(fileName);
         Assert(file);
         Assert(file.is_open());
-        file << "StopId,StopName,Latitude,Longitude,MinChangeTime\n";
+        file << "StopId,StopName,Latitude,Longitude,MinChangeTime,Cell\n";
         if (hasImplicitBufferTimes()) {
             for (const StopId stop : stops()) {
                 file << stop.value() << ",\"" << stopData[stop].name << "\"," << stopData[stop].coordinates.latitude
-                     << "," << stopData[stop].coordinates.longitude << ",0\n";
+                     << "," << stopData[stop].coordinates.longitude << ",0," << stopData[stop].partition << "\n";
             }
         } else {
             for (const StopId stop : stops()) {
                 file << stop.value() << ",\"" << stopData[stop].name << "\"," << stopData[stop].coordinates.latitude
-                     << "," << stopData[stop].coordinates.longitude << "," << stopData[stop].minTransferTime << "\n";
+                     << "," << stopData[stop].coordinates.longitude << "," << stopData[stop].minTransferTime << "," << stopData[stop].partition << "\n";
             }
         }
         file.close();

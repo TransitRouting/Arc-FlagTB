@@ -190,7 +190,6 @@ public:
         // clear everything
         clear();
         computeInitialAndFinalTransfers();
-        // To get all midnight trains
         evaluateInitialTransfers();
         scanTrips();
         journeyOfRound = getJourneys();
@@ -211,7 +210,6 @@ public:
             journeyOfRound = getJourneys();
             allJourneys.insert(allJourneys.end(), journeyOfRound.begin(), journeyOfRound.end());
             i = j;
-            // targetLabels.assign(16, TargetLabel());
             targetLabelChanged.assign(16, false);
         }
         profiler.done();

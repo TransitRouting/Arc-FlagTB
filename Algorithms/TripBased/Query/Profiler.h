@@ -15,6 +15,8 @@ typedef enum {
     PHASE_BACKWARD,
     PHASE_MAIN,
     PHASE_COLLECT_DEPTIMES,
+    PHASE_GET_JOURNEYS,
+    PHASE_ENQUEUE_COLLECTED_DEP_TIMES,
     NUM_PHASES,
 } Phase;
 
@@ -25,7 +27,9 @@ constexpr const char* PhaseNames[] = {
     "Forward pruning search",
     "Backward pruning search",
     "Main search",
-    "Collect departure times"
+    "Get Journeys",
+    "Enqueue the collected departure times",
+    "Collect departure times",
 };
 
 typedef enum {
@@ -36,6 +40,7 @@ typedef enum {
     METRIC_ENQUEUES,
     METRIC_ADD_JOURNEYS,
     METRIC_COUNT_DISTANCE,
+    NUMBER_OF_RUNS,
     NUM_METRICS
 } Metric;
 
@@ -46,7 +51,8 @@ constexpr const char* MetricNames[] = {
     "Relaxed transfers",
     "Enqueued trips",
     "Added journeys",
-    "Distance / MaxSpeed"
+    "Distance / MaxSpeed",
+    "Number of Runs"
 };
 
 class NoProfiler {

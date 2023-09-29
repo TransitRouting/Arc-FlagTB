@@ -1,5 +1,6 @@
-computeTransitiveEventToEventShortcuts ../../Datasets/Swiss/raptor.binary ../../Datasets/Swiss/trip.binary
-runTransitiveTripBasedQueries ../../Datasets/Swiss/trip.binary 10000 true
-applyPartitionToTripBased ../../Datasets/Swiss/trip.binary ../../Datasets/Swiss/raptor.partition1024.txt ../../Datasets/Swiss/trip.binary
-computeArcFlagTB ../../Datasets/Swiss/trip.binary ../../Datasets/Swiss/trip.binary
-testTransitiveARCTripBasedQueries ../../Datasets/Swiss/trip.binary ../../Datasets/Swiss/trip.binary.tbJourneys ../../Datasets/Swiss/trip.binary.queries
+computeTransitiveEventToEventShortcuts ../../Datasets/OldDatasets/Swiss/raptor.binary ../../Datasets/OldDatasets/Swiss/trip.binary
+runTransitiveTripBasedQueries ../../Datasets/OldDatasets/Swiss/trip.binary 10000
+applyPartitionToTripBased ../../Datasets/OldDatasets/Swiss/trip.binary ../../Datasets/OldDatasets/Swiss/raptor.partition4096.txt ../../Datasets/OldDatasets/Swiss/trip.binary
+computeArcFlagTB ../../Datasets/OldDatasets/Swiss/trip.binary ../../Datasets/OldDatasets/Swiss/trip.binary
+runTransitiveArcTripBasedQueries ../../Datasets/OldDatasets/Swiss/trip.binary 10000 false
+runTransitiveArcTripBasedQueries ../../Datasets/OldDatasets/Swiss/trip.binary 10000 true

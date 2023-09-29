@@ -39,6 +39,9 @@ int main(int argc, char** argv)
     new RunTransitiveCSAQueries(shell);
     new RunTransitiveProfileCSAQueries(shell);
     new RunTransitiveTripBasedQueries(shell);
+
+    /* new RunTransitiveTripBasedQueryExplizitly(shell); */
+    
     new RunTransitiveProfileOneToAllTripBasedQueries(shell);
     new RunTransitiveProfileTripBasedQueries(shell);
     new RunTransitiveArcTripBasedQueries(shell);

@@ -45,6 +45,8 @@ int main(int argc, char** argv)
     new RunTransitiveTripBasedQueries(shell);
     new RunULTRATripBasedQueries(shell);
 
+    new RunTransitiveArcTripBasedQueries(shell);
+
     new RunULTRAMcTripBasedQueries(shell);
     new RunBoundedULTRAMcTripBasedQueries(shell);
 

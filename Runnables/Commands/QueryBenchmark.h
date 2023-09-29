@@ -775,34 +775,63 @@ public:
     {
         addParameter("Trip-Based input file");
         addParameter("Number of queries");
-        addParameter("Save Data to Files?", "false");
     }
 
     virtual void execute() noexcept
     {
         const std::string tripFile = getParameter("Trip-Based input file");
-        const bool SAVE = getParameter<bool>("Save Data to Files?");
         TripBased::Data tripBasedData(tripFile);
         tripBasedData.printInfo();
         TripBased::TransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData);
 
         const size_t n = getParameter<size_t>("Number of queries");
         const std::vector<StopQuery> queries = generateRandomStopQueries(tripBasedData.numberOfStops(), n);
-        if (SAVE)
-            IO::serialize(tripFile + ".queries", queries);
 
-        std::vector<std::vector<RAPTOR::Journey>> journeys = {};
-        journeys.reserve(n);
+        /* std::vector<std::vector<RAPTOR::Journey>> journeys = {}; */
+        /* journeys.reserve(n); */
 
         for (const StopQuery& query : queries) {
             algorithm.run(query.source, query.departureTime, query.target);
-            journeys.push_back(algorithm.getJourneys());
+            /* journeys.push_back(algorithm.getJourneys()); */
         }
         algorithm.getProfiler().printStatistics();
-        if (SAVE)
-            IO::serialize(tripFile + ".tbJourneys", journeys);
     }
 };
+
+/* class RunTransitiveTripBasedQueryExplizitly : public ParameterizedCommand { */
+/* public: */
+/*     RunTransitiveTripBasedQueryExplizitly(BasicShell& shell) */
+/*         : ParameterizedCommand(shell, "runTransitiveTripBasedQueryExplizitly", */
+/*             "Runs the given query on the transitive TripBased Algorithm.") */
+/*     { */
+/*         addParameter("Trip-Based input file"); */
+/* 	addParameter("FromStopId"); */
+/* 	addParameter("ToStopId"); */
+/* 	addParameter("DepartureTime"); */
+/*     } */
+
+/*     virtual void execute() noexcept */
+/*     { */
+/*         const std::string tripFile = getParameter("Trip-Based input file"); */
+/* 	const StopId source = StopId(getParameter<int>("FromStopId")); */
+/* 	const StopId target = StopId(getParameter<int>("ToStopId")); */
+/* 	const int departureTime = getParameter<int>("DepartureTime"); */
+/*         TripBased::Data tripBasedData(tripFile); */
+/*         tripBasedData.printInfo(); */
+/*         TripBased::TransitiveQuery<TripBased::AggregateProfiler> algorithm(tripBasedData); */
+
+/* 	algorithm.run(source, departureTime, target); */
+/* 	for (auto j : algorithm.getJourneys()) { */
+/* 		std::cout << "New Journey:" << std::endl; */
+/* 		for (auto leg : j) std::cout << leg << std::endl; */
+/* 		std::cout << std::endl; */
+/* 	} */
+/*         algorithm.getProfiler().printStatistics(); */
+
+
+/*     } */
+/* }; */
+
 
 class RunTransitiveProfileTripBasedQueries : public ParameterizedCommand {
 public:
@@ -983,7 +1012,6 @@ public:
     {
         addParameter("Trip-Based input file");
         addParameter("Number of queries");
-        addParameter("Compressed?", "false");
     }
 
     virtual void execute() noexcept
@@ -991,7 +1019,7 @@ public:
         const std::string inputFile = getParameter("Trip-Based input file");
         TripBased::Data tripBasedData(inputFile);
         tripBasedData.printInfo();
-        TripBased::ARCProfileQuery<TripBased::AggregateProfiler> algorithm(tripBasedData, getParameter<bool>("Compressed?"), inputFile);
+        TripBased::ARCProfileQuery<TripBased::AggregateProfiler> algorithm(tripBasedData);
 
         const size_t n = getParameter<size_t>("Number of queries");
         const std::vector<StopQuery> queries = generateRandomStopQueries(tripBasedData.numberOfStops(), n);

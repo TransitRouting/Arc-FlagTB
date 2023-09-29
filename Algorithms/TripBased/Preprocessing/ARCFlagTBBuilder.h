@@ -163,7 +163,8 @@ public:
             std::cout << "Start by collecting all the departure stopevents into the approriate stop bucket!\n";
         for (StopId stop(0); stop < data.numberOfStops(); ++stop) {
             collectedDepTimes[stop].clear();
-            collectedDepTimes[stop].reserve((int)data.numberOfTrips()); // adjustable
+            // collectedDepTimes[stop].reserve((int)data.numberOfTrips() >> 3); // adjustable
+            collectedDepTimes[stop].reserve(1000); // adjustable
         }
 
         Progress progress(data.numberOfRoutes());

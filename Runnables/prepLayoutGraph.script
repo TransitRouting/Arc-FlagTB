@@ -1,9 +1,9 @@
-parseGTFS ../../Datasets/RNV/gtfs/ ../../Datasets/RNV/gtfs.binary
-gtfsToIntermediate ../../Datasets/RNV/gtfs.binary 20220315 20220316 true false ../../Datasets/RNV/intermediate.binary
-reduceGraph ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
-reduceToMaximumConnectedComponent ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
-makeIntermediateTransitive ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
-reduceGraph ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/intermediate.binary
-makeOneHopTransfers ../../Datasets/RNV/intermediate.binary 86400 ../../Datasets/RNV/intermediate.binary true
-intermediateToRAPTOR ../../Datasets/RNV/intermediate.binary ../../Datasets/RNV/raptor.binary
-createLayoutGraph ../../Datasets/RNV/raptor.binary ../../Datasets/RNV/raptor.layout.graph true
+parseGTFS ../../Datasets/OldDatasets/Germany/gtfs/ ../../Datasets/OldDatasets/Germany/gtfs.binary
+gtfsToIntermediate ../../Datasets/OldDatasets/Germany/gtfs.binary 20220310 20220311 true false ../../Datasets/OldDatasets/Germany/intermediate.binary
+reduceGraph ../../Datasets/OldDatasets/Germany/intermediate.binary ../../Datasets/OldDatasets/Germany/intermediate.binary
+reduceToMaximumConnectedComponent ../../Datasets/OldDatasets/Germany/intermediate.binary ../../Datasets/OldDatasets/Germany/intermediate.binary
+makeIntermediateTransitive ../../Datasets/OldDatasets/Germany/intermediate.binary ../../Datasets/OldDatasets/Germany/intermediate.binary
+reduceGraph ../../Datasets/OldDatasets/Germany/intermediate.binary ../../Datasets/OldDatasets/Germany/intermediate.binary
+makeOneHopTransfers ../../Datasets/OldDatasets/Germany/intermediate.binary 86400 ../../Datasets/OldDatasets/Germany/intermediate.binary true
+intermediateToRAPTOR ../../Datasets/OldDatasets/Germany/intermediate.binary ../../Datasets/OldDatasets/Germany/raptor.binary
+createLayoutGraph ../../Datasets/OldDatasets/Germany/raptor.binary ../../Datasets/OldDatasets/Germany/raptor.layout.graph true

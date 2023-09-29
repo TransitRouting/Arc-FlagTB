@@ -116,9 +116,11 @@ public:
                 }
             }
         }
-        profiler.registerPhases({ PHASE_SCAN_INITIAL, PHASE_EVALUATE_INITIAL, PHASE_SCAN_TRIPS });
-        profiler.registerMetrics({ METRIC_ROUNDS, METRIC_SCANNED_TRIPS, METRIC_SCANNED_STOPS, METRIC_RELAXED_TRANSFERS,
-            METRIC_ENQUEUES, METRIC_ADD_JOURNEYS, METRIC_COUNT_DISTANCE });
+        /* profiler.registerPhases({ PHASE_SCAN_INITIAL, PHASE_EVALUATE_INITIAL, PHASE_SCAN_TRIPS }); */
+        /* profiler.registerMetrics({ METRIC_ROUNDS, METRIC_SCANNED_TRIPS, METRIC_SCANNED_STOPS, METRIC_RELAXED_TRANSFERS, */
+        /*     METRIC_ENQUEUES, METRIC_ADD_JOURNEYS, METRIC_COUNT_DISTANCE }); */
+
+        profiler.registerMetrics({ METRIC_SCANNED_TRIPS });
     }
 
     inline void run(const Vertex source, const int departureTime, const Vertex target) noexcept
@@ -199,7 +201,7 @@ private:
 
     inline void computeInitialAndFinalTransfers() noexcept
     {
-        profiler.startPhase();
+        // profiler.startPhase();
         transferFromSource[lastSource] = INFTY;
         for (const Edge edge : data.raptorData.transferGraph.edgesFrom(lastSource)) {
             const Vertex stop = data.raptorData.transferGraph.get(ToVertex, edge);
@@ -226,12 +228,12 @@ private:
         }
         lastSource = sourceStop;
         lastTarget = targetStop;
-        profiler.donePhase(PHASE_SCAN_INITIAL);
+        // profiler.donePhase(PHASE_SCAN_INITIAL);
     }
 
     inline void evaluateInitialTransfers() noexcept
     {
-        profiler.startPhase();
+        // profiler.startPhase();
         reachedRoutes.clear();
         for (const RAPTOR::RouteSegment& route : data.raptorData.routesContainingStop(sourceStop)) {
             reachedRoutes.insert(route.routeId);
@@ -275,18 +277,18 @@ private:
                     break;
             }
         }
-        profiler.donePhase(PHASE_EVALUATE_INITIAL);
+        // profiler.donePhase(PHASE_EVALUATE_INITIAL);
     }
 
     inline void scanTrips() noexcept
     {
-        profiler.startPhase();
+        // profiler.startPhase();
         u_int8_t currentRoundNumber = 0;
         size_t roundBegin = 0;
         size_t roundEnd = queueSize;
         while (roundBegin < roundEnd && currentRoundNumber < 15) {
             ++currentRoundNumber;
-            profiler.countMetric(METRIC_ROUNDS);
+            // profiler.countMetric(METRIC_ROUNDS);
             targetLabels.emplace_back(targetLabels.back());
             // Evaluate final transfers in order to check if the target is
             // reachable
@@ -294,7 +296,7 @@ private:
                 const TripLabel& label = queue[i];
                 profiler.countMetric(METRIC_SCANNED_TRIPS);
                 for (StopEventId j = label.begin; j < label.end; j++) {
-                    profiler.countMetric(METRIC_SCANNED_STOPS);
+                    // profiler.countMetric(METRIC_SCANNED_STOPS);
                     if (data.arrivalEvents[j].arrivalTime >= minArrivalTime)
                         break;
                     const int timeToTarget = transferToTarget[data.arrivalEvents[j].stop];
@@ -316,19 +318,19 @@ private:
             for (size_t i = roundBegin; i < roundEnd; i++) {
                 const EdgeRange& label = edgeRanges[i];
                 for (Edge edge = label.begin; edge < label.end; edge++) {
-                    profiler.countMetric(METRIC_RELAXED_TRANSFERS);
+                    // profiler.countMetric(METRIC_RELAXED_TRANSFERS);
                     enqueue(edge, i);
                 }
             }
             roundBegin = roundEnd;
             roundEnd = queueSize;
         }
-        profiler.donePhase(PHASE_SCAN_TRIPS);
+        // profiler.donePhase(PHASE_SCAN_TRIPS);
     }
 
     inline void enqueue(const TripId trip, const StopIndex index) noexcept
     {
-        profiler.countMetric(METRIC_ENQUEUES);
+        // profiler.countMetric(METRIC_ENQUEUES);
         if (reachedIndex.alreadyReached(trip, index))
             return;
         const StopEventId firstEvent = data.firstStopEventOfTrip[trip];
@@ -340,7 +342,7 @@ private:
 
     inline void enqueue(const Edge edge, const size_t parent) noexcept
     {
-        profiler.countMetric(METRIC_ENQUEUES);
+        // profiler.countMetric(METRIC_ENQUEUES);
         const EdgeLabel& label = edgeLabels[edge];
         if (reachedIndex.alreadyReached(label.trip, label.stopEvent - label.firstEvent)) [[likely]]
             return;
@@ -360,7 +362,7 @@ private:
 
     inline void addTargetLabel(const int newArrivalTime, const u_int32_t parent = -1) noexcept
     {
-        profiler.countMetric(METRIC_ADD_JOURNEYS);
+        // profiler.countMetric(METRIC_ADD_JOURNEYS);
         if (newArrivalTime < targetLabels.back().arrivalTime) {
             targetLabels.back() = TargetLabel(newArrivalTime, parent);
             minArrivalTime = newArrivalTime;
