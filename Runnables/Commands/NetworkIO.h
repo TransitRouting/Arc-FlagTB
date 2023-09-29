@@ -288,8 +288,8 @@ public:
         const std::string outputFile = getParameter("Output file");
 
         RAPTOR::Data network = RAPTOR::Data::FromBinary(networkFile);
-	network.dontUseImplicitDepartureBufferTimes();
-	network.dontUseImplicitArrivalBufferTimes();
+        network.dontUseImplicitDepartureBufferTimes();
+        network.dontUseImplicitArrivalBufferTimes();
         network.writeCSV(outputFile);
     }
 };
@@ -330,8 +330,8 @@ public:
         const std::string outputFile = getParameter("Output file");
 
         TripBased::Data network = TripBased::Data(networkFile);
-	network.raptorData.dontUseImplicitDepartureBufferTimes();
-	network.raptorData.dontUseImplicitArrivalBufferTimes();
+        network.raptorData.dontUseImplicitDepartureBufferTimes();
+        network.raptorData.dontUseImplicitArrivalBufferTimes();
         network.raptorData.writeCSV(outputFile);
 
         Graph::toEdgeListCSV(outputFile + "transfers", network.stopEventGraph);

@@ -30,7 +30,7 @@ public:
     TimestampedProfileReachedIndex(const Data& data)
         : data(data)
         , labels(data.numberOfTrips() << 4, -1)
-	, timestamps(data.numberOfTrips() << 4, 0)
+        , timestamps(data.numberOfTrips() << 4, 0)
         , timestamp(0)
         , defaultLabels(data.numberOfTrips() << 4, -1)
     {
@@ -47,23 +47,22 @@ public:
 public:
     inline void clear() noexcept
     {
-	if (timestamp == 0) {
-	     labels = defaultLabels;
-	     std::fill(timestamps.begin(), timestamps.end(), 0);
-	}
-	++timestamp;
+        if (timestamp == 0) {
+            labels = defaultLabels;
+            std::fill(timestamps.begin(), timestamps.end(), 0);
+        }
+        ++timestamp;
     }
-
 
     inline void clear(const RouteId route) noexcept
     {
         const TripId start = data.firstTripOfRoute[route];
         const TripId end = data.firstTripOfRoute[route + 1];
 #pragma omp simd
-	for (size_t i = (start << 4); i < (end << 4); ++i) {
+        for (size_t i = (start << 4); i < (end << 4); ++i) {
             labels[i] = defaultLabels[i];
-	    timestamps[i] = timestamp;
-	}
+            timestamps[i] = timestamp;
+        }
     }
 
     inline StopIndex operator()(const TripId trip, const int n = 1) noexcept
@@ -86,10 +85,10 @@ public:
         const TripId routeEnd = data.firstTripOfRoute[data.routeOfTrip[trip] + 1];
         for (TripId tripIndex = trip; tripIndex < routeEnd; ++tripIndex) {
             for (int i = n - 1; i < 16; ++i) {
-		u_int8_t& label = getLabel(tripIndex, i + 1);
+                u_int8_t& label = getLabel(tripIndex, i + 1);
                 if (label <= index)
                     break;
-		label = index;
+                label = index;
             }
         }
     }
@@ -98,7 +97,7 @@ private:
     inline u_int8_t& getLabel(const TripId trip, const int n = 1) noexcept
     {
         if (timestamps[(trip << 4) + n - 1] != timestamp) {
-	    labels[(trip << 4) + n - 1] = defaultLabels[(trip << 4) + n - 1];
+            labels[(trip << 4) + n - 1] = defaultLabels[(trip << 4) + n - 1];
             timestamps[(trip << 4) + n - 1] = timestamp;
         }
         return labels[(trip << 4) + n - 1];

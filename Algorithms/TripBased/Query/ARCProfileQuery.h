@@ -25,8 +25,8 @@
 #include "../../../DataStructures/RAPTOR/Entities/RouteSegment.h"
 #include "../../../DataStructures/TripBased/Data.h"
 #include "../../../Helpers/String/String.h"
-#include "TimestampedProfileReachedIndex.h"
 #include "Profiler.h"
+#include "TimestampedProfileReachedIndex.h"
 
 namespace TripBased {
 
@@ -140,7 +140,7 @@ public:
         , maxDepartureTime(never)
         , targetLabelChanged(16, false)
         , routeLabels(data.stopEventGraph.numEdges())
-	, targetFlag(0)
+        , targetFlag(0)
     {
         // load flags into more cache efficient vector
         allFlagsCacheEfficient.assign(data.raptorData.numberOfPartitions * data.stopEventGraph.numEdges(), false);
@@ -190,7 +190,7 @@ public:
     inline void run(const StopId source, const StopId target, const int minDepTime, const int maxDepTime) noexcept
     {
         profiler.start();
-	
+
         sourceStop = source;
         targetStop = target;
         minDepartureTime = minDepTime;
@@ -234,7 +234,7 @@ public:
 
     inline void evaluateInitialTransfers() noexcept
     {
-	profiler.startPhase();
+        profiler.startPhase();
         reachedRoutes.clear();
         for (const RAPTOR::RouteSegment& route : data.raptorData.routesContainingStop(sourceStop)) {
             reachedRoutes.insert(route.routeId);
@@ -278,7 +278,7 @@ public:
                     break;
             }
         }
-	profiler.donePhase(PHASE_EVALUATE_INITIAL);
+        profiler.donePhase(PHASE_EVALUATE_INITIAL);
     }
 
     inline Profiler& getProfiler() noexcept
@@ -315,9 +315,9 @@ private:
     {
         queueSize = 0;
 
-	profiler.startPhase();
+        profiler.startPhase();
         reachedIndex.clear();
-	profiler.donePhase(PHASE_MAIN);
+        profiler.donePhase(PHASE_MAIN);
 
         targetLabels.assign(16, TargetLabel());
         minArrivalTimeFastLookUp.assign(16, INFTY);
@@ -606,7 +606,7 @@ private:
     Profiler profiler;
 
     int targetFlag;
-    
+
     // Idea to store flags more cache efficient
     // [ #1 | #2 | (...) | #k ] -> one such block #j:
     // #j = [ bool bool bool (...) bool ] (the j-th flag for every edge in the stopEventGraph)

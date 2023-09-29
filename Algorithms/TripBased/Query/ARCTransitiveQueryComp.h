@@ -145,7 +145,7 @@ public:
         /* profiler.registerPhases({ PHASE_SCAN_INITIAL, PHASE_EVALUATE_INITIAL, PHASE_SCAN_TRIPS }); */
         /* profiler.registerMetrics({ METRIC_ROUNDS, METRIC_SCANNED_TRIPS, METRIC_SCANNED_STOPS, METRIC_RELAXED_TRANSFERS, */
         /*     METRIC_ENQUEUES, METRIC_ADD_JOURNEYS }); */
-	profiler.registerMetrics({ METRIC_SCANNED_TRIPS });
+        profiler.registerMetrics({ METRIC_SCANNED_TRIPS });
     }
 
     inline void run(const Vertex source, const int departureTime, const Vertex target) noexcept

@@ -828,10 +828,8 @@ public:
 /* 	} */
 /*         algorithm.getProfiler().printStatistics(); */
 
-
 /*     } */
 /* }; */
-
 
 class RunTransitiveProfileTripBasedQueries : public ParameterizedCommand {
 public:
