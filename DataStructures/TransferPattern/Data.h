@@ -68,6 +68,7 @@ public:
         , lineLookup(data.numberOfRoutes())
         , stopLookup(data.numberOfStops())
         , firstTripIdOfLine(data.numberOfRoutes() + 1, noTripId)
+        , transferPatternOfStop(data.numberOfStops())
     {
         buildLineLookup();
         buildStopLookup();
@@ -143,19 +144,22 @@ private:
     }
 
 public:
-    inline RAPTOR::StopEvent getStopEvent(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t) -1, const StopIndex stopIndex = noStopIndex) const {
+    inline RAPTOR::StopEvent getStopEvent(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t)-1, const StopIndex stopIndex = noStopIndex) const
+    {
         AssertMsg(raptorData.isRoute(routeId), "Route is not a route!");
-        AssertMsg(tripIndex != (size_t) -1, "TripIndex is invalid!");
+        AssertMsg(tripIndex != (size_t)-1, "TripIndex is invalid!");
         AssertMsg(stopIndex < raptorData.numberOfStopsInRoute(routeId), "StopIndex is out of bounds!");
 
         return lineLookup[routeId].stopsAlongLine[stopIndex].halts[tripIndex];
     }
 
-    inline int getArrivalTime(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t) -1, const StopIndex stopIndex = noStopIndex) const {
+    inline int getArrivalTime(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t)-1, const StopIndex stopIndex = noStopIndex) const
+    {
         return getStopEvent(routeId, tripIndex, stopIndex).arrivalTime;
     }
 
-    inline int getDepartureTime(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t) -1, const StopIndex stopIndex = noStopIndex) const {
+    inline int getDepartureTime(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t)-1, const StopIndex stopIndex = noStopIndex) const
+    {
         return getStopEvent(routeId, tripIndex, stopIndex).departureTime;
     }
 
@@ -208,10 +212,10 @@ public:
                 // check if sourceStopLookup[i] is reachable
                 firstReachableTripIndex = earliestTripIndexOfLineByStopIndex(sourceStopLookup[i].stopIndex, sourceStopLookup[i].routeId, departureTime);
 
-                if (firstReachableTripIndex == (size_t) -1)
+                if (firstReachableTripIndex == (size_t)-1)
                     continue;
                 currentArrivalTime = getArrivalTime(sourceStopLookup[i].routeId, firstReachableTripIndex, targetStopLookup[j].stopIndex);
-                if (currentArrivalTime < result.second) 
+                if (currentArrivalTime < result.second)
                     result = std::make_pair(tripIdOfLineByTripIndex(sourceStopLookup[i].routeId), currentArrivalTime);
 
                 ++i;
@@ -228,16 +232,28 @@ public:
     }
 
 public:
+    inline long long byteSize() const noexcept
+    {
+        long long result = Vector::byteSize(lineLookup);
+        result += Vector::byteSize(stopLookup);
+        result += raptorData.byteSize();
+
+        for (const StopId stop : raptorData.stops())
+            result += transferPatternOfStop[stop].byteSize();
+
+        return result;
+    }
+
     inline void serialize(const std::string& fileName) const noexcept
     {
         raptorData.serialize(fileName + ".raptor");
-        IO::serialize(fileName, lineLookup, stopLookup, firstTripIdOfLine);
+        IO::serialize(fileName, lineLookup, stopLookup, firstTripIdOfLine, transferPatternOfStop);
     }
 
     inline void deserialize(const std::string& fileName) noexcept
     {
         raptorData.deserialize(fileName + ".raptor");
-        IO::deserialize(fileName, lineLookup, stopLookup, firstTripIdOfLine);
+        IO::deserialize(fileName, lineLookup, stopLookup, firstTripIdOfLine, transferPatternOfStop);
     }
 
 public:
@@ -246,6 +262,10 @@ public:
     std::vector<LookupOfLine> lineLookup;
     std::vector<StopLookup> stopLookup;
     std::vector<TripId> firstTripIdOfLine;
+
+    // StaticDAGTransferPattern holds ViaVertex == points to the correct StopId
+    // and holds TravelTime == if negative, the edge is a trip edge
+    std::vector<StaticDAGTransferPattern> transferPatternOfStop;
 };
 
 } // namespace TransferPattern

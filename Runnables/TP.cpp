@@ -11,10 +11,8 @@ int main(int argc, char** argv)
     checkAsserts();
     ::Shell::Shell shell;
 
-    new RAPTORToTripBased(shell);
     new RAPTORToTransferPattern(shell);
-    new ComputeTransitiveEventToEventShortcuts(shell);
-    new CreateLayoutGraph(shell);
+    new ComputeTPUsingTB(shell);
 
     shell.run();
     return 0;

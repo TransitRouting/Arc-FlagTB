@@ -70,5 +70,10 @@ using DynamicTransferGraphWithARCFlag = DynamicGraph<WithCoordinates, WithTravel
 using SimpleDynamicGraphWithARCFlag = DynamicGraph<NoVertexAttributes, WithARCFlag>;
 using SimpleEdgeListWithARCFlag = EdgeList<NoVertexAttributes, WithARCFlag>;
 
+// Transfer Pattern
+using EdgeListDAGTransferPattern = EdgeList<WithViaVertex, WithTravelTime>;
+using DynamicDAGTransferPattern = DynamicGraph<WithViaVertex, WithTravelTime>;
+using StaticDAGTransferPattern = StaticGraph<WithViaVertex, WithTravelTime>;
+
 #include "Utils/Conversion.h"
 #include "Utils/IO.h"
