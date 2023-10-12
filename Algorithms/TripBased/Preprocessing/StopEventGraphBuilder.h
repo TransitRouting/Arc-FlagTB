@@ -2,6 +2,7 @@
 
 #include "../../../DataStructures/TripBased/Data.h"
 #include "../../../Helpers/Console/Progress.h"
+#include "../../../Helpers/MultiThreading.h"
 
 namespace TripBased {
 

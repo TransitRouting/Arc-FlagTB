@@ -5,8 +5,8 @@ DEBUG=-rdynamic -Werror -Wpedantic -pedantic-errors -Wall -Wextra -Wparentheses 
 RELEASE=-ffast-math -ftree-vectorize -Wfatal-errors -DNDEBUG
 
 
-all: ArcTBRelease NetworkRelease ULTRARelease 
-# all: ArcTBDebug NetworkDebug ULTRADebug
+all: TPRelease ArcTBRelease NetworkRelease ULTRARelease 
+# all: TPDebug ArcTBDebug NetworkDebug ULTRADebug
 
 NetworkDebug:
 	$(CC) $(FLAGS) $(OPTIMIZATION) $(DEBUG) -o Network Network.cpp
@@ -26,3 +26,8 @@ ArcTBDebug:
 ArcTBRelease:
 	$(CC) $(FLAGS) $(OPTIMIZATION) $(RELEASE) -o ARCTB ArcTB.cpp
 
+TPDebug:
+	$(CC) $(FLAGS) $(OPTIMIZATION) $(DEBUG) -o TP TP.cpp
+
+TPRelease:
+	$(CC) $(FLAGS) $(OPTIMIZATION) $(RELEASE) -o TP TP.cpp

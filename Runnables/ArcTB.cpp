@@ -29,6 +29,7 @@ int main(int argc, char** argv)
     new IntermediateToCSA(shell);
 
     new RAPTORToTripBased(shell);
+    new RAPTORToTransferPattern(shell);
     new ComputeTransitiveEventToEventShortcuts(shell);
     new CreateLayoutGraph(shell);
     new ApplyPartitionToTripBased(shell);

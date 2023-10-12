@@ -11,6 +11,7 @@
 #include "../../Algorithms/TripBased/Preprocessing/ULTRABuilderTransitive.h"
 #include "../../DataStructures/Graph/Graph.h"
 #include "../../DataStructures/RAPTOR/Data.h"
+#include "../../DataStructures/TransferPattern/Data.h"
 #include "../../DataStructures/TripBased/Data.h"
 #include "../../Helpers/MultiThreading.h"
 #include "../../Helpers/String/String.h"
@@ -76,6 +77,29 @@ private:
         } else {
             return getParameter<int>("Number of threads");
         }
+    }
+};
+
+class RAPTORToTransferPattern : public ParameterizedCommand {
+public:
+    RAPTORToTransferPattern(BasicShell& shell)
+        : ParameterizedCommand(shell, "raptorToTransferPattern", "Converts RAPTOR to TP")
+    {
+        addParameter("Input file (RAPTOR Data)");
+        addParameter("Output file (TP Data)");
+    }
+
+    virtual void execute() noexcept
+    {
+        const std::string inputFile = getParameter("Input file (RAPTOR Data)");
+        const std::string outputFile = getParameter("Output file (TP Data)");
+
+        RAPTOR::Data raptor(inputFile);
+        raptor.printInfo();
+
+        TransferPattern::Data data(raptor);
+
+        data.serialize(outputFile);
     }
 };
 
