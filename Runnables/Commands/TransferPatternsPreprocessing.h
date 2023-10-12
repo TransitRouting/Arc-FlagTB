@@ -46,7 +46,7 @@ public:
         : ParameterizedCommand(shell, "computeTPUsingTB", "Computs all Transfer Patterns using TB Profile Queries!")
     {
         addParameter("Input file (TripBased Data)");
-        /* addParameter("Output file"); */
+        addParameter("Output file (TP Data)");
         addParameter("Number of threads", "max");
         addParameter("Pin multiplier", "1");
     }
@@ -54,20 +54,23 @@ public:
     virtual void execute() noexcept
     {
         const std::string inputFile = getParameter("Input file (TripBased Data)");
-        /* const std::string outputFile = getParameter("Output file"); */
+        const std::string outputFile = getParameter("Output file (TP Data)");
         const int numberOfThreads = getNumberOfThreads();
         const int pinMultiplier = getParameter<int>("Pin multiplier");
 
         TripBased::Data data(inputFile);
         data.printInfo();
 
+        TransferPattern::Data tpData(data.raptorData);
+
         if (numberOfThreads == 0) {
-            TransferPattern::ComputeTransferPatternUsingTripBased(data);
+            TransferPattern::ComputeTransferPatternUsingTripBased(data, tpData);
         } else {
-            TransferPattern::ComputeTransferPatternUsingTripBased(data, numberOfThreads, pinMultiplier);
+            TransferPattern::ComputeTransferPatternUsingTripBased(data, tpData, numberOfThreads, pinMultiplier);
         }
 
-        /* data.serialize(outputFile); */
+        std::cout << "Total Byte Size: " << String::bytesToString(tpData.byteSize()) << std::endl;
+        tpData.serialize(outputFile);
     }
 
 private:

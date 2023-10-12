@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../DataStructures/TransferPattern/Data.h"
 #include "../../../DataStructures/TripBased/Data.h"
 #include "../../TripBased/Query/ProfileOneToAllQuery.h"
 
@@ -73,13 +74,14 @@ private:
     DynamicDAGTransferPattern dynamicDAG;
 };
 
-inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data) noexcept
+inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, TransferPattern::Data& tpData) noexcept
 {
     Progress progress(data.numberOfStops());
     TransferPatternBuilder bobTheBuilder(data);
 
     for (const StopId stop : data.stops()) {
         bobTheBuilder.computeTransferPatternForStop(stop);
+        Graph::move(std::move(bobTheBuilder.getDAG()), tpData.transferPatternOfStop[stop]);
         ++progress;
     }
     /* Graph::move(std::move(builder.getStopEventGraph()), data.stopEventGraph); */
@@ -87,7 +89,7 @@ inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data) noexcept
     progress.finished();
 }
 
-inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, const int numberOfThreads, const int pinMultiplier = 1) noexcept
+inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, TransferPattern::Data& tpData, const int numberOfThreads, const int pinMultiplier = 1) noexcept
 {
     Progress progress(data.numberOfStops());
 
@@ -111,22 +113,11 @@ inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, const in
         for (size_t i = 0; i < numberOfStops; ++i) {
             const StopId stop = StopId(i);
             bobTheBuilder.computeTransferPatternForStop(stop);
+
+            Graph::move(std::move(bobTheBuilder.getDAG()), tpData.transferPatternOfStop[stop]);
             ++progress;
         }
-
-        /* #pragma omp critical */
-        /*         { */
-        /*             for (const auto [edge, from] : builder.getStopEventGraph().edgesWithFromVertex()) { */
-        /*                 // Arc-Flag TB set empty flags */
-        /*                 std::vector<bool> emptyFlags(data.getNumberOfPartitionCells(), false); */
-        /*                 stopEventGraph.addEdge(from, builder.getStopEventGraph().get(ToVertex, edge)).set(ARCFlag, emptyFlags); */
-        /*             } */
-        /*         } */
-        /*     } */
-
-        /* Graph::move(std::move(stopEventGraph), data.stopEventGraph); */
-        /* data.stopEventGraph.sortEdges(ToVertex); */
-        progress.finished();
     }
+    progress.finished();
 }
 }

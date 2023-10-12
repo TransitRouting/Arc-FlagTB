@@ -58,7 +58,7 @@ private:
     };
 
 public:
-    StopEventGraphBuilder(const DataTripBased::Data& data data)
+    StopEventGraphBuilder(const TripBased::Data& data)
         : data(data)
         , labels(data.numberOfStops())
         , timestamp(0)
@@ -255,7 +255,7 @@ private:
     }
 
 private:
-    const DataTripBased::Data& data data;
+    const TripBased::Data& data;
 
     SimpleDynamicGraphWithARCFlag generatedTransfers;
     SimpleDynamicGraphWithARCFlag keptTransfers;
@@ -264,7 +264,7 @@ private:
     int timestamp;
 };
 
-inline void ComputeStopEventGraph(DataTripBased::Data& data data) noexcept
+inline void ComputeStopEventGraph(TripBased::Data& data) noexcept
 {
     Progress progress(data.numberOfTrips());
     StopEventGraphBuilder builder(data);
@@ -278,7 +278,7 @@ inline void ComputeStopEventGraph(DataTripBased::Data& data data) noexcept
     progress.finished();
 }
 
-inline void ComputeStopEventGraph(DataTripBased::Data& data data, const int numberOfThreads, const int pinMultiplier = 1) noexcept
+inline void ComputeStopEventGraph(TripBased::Data& data, const int numberOfThreads, const int pinMultiplier = 1) noexcept
 {
     Progress progress(data.numberOfTrips());
     SimpleEdgeListWithARCFlag stopEventGraph;
@@ -322,7 +322,7 @@ inline void ComputeStopEventGraph(DataTripBased::Data& data data, const int numb
     progress.finished();
 }
 
-inline void ComputeStopEventGraphRouteBased(DataTripBased::Data& data data) noexcept
+inline void ComputeStopEventGraphRouteBased(TripBased::Data& data) noexcept
 {
     Progress progress(data.numberOfRoutes());
     StopEventGraphBuilder builder(data);
@@ -336,7 +336,7 @@ inline void ComputeStopEventGraphRouteBased(DataTripBased::Data& data data) noex
     progress.finished();
 }
 
-inline void ComputeStopEventGraphRouteBased(DataTripBased::Data& data data, const int numberOfThreads, const int pinMultiplier = 1) noexcept
+inline void ComputeStopEventGraphRouteBased(TripBased::Data& data, const int numberOfThreads, const int pinMultiplier = 1) noexcept
 {
     Progress progress(data.numberOfRoutes());
     SimpleEdgeListWithARCFlag stopEventGraph;
