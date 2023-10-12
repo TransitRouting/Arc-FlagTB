@@ -53,16 +53,8 @@ public:
     {
         AssertMsg(data.raptorData.isStop(stop), "Stop is not valid!");
 
-        std::vector<StopId> targets;
-        targets.reserve(data.numberOfStops());
-
-        for (const StopId target : data.stops()) {
-            if (target == stop)
-                continue;
-            targets.push_back(target);
-        }
-
-        query.run(stop, minDep, maxDep, targets);
+        // This solves one-to-all
+        query.run(stop, minDep, maxDep);
 
         std::vector<RAPTOR::Journey> journeys = query.getAllJourneys();
 

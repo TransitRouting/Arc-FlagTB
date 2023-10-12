@@ -168,8 +168,7 @@ public:
             METRIC_ENQUEUES, METRIC_ADD_JOURNEYS });
     }
 
-    inline void run(const Vertex source, const int minDepartureTime, const int maxDepartureTime,
-        const std::vector<Vertex> targets = {})
+    inline void run(const Vertex source, const int minDepartureTime, const int maxDepartureTime)
     {
         AssertMsg(data.isStop(source), "Source " << source << " is not a stop!");
         AssertMsg(minDepartureTime >= 0 && minDepartureTime < 24 * 60 * 60,
@@ -179,7 +178,7 @@ public:
         AssertMsg(minDepartureTime <= maxDepartureTime,
             "Minimum Departure Time needs to smaller or equal to the Maximum "
             "Departure Time!");
-        std::vector<StopId> targetsStops(targets.begin(), targets.end());
+        std::vector<StopId> targetsStops = data.stops();
         run(StopId(source), minDepartureTime, maxDepartureTime, targetsStops);
     }
 
@@ -289,6 +288,8 @@ public:
 
     inline std::vector<RAPTOR::Journey> getJourneys(const StopId& target) const noexcept
     {
+        if (target == lastSource)
+            return {};
         std::vector<RAPTOR::Journey> result;
         int bestArrivalTime = INFTY;
         int counter(0);
