@@ -6,7 +6,6 @@ This repository is based on the ULTRA framework. For more information, see [ULTR
 
 This repository contains the code for
 
-UnLimited TRAnsfers for Multi-Modal Route Planning: An Efficient Solution Moritz Baum, Valentin Buchhold, Jonas Sauer, Dorothea Wagner, Tobias Zündorf In: Proceedings of the 27th Annual European Symposium on Algorithms (ESA'19), Leibniz International Proceedings in Informatics, pages 14:1–14:16, 2019 pdf arXiv
 * *Arc-Flags Meet Trip-Based Public Transit Routing (Arc-Flag TB)* 
 Ernestine Großmann, Jonas Sauer, Christian Schulz, Patrick Steil
 In: Proceedings of the 21st International Symposium on Experimental Algorithms (SEA 2023), Schloss Dagstuhl - Leibniz-Zentrum für Informatik, pages 16:1-16:18, 2023
