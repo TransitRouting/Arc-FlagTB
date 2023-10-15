@@ -792,6 +792,11 @@ public:
 
         for (const StopQuery& query : queries) {
             algorithm.run(query.source, query.departureTime, query.target);
+            for (auto j : algorithm.getJourneys()) {
+                for (auto leg : j) std::cout << leg << std::endl;
+
+                std::cout << std::endl;
+            }
             /* journeys.push_back(algorithm.getJourneys()); */
         }
         algorithm.getProfiler().printStatistics();
@@ -879,12 +884,8 @@ public:
         const size_t n = getParameter<size_t>("Number of queries");
         const std::vector<StopQuery> queries = generateRandomStopQueries(tripBasedData.numberOfStops(), n);
 
-        std::vector<Vertex> targets(tripBasedData.numberOfStops());
-        for (size_t i(0); i < tripBasedData.numberOfStops(); ++i)
-            targets[i] = Vertex(i);
-
         for (const StopQuery& query : queries) {
-            algorithm.run(query.source, 0, 24 * 60 * 60 - 1, targets);
+            algorithm.run(query.source, 0, 24 * 60 * 60 - 1);
         }
         algorithm.getProfiler().printStatistics();
     }

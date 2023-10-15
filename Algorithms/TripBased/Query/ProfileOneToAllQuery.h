@@ -27,6 +27,8 @@
 #include "ProfileReachedIndex.h"
 #include "Profiler.h"
 
+#include <numeric>
+
 namespace TripBased {
 
 template <typename PROFILER = NoProfiler>
@@ -178,7 +180,9 @@ public:
         AssertMsg(minDepartureTime <= maxDepartureTime,
             "Minimum Departure Time needs to smaller or equal to the Maximum "
             "Departure Time!");
-        std::vector<StopId> targetsStops = data.stops();
+        std::vector<StopId> targetsStops(data.numberOfStops());
+
+        std::iota(targetsStops.begin(), targetsStops.end(), StopId(0));
         run(StopId(source), minDepartureTime, maxDepartureTime, targetsStops);
     }
 
@@ -281,7 +285,7 @@ public:
         return profiler;
     }
 
-    inline std::vector<RAPTOR::Journey> getAllJourneys() const noexcept
+    inline std::vector<RAPTOR::Journey>& getAllJourneys() noexcept
     {
         return allJourneys;
     }
@@ -311,6 +315,7 @@ private:
         minArrivalTimeFastLookUp.assign(data.raptorData.stopData.size(), emptyMinArrivalTimeFastLookUp);
         targetLabelChanged.assign(data.raptorData.stopData.size(), emptyTargetLabelChanged);
         allJourneys.clear();
+        allJourneys.reserve(1000);
     }
 
     inline void computeInitialAndFinalTransfers() noexcept

@@ -69,8 +69,18 @@ public:
             TransferPattern::ComputeTransferPatternUsingTripBased(data, tpData, numberOfThreads, pinMultiplier);
         }
 
-        std::cout << "Total Byte Size: " << String::bytesToString(tpData.byteSize()) << std::endl;
-        tpData.serialize(outputFile);
+        long long totalNumVertices(0);
+        long long totalNumEdges(0);
+    
+        for (const StopId stop : tpData.raptorData.stops()) {
+            totalNumVertices += tpData.transferPatternOfStop[stop].numVertices();
+            totalNumEdges += tpData.transferPatternOfStop[stop].numEdges();
+        }
+
+        std::cout << "Total Size:       " << String::bytesToString(tpData.byteSize()) << std::endl;
+        std::cout << "Average # Nodes:  " << String::prettyDouble(totalNumVertices / data.raptorData.numberOfStops()) << std::endl;
+        std::cout << "Average # Edges:  " << String::prettyDouble(totalNumEdges / data.raptorData.numberOfStops()) << std::endl;
+        /* tpData.serialize(outputFile); */
     }
 
 private:

@@ -601,5 +601,15 @@ inline std::ostream& operator<<(std::ostream& out, const std::vector<T>& a)
     }
     return out;
 }
+template <typename T>
+struct VectorHasher {
+    int operator()(const vector<T> &V) const {
+        int hash = V.size();
+        for(auto &i : V) {
+            hash ^= (int) i + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+        }
+        return hash;
+    }
+};
 
 } // namespace std
