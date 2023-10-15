@@ -5,8 +5,8 @@
 #include "../../TripBased/Query/ProfileOneToAllQuery.h"
 
 #include "../../../Helpers/Console/Progress.h"
-#include "../../../Helpers/Vector/Vector.h"
 #include "../../../Helpers/MultiThreading.h"
+#include "../../../Helpers/Vector/Vector.h"
 
 #include <unordered_map>
 
@@ -35,7 +35,8 @@ public:
         return dynamicDAG;
     }
 
-    inline void addPrefixToDAG(std::vector<StopId>& prefix, const int travelTime = -1) {
+    inline void addPrefixToDAG(std::vector<StopId>& prefix, const int travelTime = -1)
+    {
         AssertMsg(prefix.size() > 0, "Prefix is empty?");
         if (seenPrefix.find(prefix) != seenPrefix.end())
             return;
@@ -56,7 +57,6 @@ public:
     {
         AssertMsg(data.raptorData.isStop(stop), "Stop is not valid!");
         clear();
-
 
         std::vector<StopId> currentPrefix;
         currentPrefix.reserve(32);
@@ -117,13 +117,13 @@ public:
         seenPrefix.clear();
     }
 
-    inline int getTravelTimeByFootpath(StopId from, StopId to) noexcept {
+    inline int getTravelTimeByFootpath(StopId from, StopId to) noexcept
+    {
         AssertMsg(data.isStop(from), "From is not a valid stop!");
         AssertMsg(data.isStop(to), "To is not a valid stop!");
-        
+
         if (from == to)
             return 0;
-
 
         Edge usedEdge = data.raptorData.transferGraph.findEdge(Vertex(from), Vertex(to));
         AssertMsg(data.raptorData.transferGraph.isEdge(usedEdge), "Transfer not valid?");
@@ -139,7 +139,6 @@ private:
     std::unordered_map<std::vector<StopId>, Vertex, std::VectorHasher<StopId>> seenPrefix;
     const int minDep;
     const int maxDep;
-
 };
 
 inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, TransferPattern::Data& tpData) noexcept

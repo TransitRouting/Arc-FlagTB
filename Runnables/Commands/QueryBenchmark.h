@@ -793,7 +793,8 @@ public:
         for (const StopQuery& query : queries) {
             algorithm.run(query.source, query.departureTime, query.target);
             for (auto j : algorithm.getJourneys()) {
-                for (auto leg : j) std::cout << leg << std::endl;
+                for (auto leg : j)
+                    std::cout << leg << std::endl;
 
                 std::cout << std::endl;
             }

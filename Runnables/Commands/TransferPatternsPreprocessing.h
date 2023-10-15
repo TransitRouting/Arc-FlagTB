@@ -71,7 +71,7 @@ public:
 
         long long totalNumVertices(0);
         long long totalNumEdges(0);
-    
+
         for (const StopId stop : tpData.raptorData.stops()) {
             totalNumVertices += tpData.transferPatternOfStop[stop].numVertices();
             totalNumEdges += tpData.transferPatternOfStop[stop].numEdges();
