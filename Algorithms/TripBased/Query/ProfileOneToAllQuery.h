@@ -138,7 +138,6 @@ public:
         , routeLabels(data.stopEventGraph.numEdges())
     {
         collectedDepTimes.reserve(data.raptorData.numberOfTrips()); // can be adjusted
-        allJourneys.reserve(32);
         // init empty version
         emptyTargetLabels.assign(16, TargetLabel());
         emptyTargetLabelChanged.assign(16, false);

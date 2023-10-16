@@ -77,38 +77,42 @@ public:
             currentPrefix.push_back(stop);
             target = StopId(j.back().to);
 
-            for (size_t i(0); i < j.size() - 1; ++i) {
+            for (size_t i(0); i < j.size(); ++i) {
                 leg = j[i];
+
                 if (leg.from == leg.to)
                     continue;
 
                 // TODO check if it is possible if a prefix ABCD has B->C using a route and another prefix ABCD B->C as footpath
-                currentPrefix.push_back(StopId(leg.to));
-
                 if (!leg.usesRoute) {
                     travelTime = getTravelTimeByFootpath(StopId(leg.from), StopId(leg.to));
                 } else {
                     travelTime = -1;
                 }
-                addPrefixToDAG(currentPrefix, travelTime);
+                if (leg.to == j.back().to) {
+                    // add last leg (this is the special stop-vertex)
+                    AssertMsg(seenPrefix.find(currentPrefix) != seenPrefix.end(), "Current Prefix is not in the map?");
+                    if (!dynamicDAG.hasEdge(Vertex(target), seenPrefix[currentPrefix]))
+                        dynamicDAG.addEdge(Vertex(target), seenPrefix[currentPrefix]).set(TravelTime, travelTime);
+                    break;
+                } else {
+                    currentPrefix.push_back(StopId(leg.to));
+                    addPrefixToDAG(currentPrefix, travelTime);
+                }
             }
-
-            // add last leg (this is the special stop-vertex)
-            AssertMsg(seenPrefix.find(currentPrefix) != seenPrefix.end(), "Current Prefix is not in the map?");
-
-            int travelTime(-1);
-            if (!j.back().usesRoute) {
-                travelTime = getTravelTimeByFootpath(currentPrefix.back(), target);
-            }
-            dynamicDAG.addEdge(Vertex(target), seenPrefix[currentPrefix]).set(TravelTime, travelTime);
         }
 
-        dynamicDAG.deleteIsolatedVertices();
+        // keep first # of stops vertices, the rest can vanish
+        // TODO only delete some isolated vertices
+        /* dynamicDAG.deleteIsolatedVertices(); */
+        dynamicDAG.reduceMultiEdgesBy(TravelTime);
+        dynamicDAG.packEdges();
     }
 
     inline void clear() noexcept
     {
         dynamicDAG.clear();
+        dynamicDAG.reserve(data.numberOfStops() << 1, data.numberOfStops() << 1);
         dynamicDAG.addVertices(data.numberOfStops());
         for (const Vertex vertex : dynamicDAG.vertices()) {
             dynamicDAG.set(ViaVertex, vertex, vertex);
@@ -126,7 +130,7 @@ public:
             return 0;
 
         Edge usedEdge = data.raptorData.transferGraph.findEdge(Vertex(from), Vertex(to));
-        AssertMsg(data.raptorData.transferGraph.isEdge(usedEdge), "Transfer not valid?");
+        AssertMsg(data.raptorData.transferGraph.isEdge(usedEdge), "Transfer not valid? From " << from << " to " << to << "\n");
         return data.raptorData.transferGraph.get(TravelTime, usedEdge);
     }
 

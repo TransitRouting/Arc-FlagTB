@@ -146,6 +146,8 @@ inline void toGML(const std::string& fileBaseName, const GRAPH& graph) noexcept
         gml << "        <key id=\"size_n\" for=\"node\" attr.name=\"size\" attr.type=\"int\"/>\n";
     if constexpr (GRAPH::HasVertexAttribute(Weight))
         gml << "        <key id=\"weight_n\" for=\"node\" attr.name=\"weight\" attr.type=\"int\"/>\n";
+    if constexpr (GRAPH::HasVertexAttribute(ViaVertex))
+        gml << "        <key id=\"viavertex_n\" for=\"node\" attr.name=\"viavertex\" attr.type=\"int\"/>\n";
 
     // Second: edges
 
@@ -181,6 +183,8 @@ inline void toGML(const std::string& fileBaseName, const GRAPH& graph) noexcept
             gml << "            <data key=\"size_n\">" << (int)graph.get(Size, vertex) << "</data>\n";
         if constexpr (GRAPH::HasVertexAttribute(Weight))
             gml << "            <data key=\"weight_n\">" << (int)graph.get(Weight, vertex) << "</data>\n";
+        if constexpr (GRAPH::HasVertexAttribute(ViaVertex))
+            gml << "            <data key=\"viavertex_n\">" << (int)graph.get(ViaVertex, vertex) << "</data>\n";
 
         gml << "        </node>\n";
     }

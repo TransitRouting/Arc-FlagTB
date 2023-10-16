@@ -4,6 +4,8 @@
 #include <string>
 
 #include "../../Algorithms/TransferPattern/Preprocessing/TransferPatternBuilder.h"
+#include "../../Algorithms/TransferPattern/Query/Query.h"
+
 #include "../../DataStructures/Graph/Graph.h"
 #include "../../DataStructures/RAPTOR/Data.h"
 #include "../../DataStructures/TransferPattern/Data.h"
@@ -56,31 +58,46 @@ public:
         const std::string inputFile = getParameter("Input file (TripBased Data)");
         const std::string outputFile = getParameter("Output file (TP Data)");
         const int numberOfThreads = getNumberOfThreads();
-        const int pinMultiplier = getParameter<int>("Pin multiplier");
+        /* const int pinMultiplier = getParameter<int>("Pin multiplier"); */
 
         TripBased::Data data(inputFile);
         data.printInfo();
 
         TransferPattern::Data tpData(data.raptorData);
 
-        if (numberOfThreads == 0) {
-            TransferPattern::ComputeTransferPatternUsingTripBased(data, tpData);
-        } else {
-            TransferPattern::ComputeTransferPatternUsingTripBased(data, tpData, numberOfThreads, pinMultiplier);
-        }
+        std::cout << "Computing Transfer Pattern with " << (int)numberOfThreads << " # of threads!" << std::endl;
 
-        long long totalNumVertices(0);
-        long long totalNumEdges(0);
+        TransferPattern::TransferPatternBuilder bobTheBuilder(data);
+        bobTheBuilder.computeTransferPatternForStop(StopId(593));
 
-        for (const StopId stop : tpData.raptorData.stops()) {
-            totalNumVertices += tpData.transferPatternOfStop[stop].numVertices();
-            totalNumEdges += tpData.transferPatternOfStop[stop].numEdges();
-        }
+        Graph::move(std::move(bobTheBuilder.getDAG()), tpData.transferPatternOfStop[593]);
+        /* bobTheBuilder.getDAG().printAnalysis(); */
+        /* Graph::toGML(outputFile, bobTheBuilder.getDAG()); */
 
-        std::cout << "Total Size:       " << String::bytesToString(tpData.byteSize()) << std::endl;
-        std::cout << "Average # Nodes:  " << String::prettyDouble(totalNumVertices / data.raptorData.numberOfStops()) << std::endl;
-        std::cout << "Average # Edges:  " << String::prettyDouble(totalNumEdges / data.raptorData.numberOfStops()) << std::endl;
+        /* if (numberOfThreads == 0) { */
+        /*     TransferPattern::ComputeTransferPatternUsingTripBased(data, tpData); */
+        /* } else { */
+        /*     TransferPattern::ComputeTransferPatternUsingTripBased(data, tpData, numberOfThreads, pinMultiplier); */
+        /* } */
+
+        /* long long totalNumVertices(0); */
+        /* long long totalNumEdges(0); */
+
+        /* for (const StopId stop : tpData.raptorData.stops()) { */
+        /*     totalNumVertices += tpData.transferPatternOfStop[stop].numVertices(); */
+        /*     totalNumEdges += tpData.transferPatternOfStop[stop].numEdges(); */
+        /* } */
+
+        /* std::cout << "Total Size:       " << String::bytesToString(tpData.byteSize()) << std::endl; */
+        /* std::cout << "Average # Nodes:  " << String::prettyDouble(totalNumVertices / data.raptorData.numberOfStops()) << std::endl; */
+        /* std::cout << "Average # Edges:  " << String::prettyDouble(totalNumEdges / data.raptorData.numberOfStops()) << std::endl; */
         /* tpData.serialize(outputFile); */
+
+        TransferPattern::Query<TransferPattern::AggregateProfiler> query(tpData);
+
+        query.run(StopId(593), 10 * 60 * 60, StopId(10));
+
+        query.getProfiler().printStatistics();
     }
 
 private:
