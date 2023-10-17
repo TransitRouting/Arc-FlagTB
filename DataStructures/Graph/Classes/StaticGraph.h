@@ -575,21 +575,25 @@ public:
     }
 
     // IO:
-    inline void serialize(IO::Serialization& serialize) const {
+    inline void serialize(IO::Serialization& serialize) const
+    {
         serialize(beginOut, vertexAttributes, edgeAttributes);
     }
 
-    inline void deserialize(IO::Deserialization& deserialize) {
+    inline void deserialize(IO::Deserialization& deserialize)
+    {
         clear();
         deserialize(beginOut, vertexAttributes, edgeAttributes);
         AssertMsg(satisfiesInvariants(), "Invariants not satisfied!");
     }
 
-    inline void serialize(const std::string& fileName) const {
+    inline void serialize(const std::string& fileName) const
+    {
         IO::serialize(fileName, beginOut, vertexAttributes, edgeAttributes);
     }
 
-    inline void deserialize(const std::string& fileName) {
+    inline void deserialize(const std::string& fileName)
+    {
         clear();
         IO::deserialize(fileName, beginOut, vertexAttributes, edgeAttributes);
         AssertMsg(satisfiesInvariants(), "Invariants not satisfied!");

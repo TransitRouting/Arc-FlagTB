@@ -11,7 +11,7 @@ int main(int argc, char** argv)
     checkAsserts();
     ::Shell::Shell shell;
 
-    new RAPTORToTransferPattern(shell);
+    new RunTransferPatternQueries(shell);
     new ComputeTPUsingTB(shell);
 
     shell.run();

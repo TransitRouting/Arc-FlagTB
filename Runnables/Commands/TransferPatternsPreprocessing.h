@@ -7,7 +7,7 @@
 #include "../../Algorithms/TransferPattern/Query/Query.h"
 
 #include "../../DataStructures/Graph/Graph.h"
-#include "../../DataStructures/RAPTOR/Data.h"
+#include "../../DataStructures/Queries/Queries.h"
 #include "../../DataStructures/TransferPattern/Data.h"
 #include "../../DataStructures/TripBased/Data.h"
 #include "../../Helpers/MultiThreading.h"
@@ -16,36 +16,34 @@
 
 using namespace Shell;
 
-class RAPTORToTransferPattern : public ParameterizedCommand {
+class RunTransferPatternQueries : public ParameterizedCommand {
 public:
-    RAPTORToTransferPattern(BasicShell& shell)
-        : ParameterizedCommand(shell, "raptorToTransferPattern", "Converts RAPTOR to TP")
+    RunTransferPatternQueries(BasicShell& shell)
+        : ParameterizedCommand(shell, "runTPQueries", "Runs the given number of random ransfer Pattern Queries.")
     {
-        addParameter("Input file (RAPTOR Data)");
-        addParameter("Output file (TP Data)");
+        addParameter("Input file (TP Data)");
+        addParameter("Number of queries");
     }
 
     virtual void execute() noexcept
     {
-        const std::string inputFile = getParameter("Input file (RAPTOR Data)");
-        const std::string outputFile = getParameter("Output file (TP Data)");
+        const std::string inputFile = getParameter("Input file (TP Data)");
 
-        RAPTOR::Data raptor(inputFile);
-        raptor.printInfo();
-
-        TransferPattern::Data input(raptor);
-        input.serialize(outputFile);
-
-        TransferPattern::Data data(outputFile);
-
+        TransferPattern::Data data(inputFile);
         data.printInfo();
-        /* TransferPattern::Query<TransferPattern::AggregateProfiler> query(data); */
 
-        /* query.run(StopId(593), 10 * 60 * 60, StopId(10)); */
+        TransferPattern::Query<TransferPattern::AggregateProfiler> algorithm(data);
 
-        /* query.getProfiler().printStatistics(); */
+        const size_t n = getParameter<size_t>("Number of queries");
+        const std::vector<StopQuery> queries = generateRandomStopQueries(data.raptorData.numberOfStops(), n);
 
-        /* data.serialize(outputFile); */
+        /* double numJourneys = 0; */
+        for (const StopQuery& query : queries) {
+            algorithm.run(query.source, query.departureTime, query.target);
+            /* numJourneys += algorithm.getJourneys().size(); */
+        }
+        algorithm.getProfiler().printStatistics();
+        /* std::cout << "Avg. journeys: " << String::prettyDouble(numJourneys / n) << std::endl; */
     }
 };
 

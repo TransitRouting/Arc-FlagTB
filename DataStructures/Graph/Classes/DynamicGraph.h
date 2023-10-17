@@ -878,19 +878,23 @@ public:
     }
 
     // IO:
-    inline void serialize(IO::Serialization& serialize) const {
+    inline void serialize(IO::Serialization& serialize) const
+    {
         serialize(vertexAttributes, edgeAttributes);
     }
 
-    inline void deserialize(IO::Deserialization& deserialize) {
+    inline void deserialize(IO::Deserialization& deserialize)
+    {
         deserialize(vertexAttributes, edgeAttributes);
     }
 
-    inline void serialize(const std::string& fileName) const {
+    inline void serialize(const std::string& fileName) const
+    {
         IO::serialize(fileName, vertexAttributes, edgeAttributes);
     }
 
-    inline void deserialize(const std::string& fileName) {
+    inline void deserialize(const std::string& fileName)
+    {
         IO::deserialize(fileName, vertexAttributes, edgeAttributes);
     }
 
