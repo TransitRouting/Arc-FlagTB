@@ -103,8 +103,7 @@ public:
         }
 
         // keep first # of stops vertices, the rest can vanish
-        // TODO only delete some isolated vertices
-        /* dynamicDAG.deleteIsolatedVertices(); */
+        dynamicDAG.deleteVertices([&](Vertex vertex) { return vertex >= data.raptorData.numberOfStops() && dynamicDAG.isIsolated(vertex); });
         dynamicDAG.reduceMultiEdgesBy(TravelTime);
         dynamicDAG.packEdges();
     }
@@ -117,7 +116,6 @@ public:
         for (const Vertex vertex : dynamicDAG.vertices()) {
             dynamicDAG.set(ViaVertex, vertex, vertex);
         }
-
         seenPrefix.clear();
     }
 

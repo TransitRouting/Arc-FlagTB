@@ -3,7 +3,7 @@
 #include "../../../DataStructures/TransferPattern/Data.h"
 #include "Profiler.h"
 
-#include <unordered_map>
+#include <vector>
 
 namespace TransferPattern {
 
@@ -23,9 +23,9 @@ public:
         , queue(data.raptorData.numberOfStops()) // what size for the queue?
         , left(0)
         , right(0)
-        , alreadySeen()
+        , alreadySeen(data.maxNumberOfVerticesInTP())
     {
-        profiler.registerPhases({ PHASE_EXTRACT_QUERY_GRAPH, PHASE_EVAL_GRAPH });
+        profiler.registerPhases({ PHASE_EXTRACT_QUERY_GRAPH, PHASE_CLEAR, PHASE_EVAL_GRAPH });
         profiler.registerMetrics({ METRIC_NUM_VERTICES_QUERY_GRAPH, METRIC_NUM_EDGES_QUERY_GRAPH, METRIC_RELAXED_EDGES });
     }
 
@@ -47,62 +47,50 @@ public:
         sourceDepartureTime = departureTime;
 
         extractQueryGraph();
+
+        /* evaluateQueryGraph(); */
         profiler.done();
     }
 
     inline void clear() noexcept
     {
+        profiler.startPhase();
+
         queryGraph.clear();
         // should prop be evaluated which reserve size is fastest
-        queryGraph.reserve(data.raptorData.numberOfStops(), data.raptorData.numberOfStops());
+        queryGraph.reserve(1 << 8, 1 << 8);
 
         left = 0;
         right = 0;
 
-        alreadySeen.clear();
+        alreadySeen.assign(data.maxNumberOfVerticesInTP(), noVertex);
+
+        profiler.donePhase(PHASE_CLEAR);
     }
 
-    inline void extractQueryGraph() noexcept
+    inline void extractQueryGraph()
     {
         profiler.startPhase();
 
         const StaticDAGTransferPattern& sourceTP = data.transferPatternOfStop[sourceStop];
 
         Vertex currentVertex(targetStop);
-        Vertex vertexInQueryGraph(noVertex);
 
-        insertIntoQueue(currentVertex);
+        addVertexToQueryGraph(currentVertex, sourceTP);
 
-        queryGraph.addVertex();
-        alreadySeen[(int)currentVertex] = Vertex(queryGraph.numVertices() - 1);
-
-        AssertMsg(queryGraph.isVertex(alreadySeen[(int)currentVertex]), "Vertex is not really a vertex!");
-
-        queryGraph.set(ViaVertex, alreadySeen[(int)currentVertex], sourceTP.get(ViaVertex, currentVertex));
-        profiler.countMetric(METRIC_NUM_VERTICES_QUERY_GRAPH);
-
-        while (!queueIsEmpty()) {
+        while (queueIsNotEmpty()) {
             currentVertex = popFront();
 
             // relax all outgoing edges and add (reversed edge) to queryGraph
             for (const Edge edge : sourceTP.edgesFrom(currentVertex)) {
                 Vertex successor = sourceTP.get(ToVertex, edge);
+
                 // insert into queue
-                if (alreadySeen.find((int)successor) == alreadySeen.end()) [[likely]] {
-                    insertIntoQueue(successor);
-
-                    queryGraph.addVertex();
-                    alreadySeen[(int)successor] = Vertex(queryGraph.numVertices() - 1);
-
-                    AssertMsg(queryGraph.isVertex(alreadySeen[(int)currentVertex]), "Vertex is not really a vertex!");
-
-                    queryGraph.set(ViaVertex, alreadySeen[(int)successor], sourceTP.get(ViaVertex, successor));
-
-                    profiler.countMetric(METRIC_NUM_VERTICES_QUERY_GRAPH);
-                }
+                if (alreadySeen[successor] == noVertex) [[likely]]
+                    addVertexToQueryGraph(successor, sourceTP);
 
                 // add edges
-                queryGraph.addEdge(alreadySeen[(int)successor], alreadySeen[(int)currentVertex]).set(TravelTime, sourceTP.get(TravelTime, edge));
+                queryGraph.addEdge(alreadySeen[successor], alreadySeen[currentVertex]).set(TravelTime, sourceTP.get(TravelTime, edge));
                 profiler.countMetric(METRIC_NUM_EDGES_QUERY_GRAPH);
             }
         }
@@ -110,23 +98,31 @@ public:
         profiler.donePhase(PHASE_EXTRACT_QUERY_GRAPH);
     }
 
-    // queue operations
+    inline void addVertexToQueryGraph(Vertex vertex, const StaticDAGTransferPattern& sourceTP)
+    {
+        insertIntoQueue(vertex);
+
+        queryGraph.addVertex();
+        alreadySeen[vertex] = Vertex(queryGraph.numVertices() - 1);
+
+        AssertMsg(queryGraph.isVertex(alreadySeen[vertex]), "Vertex is not really a vertex!");
+
+        queryGraph.set(ViaVertex, alreadySeen[vertex], sourceTP.get(ViaVertex, vertex));
+
+        profiler.countMetric(METRIC_NUM_VERTICES_QUERY_GRAPH);
+    }
+
+    // queue ops
     inline void insertIntoQueue(Vertex vertex)
     {
+        AssertMsg(right <= queue.size(), "Right is out of bounds!");
         if (right == queue.size()) {
             // the queue is full, so push back resizes
             ++right;
             queue.push_back(vertex);
         } else {
-            AssertMsg(right < queue.size(), "Right is out of bounds!");
             queue[right++] = vertex;
         }
-    }
-
-    inline Vertex accesFront()
-    {
-        AssertMsg(left < queue.size(), "Left is out of bounds!");
-        return queue[left];
     }
 
     inline Vertex popFront() noexcept
@@ -135,9 +131,9 @@ public:
         return queue[left++];
     }
 
-    inline bool queueIsEmpty() noexcept
+    inline bool queueIsNotEmpty() noexcept
     {
-        return left == right;
+        return left < right;
     }
 
     inline Profiler& getProfiler() noexcept
@@ -155,7 +151,7 @@ private:
     DynamicDAGTransferPattern queryGraph;
     std::vector<Vertex> queue;
     size_t left, right;
-    std::unordered_map<int, Vertex> alreadySeen;
+    std::vector<Vertex> alreadySeen;
 
     Profiler profiler;
 };

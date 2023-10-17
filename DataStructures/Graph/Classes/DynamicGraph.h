@@ -878,6 +878,22 @@ public:
     }
 
     // IO:
+    inline void serialize(IO::Serialization& serialize) const {
+        serialize(vertexAttributes, edgeAttributes);
+    }
+
+    inline void deserialize(IO::Deserialization& deserialize) {
+        deserialize(vertexAttributes, edgeAttributes);
+    }
+
+    inline void serialize(const std::string& fileName) const {
+        IO::serialize(fileName, vertexAttributes, edgeAttributes);
+    }
+
+    inline void deserialize(const std::string& fileName) {
+        IO::deserialize(fileName, vertexAttributes, edgeAttributes);
+    }
+
     inline void writeBinary(const std::string& fileName, const std::string& separator = ".") const noexcept
     {
         vertexAttributes.serialize(fileName, separator);
@@ -1337,6 +1353,16 @@ public:
             }
         }
         return true;
+    }
+
+    inline VertexAttributes& getVertexAttributes()
+    {
+        return vertexAttributes;
+    }
+
+    inline EdgeAttributes& getEdgeAttributes()
+    {
+        return edgeAttributes;
     }
 
 private:

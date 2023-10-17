@@ -10,12 +10,14 @@ namespace TransferPattern {
 typedef enum {
     PHASE_EXTRACT_QUERY_GRAPH,
     PHASE_EVAL_GRAPH,
+    PHASE_CLEAR,
     NUM_PHASES
 } Phase;
 
 constexpr const char* PhaseNames[] = {
-    "Load and build Query Graph",
-    "Evaluate Query Graph",
+    "Load and build Query Graph   ",
+    "Evaluate Query Graph         ",
+    "Clear all Datastructures     ",
 };
 
 typedef enum {
@@ -26,9 +28,9 @@ typedef enum {
 } Metric;
 
 constexpr const char* MetricNames[] = {
-    "Number of vertices in Query Graph",
-    "Number of edges in Query Graph",
-    "Relaxed edges",
+    "# Vertices in Query Graph    ",
+    "# Edges in Query Graph       ",
+    "# relaxed edges              "
 };
 
 class NoProfiler {

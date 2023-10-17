@@ -196,10 +196,12 @@ public:
     {
         IO::serialize(fileNameBase + separator + "attributesSize", attributesSize);
     }
+
     inline void deserialize(const std::string& fileNameBase, const std::string& separator = ".") noexcept
     {
         IO::deserialize(fileNameBase + separator + "attributesSize", attributesSize);
     }
+
     inline void deserialize(const std::string&, const std::string&, const size_t size) noexcept
     {
         attributesSize = size;
@@ -208,17 +210,20 @@ public:
     inline void copy(const size_t, const size_t) noexcept
     {
     }
+
     inline void swap(const size_t, const size_t) noexcept
     {
     }
+
     inline void swap(Type&) noexcept
     {
     }
+
     inline void swap(Type&&) noexcept
     {
     }
 
-protected:
+public:
     void serialize(const std::string&, const std::string&, const bool) const noexcept
     {
     }
@@ -226,7 +231,7 @@ protected:
     {
     }
 
-protected:
+public:
     size_t attributesSize;
 };
 
@@ -375,6 +380,7 @@ public:
     {
         return assign(other);
     }
+
     template <typename OTHER>
     inline Type& operator=(Attributes<OTHER>&& other) noexcept
     {
@@ -669,6 +675,7 @@ public:
         values[i] = defaultValue;
         Super::setToDefault(i);
     }
+
     template <AttributeNameType ATTRIBUTE_NAME>
     inline void setDefaultValue(const AttributeNameWrapper<ATTRIBUTE_NAME>,
         const AttributeType<ATTRIBUTE_NAME>& value) noexcept
@@ -680,13 +687,14 @@ public:
         SuperByName<ATTRIBUTE_NAME>::defaultValue = value;
     }
 
-    inline void serialize(IO::Serialization& serialize) const noexcept
+    inline void serialize(IO::Serialization& serialize) const
     {
         serialize(defaultValue, values);
         Super::serialize(serialize);
         AssertMsg(hasSize(size()), "Inconsistent attribute vector sizes!");
     }
-    inline void deserialize(IO::Deserialization& deserialize) noexcept
+
+    inline void deserialize(IO::Deserialization& deserialize)
     {
         deserialize(defaultValue, values);
         Super::deserialize(deserialize);
@@ -697,10 +705,12 @@ public:
     {
         serialize(fileNameBase, separator, false);
     }
+
     inline void deserialize(const std::string& fileNameBase, const std::string& separator = ".") noexcept
     {
         deserialize(fileNameBase, separator, false);
     }
+
     inline void deserialize(const std::string& fileNameBase, const std::string& separator, const size_t size) noexcept
     {
         deserialize(fileNameBase, separator, false);
@@ -718,6 +728,7 @@ public:
         values[to] = values[from];
         Super::copy(from, to);
     }
+
     inline void swap(const size_t i, const size_t j) noexcept
     {
         AssertMsg((i >= 0) || (i < values.size()),
@@ -727,12 +738,14 @@ public:
         std::swap(values[i], values[j]);
         Super::swap(i, j);
     }
+
     inline void swap(Type& other) noexcept
     {
         values.swap(other.values);
         std::swap(defaultValue, other.defaultValue);
         Super::swap(static_cast<Super&>(other));
     }
+
     inline void swap(Type&& other) noexcept
     {
         values.swap(other.values);
@@ -740,13 +753,14 @@ public:
         Super::swap(std::move(static_cast<Super&&>(other)));
     }
 
-protected:
+public:
     inline void serialize(const std::string& fileNameBase, const std::string& separator, const bool) const noexcept
     {
         IO::serialize(fileNameBase + separator + String::firstToLower(Attribute::String), values);
         Super::serialize(fileNameBase, separator, false);
         AssertMsg(hasSize(size()), "Inconsistent attribute vector sizes!");
     }
+
     inline void deserialize(const std::string& fileNameBase, const std::string& separator, const bool) noexcept
     {
         IO::deserialize(fileNameBase + separator + String::firstToLower(Attribute::String), values);
@@ -755,7 +769,7 @@ protected:
         AssertMsg(hasSize(size()), "Inconsistent attribute vector sizes!");
     }
 
-protected:
+public:
     ValueType defaultValue { ValueType() };
     std::vector<ValueType> values {};
 };
