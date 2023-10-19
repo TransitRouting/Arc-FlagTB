@@ -36,14 +36,19 @@ public:
 
         const size_t n = getParameter<size_t>("Number of queries");
         const std::vector<StopQuery> queries = generateRandomStopQueries(data.raptorData.numberOfStops(), n);
-
-        /* double numJourneys = 0; */
+        /* const std::vector<StopQuery> queries = { */
+        /*     StopQuery(StopId(1829), StopId(1532), 32360), */
+        /*     StopQuery(StopId(300), StopId(1148), 51724) */
+        /* }; */
+        double numJourneys = 0;
         for (const StopQuery& query : queries) {
             algorithm.run(query.source, query.departureTime, query.target);
-            /* numJourneys += algorithm.getJourneys().size(); */
+            numJourneys += algorithm.getJourneys().size();
         }
+
+        std::cout << "#### Stats ####" << std::endl;
         algorithm.getProfiler().printStatistics();
-        /* std::cout << "Avg. journeys: " << String::prettyDouble(numJourneys / n) << std::endl; */
+        std::cout << "Avg. journeys: " << String::prettyDouble(numJourneys / n) << std::endl;
     }
 };
 

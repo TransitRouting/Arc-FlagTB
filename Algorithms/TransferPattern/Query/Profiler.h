@@ -9,28 +9,38 @@ namespace TransferPattern {
 
 typedef enum {
     PHASE_EXTRACT_QUERY_GRAPH,
+    PHASE_INIT_SOURCE_LABELS,
     PHASE_EVAL_GRAPH,
     PHASE_CLEAR,
+    PHASE_EXTRACT_JOURNEYS,
     NUM_PHASES
 } Phase;
 
 constexpr const char* PhaseNames[] = {
     "Load and build Query Graph   ",
+    "Initialize Source Labels     ",
     "Evaluate Query Graph         ",
     "Clear all Datastructures     ",
+    "Extract Journeys             "
 };
 
 typedef enum {
     METRIC_NUM_VERTICES_QUERY_GRAPH,
     METRIC_NUM_EDGES_QUERY_GRAPH,
-    METRIC_RELAXED_EDGES,
+    METRIC_SEETLED_VERTICES,
+    METRIC_RELAXED_TRANSFER_EDGES,
+    METRIC_RELAXED_WALKING_EDGES,
+    METRIC_ADDED_TARGETLABELS,
     NUM_METRICS
 } Metric;
 
 constexpr const char* MetricNames[] = {
     "# Vertices in Query Graph    ",
     "# Edges in Query Graph       ",
-    "# relaxed edges              "
+    "# Settled Vertices           ",
+    "# Relaxed Transfer Edges     ",
+    "# Relaxed Walking Edges      ",
+    "# Added Targetlabels         "
 };
 
 class NoProfiler {
@@ -140,7 +150,7 @@ public:
             std::cout << PhaseNames[phase] << ": "
                       << String::musToString(phaseTime[phase] / static_cast<double>(numQueries)) << std::endl;
         }
-        std::cout << "Total time: " << String::musToString(totalTime / numQueries) << std::endl;
+        std::cout << "Total Time                   : " << String::musToString(totalTime / numQueries) << std::endl;
     }
 
 private:

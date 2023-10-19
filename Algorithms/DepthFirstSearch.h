@@ -129,8 +129,8 @@ private:
 template <typename GRAPH, typename OPERATION>
 struct SimpleOperation {
     SimpleOperation(const GRAPH& graph, const OPERATION& operation)
-        : graph(graph)
-        , operation(operation)
+        : operation(operation)
+        , graph(graph)
     {
     }
     inline void operator()(const Edge edge, const Vertex)

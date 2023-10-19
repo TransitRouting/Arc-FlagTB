@@ -186,31 +186,23 @@ private:
     }
 
 public:
-    inline RAPTOR::StopEvent getStopEvent(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t)-1, const StopIndex stopIndex = noStopIndex) const
+    inline RAPTOR::StopEvent getStopEvent(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t)-1, const StopIndex stopIndex = StopIndex(0)) const
     {
         AssertMsg(raptorData.isRoute(routeId), "Route is not a route!");
         AssertMsg(tripIndex != (size_t)-1, "TripIndex is invalid!");
-        AssertMsg(stopIndex < raptorData.numberOfStopsInRoute(routeId), "StopIndex is out of bounds!");
+        AssertMsg(StopIndex(0) <= stopIndex && stopIndex < StopIndex(raptorData.numberOfStopsInRoute(routeId)), "StopIndex is out of bounds!");
 
         return lineLookup[routeId].stopsAlongLine[stopIndex].halts[tripIndex];
     }
 
-    inline int getArrivalTime(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t)-1, const StopIndex stopIndex = noStopIndex) const
+    inline int getArrivalTime(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t)-1, const StopIndex stopIndex = StopIndex(0)) const
     {
         return getStopEvent(routeId, tripIndex, stopIndex).arrivalTime;
     }
 
-    inline int getDepartureTime(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t)-1, const StopIndex stopIndex = noStopIndex) const
+    inline int getDepartureTime(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t)-1, const StopIndex stopIndex = StopIndex(0)) const
     {
         return getStopEvent(routeId, tripIndex, stopIndex).departureTime;
-    }
-
-    inline std::vector<LineAndStopIndex> getStopLookup(const StopId stop = noStop)
-    {
-        AssertMsg(stop < stopLookup.size(), "Stop is out-of-bounds!");
-        AssertMsg(raptorData.isStop(stop), "Stop is not a stop!");
-
-        return stopLookup[stop].incidentLines;
     }
 
     inline size_t earliestTripIndexOfLineByStopIndex(const StopIndex stopIndex, const RouteId route, const int departureTime = 0) const
@@ -231,46 +223,6 @@ public:
         AssertMsg(raptorData.isRoute(route), "Route is not a route!");
 
         return TripId(firstTripIdOfLine[route] + tripIndex);
-    }
-
-    inline std::pair<TripId, int> directConnectionIntersection(const StopId source = noStop, const StopId target = noStop, const int departureTime = 0)
-    {
-        AssertMsg(raptorData.isStop(source), "Source is not a valid stop!");
-        AssertMsg(raptorData.isStop(target), "Target is not a valid stop!");
-
-        auto sourceStopLookup = getStopLookup(source);
-        auto targetStopLookup = getStopLookup(target);
-
-        std::pair<TripId, int> result = std::make_pair(noTripId, INFTY);
-
-        size_t i(0);
-        size_t j(0);
-
-        size_t firstReachableTripIndex(-1);
-        int currentArrivalTime(-1);
-
-        while (i < sourceStopLookup.size() && j < targetStopLookup.size()) {
-            if (sourceStopLookup[i].beforeOnSameLine(targetStopLookup[j])) [[unlikely]] {
-                // check if sourceStopLookup[i] is reachable
-                firstReachableTripIndex = earliestTripIndexOfLineByStopIndex(sourceStopLookup[i].stopIndex, sourceStopLookup[i].routeId, departureTime);
-
-                if (firstReachableTripIndex == (size_t)-1)
-                    continue;
-                currentArrivalTime = getArrivalTime(sourceStopLookup[i].routeId, firstReachableTripIndex, targetStopLookup[j].stopIndex);
-                if (currentArrivalTime < result.second)
-                    result = std::make_pair(tripIdOfLineByTripIndex(sourceStopLookup[i].routeId), currentArrivalTime);
-
-                ++i;
-                ++j;
-            } else {
-                if (sourceStopLookup[i] < targetStopLookup[j])
-                    ++i;
-                else
-                    ++j;
-            }
-        }
-
-        return result;
     }
 
 public:

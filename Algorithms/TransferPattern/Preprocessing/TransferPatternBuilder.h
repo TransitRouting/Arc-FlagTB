@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../DataStructures/Graph/Utils/Utils.h"
 #include "../../../DataStructures/TransferPattern/Data.h"
 #include "../../../DataStructures/TripBased/Data.h"
 #include "../../TripBased/Query/ProfileOneToAllQuery.h"
@@ -44,6 +45,10 @@ public:
         std::vector<StopId> prefixBefore(prefix);
         prefixBefore.pop_back();
 
+        // a bit ugly, but this is to allow A->B via route and A->B via foot
+        if (prefixBefore.back() == noStop)
+            prefixBefore.pop_back();
+
         Vertex beforeVertex = seenPrefix[prefixBefore];
         Vertex newVertex = dynamicDAG.addVertex();
         dynamicDAG.set(ViaVertex, newVertex, Vertex(prefix.back()));
@@ -83,7 +88,6 @@ public:
                 if (leg.from == leg.to)
                     continue;
 
-                // TODO check if it is possible if a prefix ABCD has B->C using a route and another prefix ABCD B->C as footpath
                 if (!leg.usesRoute) {
                     travelTime = getTravelTimeByFootpath(StopId(leg.from), StopId(leg.to));
                 } else {
@@ -96,6 +100,8 @@ public:
                         dynamicDAG.addEdge(Vertex(target), seenPrefix[currentPrefix]).set(TravelTime, travelTime);
                     break;
                 } else {
+                    if (travelTime != -1)
+                        currentPrefix.push_back(noStop);
                     currentPrefix.push_back(StopId(leg.to));
                     addPrefixToDAG(currentPrefix, travelTime);
                 }
@@ -111,7 +117,7 @@ public:
     inline void clear() noexcept
     {
         dynamicDAG.clear();
-        dynamicDAG.reserve(data.numberOfStops() << 1, data.numberOfStops() << 1);
+        dynamicDAG.reserve(data.numberOfStops() << 2, data.numberOfStops() << 3);
         dynamicDAG.addVertices(data.numberOfStops());
         for (const Vertex vertex : dynamicDAG.vertices()) {
             dynamicDAG.set(ViaVertex, vertex, vertex);
@@ -150,8 +156,11 @@ inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, Transfer
 
     for (const StopId stop : data.stops()) {
         bobTheBuilder.computeTransferPatternForStop(stop);
+        AssertMsg(Graph::isAcyclic<DynamicDAGTransferPattern>(bobTheBuilder.getDAG()), "Graph is not acyclic!");
+
         Graph::move(std::move(bobTheBuilder.getDAG()), tpData.transferPatternOfStop[stop]);
         tpData.transferPatternOfStop[stop].sortEdges(ToVertex);
+
         ++progress;
     }
     progress.finished();
@@ -178,9 +187,11 @@ inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, Transfer
         for (size_t i = 0; i < numberOfStops; ++i) {
             const StopId stop = StopId(i);
             bobTheBuilder.computeTransferPatternForStop(stop);
+            AssertMsg(Graph::isAcyclic<DynamicDAGTransferPattern>(bobTheBuilder.getDAG()), "Graph is not acyclic!");
 
             Graph::move(std::move(bobTheBuilder.getDAG()), tpData.transferPatternOfStop[stop]);
             tpData.transferPatternOfStop[stop].sortEdges(ToVertex);
+
             ++progress;
         }
     }

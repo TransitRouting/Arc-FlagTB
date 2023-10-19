@@ -885,7 +885,11 @@ public:
 
     inline void deserialize(IO::Deserialization& deserialize)
     {
+        clear();
         deserialize(vertexAttributes, edgeAttributes);
+        for (const Vertex vertex : vertices())
+            edgeCount += outDegree(vertex);
+        Assert(satisfiesInvariants());
     }
 
     inline void serialize(const std::string& fileName) const
@@ -895,7 +899,11 @@ public:
 
     inline void deserialize(const std::string& fileName)
     {
+        clear();
         IO::deserialize(fileName, vertexAttributes, edgeAttributes);
+        for (const Vertex vertex : vertices())
+            edgeCount += outDegree(vertex);
+        Assert(satisfiesInvariants());
     }
 
     inline void writeBinary(const std::string& fileName, const std::string& separator = ".") const noexcept

@@ -155,6 +155,14 @@ struct Bag {
         labels.clear();
     }
 
+    friend std::ostream& operator<<(std::ostream& out, const Bag& r)
+    {
+        for (auto& l : r.labels)
+            out << l << "\n";
+
+        return out;
+    }
+
     std::vector<Label> labels;
 };
 
@@ -192,6 +200,13 @@ struct RouteBag {
     inline const RouteLabel& operator[](const size_t i) const noexcept
     {
         return labels[i];
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const RouteBag& r)
+    {
+        for (auto& l : r.labels)
+            out << l << "\n";
+        return out;
     }
 
     std::vector<RouteLabel> labels;
@@ -310,6 +325,18 @@ public:
         labels.emplace_back(label);
     }
 
+    inline DijkstraLabel& access(const size_t index)
+    {
+        AssertMsg(index < labels.size(), "Index out of bounds");
+
+        return labels[index];
+    }
+
+    inline size_t getIndex(const DijkstraLabel& label)
+    {
+        return (size_t)(&label - &labels[0]);
+    }
+
 private:
     inline void heapify() noexcept
     {
@@ -347,6 +374,13 @@ private:
     inline size_t firstChild(const size_t i) const noexcept
     {
         return (i << logK) + 1;
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const DijkstraBag& r)
+    {
+        for (auto& l : r.labels)
+            out << l << "\n";
+        return out;
     }
 
     std::vector<DijkstraLabel> labels;

@@ -582,6 +582,7 @@ public:
 
     inline void deserialize(IO::Deserialization& deserialize)
     {
+        clear();
         deserialize(vertexAttributes, edgeAttributes);
     }
 
@@ -592,6 +593,7 @@ public:
 
     inline void deserialize(const std::string& fileName)
     {
+        clear();
         IO::deserialize(fileName, vertexAttributes, edgeAttributes);
     }
 
