@@ -5,97 +5,11 @@
 
 #include "../../Helpers/Console/Progress.h"
 #include "../RAPTOR/Data.h"
+#include "../RAPTOR/Entities/RouteSegment.h"
 #include "../RAPTOR/Entities/StopEvent.h"
+#include "Entities/Lookups.h"
 
 namespace TransferPattern {
-
-struct HaltsOfStopInLine {
-    HaltsOfStopInLine(std::vector<RAPTOR::StopEvent> halts = {})
-        : halts(halts)
-    {
-    }
-
-    inline void serialize(IO::Serialization& serialize) const
-    {
-        serialize(halts);
-    }
-
-    inline void deserialize(IO::Deserialization& deserialize)
-    {
-        deserialize(halts);
-    }
-
-    std::vector<RAPTOR::StopEvent> halts;
-};
-
-struct LookupOfLine {
-    LookupOfLine(std::vector<HaltsOfStopInLine> stopsAlongLine = {})
-        : stopsAlongLine(stopsAlongLine)
-    {
-    }
-
-    inline void serialize(IO::Serialization& serialize) const
-    {
-        serialize(stopsAlongLine);
-    }
-
-    inline void deserialize(IO::Deserialization& deserialize)
-    {
-        deserialize(stopsAlongLine);
-    }
-
-    std::vector<HaltsOfStopInLine> stopsAlongLine;
-};
-
-struct LineAndStopIndex {
-    LineAndStopIndex(RouteId routeId = noRouteId, StopIndex stopIndex = noStopIndex)
-        : routeId(routeId)
-        , stopIndex(stopIndex)
-    {
-    }
-
-    inline void serialize(IO::Serialization& serialize)
-    {
-        serialize(routeId, stopIndex);
-    }
-
-    inline void deserialize(IO::Deserialization& deserialize)
-    {
-        deserialize(routeId, stopIndex);
-    }
-
-    RouteId routeId;
-    StopIndex stopIndex;
-
-    bool operator<(const LineAndStopIndex& a) const
-    {
-        return std::tie(routeId, stopIndex) < std::tie(a.routeId, a.stopIndex);
-    }
-
-    bool beforeOnSameLine(const LineAndStopIndex& a) const
-    {
-        return routeId == a.routeId && stopIndex < a.stopIndex;
-    }
-};
-
-struct StopLookup {
-    StopLookup(std::vector<LineAndStopIndex> incidentLines = {})
-        : incidentLines(incidentLines)
-    {
-    }
-
-    inline void serialize(IO::Serialization& serialize) const
-    {
-        serialize(incidentLines);
-    }
-
-    inline void deserialize(IO::Deserialization& deserialize)
-    {
-        deserialize(incidentLines);
-    }
-
-    std::vector<LineAndStopIndex> incidentLines;
-};
 
 class Data {
 public:
@@ -171,7 +85,7 @@ private:
             auto stopsOfRoute = raptorData.stopsOfRoute(route);
 
             for (size_t i(0); i < stopsOfRoute.size(); ++i) {
-                stopLookup[stopsOfRoute[i]].incidentLines.push_back(LineAndStopIndex(route, StopIndex(i)));
+                stopLookup[stopsOfRoute[i]].incidentLines.push_back(RAPTOR::RouteSegment(route, StopIndex(i)));
             }
 
             ++progress;
@@ -226,15 +140,15 @@ public:
     }
 
 public:
-    inline size_t maxNumberOfVerticesInTP() const
+    inline std::pair<size_t, size_t> maxNumVerticesAndNumEdgesInTP() const
     {
-        size_t maxNumber(0);
-
+        std::pair<size_t, size_t> result(0, 0);
         for (auto& tp : transferPatternOfStop) {
-            maxNumber = std::max(maxNumber, tp.numVertices());
+            result.first = std::max(result.first, tp.numVertices());
+            result.second = std::max(result.second, tp.numEdges());
         }
 
-        return maxNumber;
+        return result;
     }
 
     inline long long byteSize() const noexcept
@@ -257,7 +171,9 @@ public:
         raptorData.printInfo();
 
         std::cout << "Info about Transfer Pattern:" << std::endl;
-        std::cout << "   Max # vertices in a TP:   " << std::setw(12) << String::prettyInt(maxNumberOfVerticesInTP()) << std::endl;
+        std::pair<size_t, size_t> result = maxNumVerticesAndNumEdgesInTP();
+        std::cout << "   Max # vertices in a TP:   " << std::setw(12) << String::prettyInt(result.first) << std::endl;
+        std::cout << "   Max # edges in a TP:      " << std::setw(12) << String::prettyInt(result.second) << std::endl;
         std::cout << "   Storage usage of all TP:  " << std::setw(12) << String::bytesToString(byteSize()) << std::endl;
     }
 
@@ -272,6 +188,8 @@ public:
     {
         raptorData.deserialize(fileName + ".raptor");
         IO::deserialize(fileName, lineLookup, stopLookup, firstTripIdOfLine);
+
+        std::cout << "Loading all transfer patterns from " << fileName << ".transferPattern!" << std::endl;
         IO::deserialize(fileName + ".transferPattern", transferPatternOfStop);
     }
 

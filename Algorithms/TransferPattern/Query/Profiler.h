@@ -29,8 +29,7 @@ typedef enum {
     METRIC_NUM_EDGES_QUERY_GRAPH,
     METRIC_SEETLED_VERTICES,
     METRIC_RELAXED_TRANSFER_EDGES,
-    METRIC_RELAXED_WALKING_EDGES,
-    METRIC_ADDED_TARGETLABELS,
+    METRIC_INCORPERATED_LABELS,
     NUM_METRICS
 } Metric;
 
@@ -39,8 +38,7 @@ constexpr const char* MetricNames[] = {
     "# Edges in Query Graph       ",
     "# Settled Vertices           ",
     "# Relaxed Transfer Edges     ",
-    "# Relaxed Walking Edges      ",
-    "# Added Targetlabels         "
+    "# Added Labels into bags     "
 };
 
 class NoProfiler {

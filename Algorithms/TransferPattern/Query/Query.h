@@ -2,11 +2,12 @@
 
 #include "../../../DataStructures/Container/ExternalKHeap.h"
 #include "../../../DataStructures/RAPTOR/Entities/ArrivalLabel.h"
-#include "../../../DataStructures/RAPTOR/Entities/Bags.h"
 #include "../../../DataStructures/RAPTOR/Entities/Journey.h"
 #include "../../../DataStructures/TransferPattern/Data.h"
+#include "../../../DataStructures/TransferPattern/Entities/Bags.h"
 #include "../../../Helpers/Vector/Vector.h"
 #include "Profiler.h"
+#include "TimestampedAlreadySeen.h"
 
 #include <unordered_map>
 #include <vector>
@@ -26,7 +27,6 @@ public:
             , parentDepartureTime(never)
             , numberOfTrips(255)
             , routeId(noRouteId)
-            , usesRoute(false)
             , parentStop(noStop)
             , parentIndex(-1)
         {
@@ -38,18 +38,16 @@ public:
             , parentDepartureTime(parentLabel)
             , numberOfTrips(parentLabel.numberOfTrips)
             , routeId(noRouteId)
-            , usesRoute(false)
             , parentStop(parentLabel.parentStop)
             , parentIndex(parentLabel.parentIndex)
         {
         }
 
-        DijkstraLabel(const int newArrivalTime, const int newParentDepartureTime, const int newNumberOfTransfers, const RouteId newRouteId, const StopId parentStop, const size_t parentIndex)
+        DijkstraLabel(const int newArrivalTime, const int newParentDepartureTime, const int newNumberOfTrips, const RouteId newRouteId, const StopId parentStop, const size_t parentIndex)
             : arrivalTime(newArrivalTime)
             , parentDepartureTime(newParentDepartureTime)
-            , numberOfTrips(newNumberOfTransfers)
+            , numberOfTrips(newNumberOfTrips)
             , routeId(newRouteId)
-            , usesRoute(true)
             , parentStop(parentStop)
             , parentIndex(parentIndex)
         {
@@ -60,19 +58,17 @@ public:
             , parentDepartureTime(departureTime)
             , numberOfTrips(0)
             , routeId(noRouteId)
-            , usesRoute(false)
             , parentStop(sourceStop)
             , parentIndex(0)
         {
         }
 
-        inline void set(const int newArrivalTime, const int newParentDepartureTime, const int newNumberOfTransfers, const RouteId newRouteId, const bool newUsesRoute, const StopId newParentStop, const size_t newParentIndex)
+        inline void set(const int newArrivalTime, const int newParentDepartureTime, const int newNumberOfTrips, const RouteId newRouteId, const StopId newParentStop, const size_t newParentIndex)
         {
             arrivalTime = newArrivalTime;
             parentDepartureTime = newParentDepartureTime;
-            numberOfTrips = newNumberOfTransfers;
+            numberOfTrips = newNumberOfTrips;
             routeId = newRouteId;
-            usesRoute = newUsesRoute;
             parentStop = newParentStop;
             parentIndex = newParentIndex;
         }
@@ -103,12 +99,11 @@ public:
         int parentDepartureTime;
         uint8_t numberOfTrips;
         RouteId routeId;
-        bool usesRoute;
         StopId parentStop;
         size_t parentIndex;
     };
 
-    using DijkstraBagType = RAPTOR::DijkstraBag<DijkstraLabel>;
+    using DijkstraBagType = DijkstraBag<DijkstraLabel>;
 
 public:
     Query(Data& data)
@@ -117,16 +112,16 @@ public:
         , targetStop(noVertex)
         , sourceDepartureTime(0)
         , queryGraph()
-        , queue(data.maxNumberOfVerticesInTP())
+        , queue(data.maxNumVerticesAndNumEdgesInTP().first)
         , left(0)
         , right(0)
-        , alreadySeen()
+        , alreadySeen(data.maxNumVerticesAndNumEdgesInTP().first)
         , dijkstraBags(data.raptorData.numberOfStops())
     {
         profiler.registerPhases({ PHASE_EXTRACT_QUERY_GRAPH, PHASE_CLEAR, PHASE_INIT_SOURCE_LABELS,
             PHASE_EVAL_GRAPH, PHASE_EXTRACT_JOURNEYS });
         profiler.registerMetrics({ METRIC_NUM_VERTICES_QUERY_GRAPH, METRIC_NUM_EDGES_QUERY_GRAPH, METRIC_SEETLED_VERTICES,
-            METRIC_RELAXED_TRANSFER_EDGES, METRIC_RELAXED_WALKING_EDGES, METRIC_ADDED_TARGETLABELS });
+            METRIC_RELAXED_TRANSFER_EDGES, METRIC_INCORPERATED_LABELS });
     }
 
     // ######
@@ -153,9 +148,6 @@ public:
         initializeSourceLabels();
         evaluateQueryGraph();
         profiler.done();
-
-        /* for (size_t i(0); i < dijkstraBags[targetStop].size(); ++i) */
-        /*     std::cout << dijkstraBags[targetStop].access(i) << std::endl; */
     }
 
     inline std::vector<RAPTOR::Journey> getJourneys()
@@ -166,7 +158,7 @@ public:
     inline std::vector<RAPTOR::Journey> getJourneys(Vertex vertex)
     {
         std::vector<RAPTOR::Journey> journeys;
-        for (size_t index(0); index < dijkstraBags[vertex].size(); ++index)
+        for (size_t index(0); index < dijkstraBags[vertex].nonHeapSize(); ++index)
             getJourney(journeys, vertex, index);
         return journeys;
     }
@@ -181,7 +173,7 @@ public:
                 StopId(vertex),
                 label.parentDepartureTime,
                 label.arrivalTime,
-                label.usesRoute,
+                label.routeId != noRouteId,
                 label.routeId);
             vertex = Vertex(label.parentStop);
             index = label.parentIndex;
@@ -209,6 +201,7 @@ private:
         alreadySeen.clear();
 
         Q.clear();
+        // TODO check performance
         Vector::fill(dijkstraBags);
 
         profiler.donePhase(PHASE_CLEAR);
@@ -235,13 +228,14 @@ private:
                 Vertex successor = sourceTP.get(ToVertex, edge);
 
                 // insert into queue
-                if (alreadySeen.find(successor) == alreadySeen.end())
+                if (!alreadySeen.contains(successor))
                     addVertexToQueryGraph(successor);
 
                 // add edges
                 Edge previousEdge = queryGraph.findEdge(
                     sourceTP.get(ViaVertex, successor),
                     sourceTP.get(ViaVertex, currentVertex));
+
                 // check if there is no edge *or* if there is already an edge, but not the same transfer modus (walking vs by route)
                 if (!queryGraph.isEdge(previousEdge) || queryGraph.get(TravelTime, previousEdge) != sourceTP.get(TravelTime, edge)) [[likely]] {
                     queryGraph.addEdge(sourceTP.get(ViaVertex, successor), sourceTP.get(ViaVertex, currentVertex)).set(TravelTime, sourceTP.get(TravelTime, edge));
@@ -249,6 +243,8 @@ private:
                 }
             }
         }
+
+        /* AssertMsg(Graph::isAcyclic(queryGraph), "Graph is not acyclic!"); */
 
         profiler.donePhase(PHASE_EXTRACT_QUERY_GRAPH);
     }
@@ -262,7 +258,6 @@ private:
 
     // * queue operations for the query graph
     inline void insertIntoQueue(Vertex vertex)
-
     {
         AssertMsg(right <= queue.size(), "Right is out of bounds!");
         if (right == queue.size()) {
@@ -292,8 +287,8 @@ private:
         profiler.startPhase();
 
         DijkstraLabel sourceLabel(sourceDepartureTime, StopId(sourceStop));
-        dijkstraBags[sourceStop].template merge<true>(sourceLabel);
-
+        // this adds the sourceLabel to the bag of sourceStop
+        dijkstraBags[sourceStop].merge(sourceLabel);
         Q.update(&dijkstraBags[sourceStop]);
 
         profiler.donePhase(PHASE_INIT_SOURCE_LABELS);
@@ -324,14 +319,17 @@ private:
                     continue;
 
                 int travelTime = queryGraph.get(TravelTime, edge);
+                // this seems odd, why add -1 to the arrival time?
+                // well, if edge uses a route, then it will be overwritten
                 int newArrivalTime = uLabel.arrivalTime + travelTime;
-                uint8_t newNumberOfTransfers = uLabel.numberOfTrips;
+                uint8_t newNumberOfTrips = uLabel.numberOfTrips;
                 RouteId usedRoute = noRouteId;
                 DijkstraLabel vLabel;
 
                 // travelTime == -1 <=> route edge
                 if (travelTime == -1) [[likely]] {
-                    ++newNumberOfTransfers;
+                    ++newNumberOfTrips;
+                    // fast lookup datastructure
                     std::pair<RouteId, int> pair = directConnectionIntersection(u, v, uLabel.arrivalTime);
                     newArrivalTime = pair.second;
                     usedRoute = pair.first;
@@ -342,18 +340,21 @@ private:
                 /*
                 std::cout << "\tEdge from:           " << u << " to " << v << std::endl;
                 std::cout << "\tTravelTime:          " << travelTime << std::endl;
+
                 std::cout << "\tOld ArrivalTime:     " << uLabel.arrivalTime << std::endl;
-                std::cout << "\tOld # of Trips:      " << (int) uLabel.numberOfTrips << std::endl;
-                std::cout << "\tUsed Route:          " << (int) usedRoute << std::endl;
+                std::cout << "\tOld # of Trips:      " << (int)uLabel.numberOfTrips << std::endl;
+
+                std::cout << "\tUsed Route:          " << (int)usedRoute << std::endl;
                 std::cout << "\tNew ArrivalTime:     " << newArrivalTime << std::endl;
-                std::cout << "\tNew # of Trips:      " << (int) newNumberOfTransfers << std::endl;
+                std::cout << "\tNew # of Trips:      " << (int)newNumberOfTrips << std::endl;
+                std::cout << "\tParentIndex:         " << parentIndex << std::endl;
                 std::cout << std::endl;
                 */
+
                 vLabel.set(newArrivalTime,
                     uLabel.arrivalTime,
-                    newNumberOfTransfers,
+                    newNumberOfTrips,
                     usedRoute,
-                    (travelTime == -1),
                     StopId(u),
                     parentIndex);
 
@@ -365,8 +366,6 @@ private:
         profiler.donePhase(PHASE_EVAL_GRAPH);
     }
 
-    // * for transfer edges
-
     inline bool arrivalByEdge(const Vertex vertex, const DijkstraLabel& label)
     {
         AssertMsg(label.arrivalTime >= sourceDepartureTime,
@@ -376,12 +375,14 @@ private:
                 << String::secToTime(label.arrivalTime) << " [" << label.arrivalTime << "])!");
 
         profiler.countMetric(METRIC_RELAXED_TRANSFER_EDGES);
+        // Target Pruning
         if (dijkstraBags[targetStop].dominates(label))
             return false;
-        if (!dijkstraBags[vertex].template merge<true>(label))
+        // normal (?) pruning... if the label is already dominated by other labels in it's bag, don't add it
+        if (!dijkstraBags[vertex].merge(label))
             return false;
 
-        profiler.countMetric(METRIC_ADDED_TARGETLABELS);
+        profiler.countMetric(METRIC_INCORPERATED_LABELS);
 
         Q.update(&dijkstraBags[vertex]);
         return true;
@@ -396,8 +397,8 @@ private:
         AssertMsg(data.raptorData.isStop(StopId(from)), "From " << from << " is not a valid stop");
         AssertMsg(data.raptorData.isStop(StopId(to)), "To " << to << "is not a valid stop");
 
-        std::vector<LineAndStopIndex>& fromLookup = data.stopLookup[from].incidentLines;
-        std::vector<LineAndStopIndex>& toLookup = data.stopLookup[to].incidentLines;
+        std::vector<RAPTOR::RouteSegment>& fromLookup = data.stopLookup[from].incidentLines;
+        std::vector<RAPTOR::RouteSegment>& toLookup = data.stopLookup[to].incidentLines;
 
         AssertMsg(std::is_sorted(fromLookup.begin(), fromLookup.end()), "StopLookup from From is not sorted!");
         AssertMsg(std::is_sorted(toLookup.begin(), toLookup.end()), "StopLookup from From is not sorted!");
@@ -414,7 +415,7 @@ private:
             // if fromLookup[i] and toLookup[j] are on the same line ...
             // ... *and* fromLookup[i] is before toLookup[j] ...
             // ... then evaluate and get the intersection
-            if (fromLookup[i].beforeOnSameLine(toLookup[j])) {
+            if (fromLookup[i].routeId == toLookup[j].routeId && fromLookup[i].stopIndex < toLookup[j].stopIndex) {
                 // get the first reachable trip departing >= departureTime
                 firstReachableTripIndex = data.earliestTripIndexOfLineByStopIndex(
                     fromLookup[i].stopIndex,
@@ -463,10 +464,10 @@ private:
     DynamicQueryGraph queryGraph;
     std::vector<Vertex> queue;
     size_t left, right;
-    std::set<Vertex> alreadySeen;
+    TimestampedAlreadySeen alreadySeen;
 
     std::vector<DijkstraBagType> dijkstraBags;
-    ExternalKHeap<2, DijkstraBagType> Q;
+    ExternalKHeap<4, DijkstraBagType> Q;
 
     Profiler profiler;
 };

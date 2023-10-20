@@ -61,22 +61,22 @@ public:
         raptorData.printInfo();
         RAPTOR::RAPTOR<true, RAPTOR::AggregateProfiler, true, false> algorithm(raptorData);
 
-        /* const size_t n = getParameter<size_t>("Number of queries"); */
-        /* const std::vector<StopQuery> queries = generateRandomStopQueries(raptorData.numberOfStops(), n); */
-        const std::vector<StopQuery> queries = {
-            StopQuery(StopId(1829), StopId(1532), 32360),
-            StopQuery(StopId(300), StopId(1148), 51724)
-        };
-        /* double numJourneys = 0; */
+        const size_t n = getParameter<size_t>("Number of queries");
+        const std::vector<StopQuery> queries = generateRandomStopQueries(raptorData.numberOfStops(), n);
+        /* const std::vector<StopQuery> queries = { */
+        /*     StopQuery(StopId(1829), StopId(1532), 32360), */
+        /*     StopQuery(StopId(300), StopId(1148), 51724) */
+        /* }; */
+        double numJourneys = 0;
         for (const StopQuery& query : queries) {
             algorithm.run(query.source, query.departureTime, query.target);
 
-            for (auto j : algorithm.getJourneys())
-                std::cout << j << std::endl;
-            /* numJourneys += algorithm.getJourneys().size(); */
+            /* for (auto j : algorithm.getJourneys()) */
+            /*     std::cout << j << std::endl; */
+            numJourneys += algorithm.getJourneys().size();
         }
         algorithm.getProfiler().printStatistics();
-        /* std::cout << "Avg. journeys: " << String::prettyDouble(numJourneys / n) << std::endl; */
+        std::cout << "Avg. journeys: " << String::prettyDouble(numJourneys / n) << std::endl;
     }
 };
 

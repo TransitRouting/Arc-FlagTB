@@ -19,7 +19,7 @@ using namespace Shell;
 class RunTransferPatternQueries : public ParameterizedCommand {
 public:
     RunTransferPatternQueries(BasicShell& shell)
-        : ParameterizedCommand(shell, "runTPQueries", "Runs the given number of random ransfer Pattern Queries.")
+        : ParameterizedCommand(shell, "runTPQueries", "Runs the given number of random Transfer Pattern Queries.")
     {
         addParameter("Input file (TP Data)");
         addParameter("Number of queries");
@@ -37,6 +37,7 @@ public:
         const size_t n = getParameter<size_t>("Number of queries");
         const std::vector<StopQuery> queries = generateRandomStopQueries(data.raptorData.numberOfStops(), n);
         /* const std::vector<StopQuery> queries = { */
+        /*     StopQuery(StopId(617), StopId(289), 72170), */
         /*     StopQuery(StopId(1829), StopId(1532), 32360), */
         /*     StopQuery(StopId(300), StopId(1148), 51724) */
         /* }; */
@@ -48,7 +49,7 @@ public:
 
         std::cout << "#### Stats ####" << std::endl;
         algorithm.getProfiler().printStatistics();
-        std::cout << "Avg. journeys: " << String::prettyDouble(numJourneys / n) << std::endl;
+        std::cout << "Avg. journeys                : " << String::prettyDouble(numJourneys / n) << std::endl;
     }
 };
 
