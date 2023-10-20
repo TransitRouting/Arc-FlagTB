@@ -36,6 +36,7 @@ public:
         return dynamicDAG;
     }
 
+    // @todo check why so many edges are in the resulting dag? is it because we use TB? and hence many different transfer patterns are created, althought one could reduce it?
     inline void addPrefixToDAG(std::vector<StopId>& prefix, const int travelTime = -1)
     {
         AssertMsg(prefix.size() > 0, "Prefix is empty?");

@@ -75,7 +75,7 @@ using EdgeListDAGTransferPattern = EdgeList<WithViaVertex, WithTravelTime>;
 using DynamicDAGTransferPattern = DynamicGraph<WithViaVertex, WithTravelTime>;
 using StaticDAGTransferPattern = StaticGraph<WithViaVertex, WithTravelTime>;
 
-// TODO check which type of graph
+// @todo check which type of graph
 using DynamicQueryGraph = DynamicGraph<NoVertexAttributes, WithTravelTime>;
 
 #include "Utils/Conversion.h"

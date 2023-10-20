@@ -117,6 +117,8 @@ public:
         , right(0)
         , alreadySeen(data.maxNumVerticesAndNumEdgesInTP().first)
         , dijkstraBags(data.raptorData.numberOfStops())
+        , timestampsForBags(data.raptorData.numberOfStops(), 0)
+        , currentTimestamp(0)
     {
         profiler.registerPhases({ PHASE_EXTRACT_QUERY_GRAPH, PHASE_CLEAR, PHASE_INIT_SOURCE_LABELS,
             PHASE_EVAL_GRAPH, PHASE_EXTRACT_JOURNEYS });
@@ -144,6 +146,9 @@ public:
         targetStop = target;
         sourceDepartureTime = departureTime;
 
+        prepBag(sourceStop);
+        prepBag(targetStop);
+
         extractQueryGraph();
         initializeSourceLabels();
         evaluateQueryGraph();
@@ -167,6 +172,7 @@ public:
     {
         RAPTOR::Journey journey;
         do {
+            AssertMsg(timestampsForBags[vertex] == currentTimestamp, "Something is wrong!");
             DijkstraLabel& label = dijkstraBags[vertex].access(index);
             journey.emplace_back(
                 label.parentStop,
@@ -185,6 +191,7 @@ public:
     // ######
 
 private:
+    // @todo check performance
     inline void clear() noexcept
     {
         profiler.startPhase();
@@ -193,7 +200,7 @@ private:
         queryGraph.addVertices(data.raptorData.numberOfStops());
 
         // should prop be evaluated which reserve size is fastest
-        queryGraph.reserve(data.raptorData.numberOfStops(), data.raptorData.numberOfStops());
+        queryGraph.reserve(data.raptorData.numberOfStops(), data.raptorData.numberOfStops() >> 2);
 
         left = 0;
         right = 0;
@@ -201,8 +208,11 @@ private:
         alreadySeen.clear();
 
         Q.clear();
-        // TODO check performance
-        Vector::fill(dijkstraBags);
+
+        ++currentTimestamp;
+
+        if (currentTimestamp == 0)
+            Vector::fill(dijkstraBags);
 
         profiler.donePhase(PHASE_CLEAR);
     }
@@ -280,6 +290,18 @@ private:
         return left < right;
     }
 
+    inline void prepBag(const Vertex vertex)
+    {
+        AssertMsg(data.raptorData.isStop(StopId(vertex)), "Vertex is not a stop!");
+        AssertMsg(vertex < timestampsForBags.size(), "Vertex is out of bounds!");
+
+        if (timestampsForBags[vertex] == currentTimestamp)
+            return;
+
+        dijkstraBags[vertex] = DijkstraBagType();
+        timestampsForBags[vertex] = currentTimestamp;
+    }
+
     // ######
 
     inline void initializeSourceLabels()
@@ -298,6 +320,7 @@ private:
 
     // * Evaluate the Query Graph using Multi Criteria Dijkstra
 
+    // @todo check the aStar potential idea
     inline void evaluateQueryGraph()
     {
         profiler.startPhase();
@@ -378,6 +401,7 @@ private:
         // Target Pruning
         if (dijkstraBags[targetStop].dominates(label))
             return false;
+        prepBag(vertex);
         // normal (?) pruning... if the label is already dominated by other labels in it's bag, don't add it
         if (!dijkstraBags[vertex].merge(label))
             return false;
@@ -467,6 +491,8 @@ private:
     TimestampedAlreadySeen alreadySeen;
 
     std::vector<DijkstraBagType> dijkstraBags;
+    std::vector<uint16_t> timestampsForBags;
+    uint16_t currentTimestamp;
     ExternalKHeap<4, DijkstraBagType> Q;
 
     Profiler profiler;
