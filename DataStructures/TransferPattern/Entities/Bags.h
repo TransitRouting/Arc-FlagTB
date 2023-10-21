@@ -11,7 +11,7 @@ template <typename DIJKSTRA_LABEL>
 class DijkstraBag : public ExternalKHeapElement {
 public:
     using DijkstraLabel = DIJKSTRA_LABEL;
-    static constexpr int logK = 2;
+    static constexpr int logK = 1;
     static constexpr int K = 1 << logK;
 
     DijkstraBag()

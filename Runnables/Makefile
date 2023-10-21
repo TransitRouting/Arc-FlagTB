@@ -3,6 +3,7 @@ FLAGS=-std=c++17 -pipe
 OPTIMIZATION=-march=native -O3
 DEBUG=-rdynamic -Werror -Wpedantic -pedantic-errors -Wall -Wextra -Wparentheses -Wfatal-errors -D_GLIBCXX_DEBUG -g -fno-omit-frame-pointer
 RELEASE=-ffast-math -ftree-vectorize -Wfatal-errors -DNDEBUG
+SPARSEHASH=-I ../ExternalLibs/sparsehash/include
 
 
 all: TPRelease ArcTBRelease NetworkRelease ULTRARelease 
@@ -27,7 +28,7 @@ ArcTBRelease:
 	$(CC) $(FLAGS) $(OPTIMIZATION) $(RELEASE) -o ARCTB ArcTB.cpp
 
 TPDebug:
-	$(CC) $(FLAGS) $(OPTIMIZATION) $(DEBUG) -o TP TP.cpp
+	$(CC) $(FLAGS) $(OPTIMIZATION) $(DEBUG) $(SPARSEHASH) -o TP TP.cpp
 
 TPRelease:
-	$(CC) $(FLAGS) $(OPTIMIZATION) $(RELEASE) -o TP TP.cpp
+	$(CC) $(FLAGS) $(OPTIMIZATION) $(RELEASE) $(SPARSEHASH) -o TP TP.cpp

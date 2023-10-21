@@ -1,0 +1,3 @@
+[submodule "ExternalLibs/sparsehash"]
+	path = ExternalLibs/sparsehash
+	url = https://github.com/sparsehash/sparsehash

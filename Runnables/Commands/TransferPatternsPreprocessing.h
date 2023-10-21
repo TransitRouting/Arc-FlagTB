@@ -115,3 +115,37 @@ private:
         }
     }
 };
+
+class ExportTPDAGOfStop: public ParameterizedCommand {
+public:
+    ExportTPDAGOfStop(BasicShell& shell)
+        : ParameterizedCommand(shell, "exportTPDAGofStop", "Exports the computed Transfer Patterns of the given stop in the given type file.")
+    {
+        addParameter("Input file (TP Data)");
+        addParameter("Output file");
+        addParameter("StopId");
+        addParameter("File Type (GML | CSV)");
+    }
+
+    virtual void execute() noexcept
+    {
+        const std::string inputFile = getParameter("Input file (TP Data)");
+        const std::string outputFile = getParameter("Output file");
+        const std::string type = getParameter("File Type (GML | CSV)");
+
+        TransferPattern::Data data(inputFile);
+        data.printInfo();
+
+        const size_t stop  = getParameter<size_t>("StopId");
+
+        if (!(stop < data.raptorData.numberOfStops())) {
+            std::cout << "Stop Out of range!" << std::endl;
+            return;
+        }
+        if (type == "GML") {
+            Graph::toGML(outputFile, data.transferPatternOfStop[stop]);
+        } else {
+            Graph::toEdgeListCSV(outputFile, data.transferPatternOfStop[stop]);
+        }
+    }
+};

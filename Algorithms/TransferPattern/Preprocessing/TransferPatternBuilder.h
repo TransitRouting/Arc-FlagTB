@@ -9,9 +9,17 @@
 #include "../../../Helpers/MultiThreading.h"
 #include "../../../Helpers/Vector/Vector.h"
 
-#include <unordered_map>
+#include <google/dense_hash_map>
+
+/* #include <unordered_map> */
 
 namespace TransferPattern {
+
+    struct eqVecStopid {
+        bool operator()(const std::vector<StopId>& a, const std::vector<StopId>& b) const {
+            return a == b;
+        }
+    };
 
 class TransferPatternBuilder {
 public:
@@ -19,10 +27,10 @@ public:
         : data(data)
         , query(data)
         , dynamicDAG()
-        , seenPrefix()
         , minDep(0)
         , maxDep(24 * 60 * 60 - 1)
     {
+        seenPrefix.set_empty_key({noStop});
         clear();
     }
 
@@ -111,19 +119,21 @@ public:
 
         // keep first # of stops vertices, the rest can vanish
         dynamicDAG.deleteVertices([&](Vertex vertex) { return vertex >= data.raptorData.numberOfStops() && dynamicDAG.isIsolated(vertex); });
-        dynamicDAG.reduceMultiEdgesBy(TravelTime);
+        /* dynamicDAG.reduceMultiEdgesBy(TravelTime); */
         dynamicDAG.packEdges();
     }
 
     inline void clear() noexcept
     {
         dynamicDAG.clear();
-        dynamicDAG.reserve(data.numberOfStops() << 2, data.numberOfStops() << 3);
+        dynamicDAG.reserve(data.numberOfStops() << 3, data.numberOfStops() << 3);
         dynamicDAG.addVertices(data.numberOfStops());
         for (const Vertex vertex : dynamicDAG.vertices()) {
             dynamicDAG.set(ViaVertex, vertex, vertex);
         }
-        seenPrefix.clear();
+
+        seenPrefix.resize(1<<6);
+        seenPrefix.clear_no_resize();
     }
 
     inline int getTravelTimeByFootpath(StopId from, StopId to) noexcept
@@ -145,12 +155,13 @@ private:
 
     DynamicDAGTransferPattern dynamicDAG;
 
-    std::unordered_map<std::vector<StopId>, Vertex, std::VectorHasher<StopId>> seenPrefix;
+    /* std::unordered_map<std::vector<StopId>, Vertex, std::VectorHasher<StopId>> seenPrefix; */
+    google::dense_hash_map<std::vector<StopId>, Vertex, std::VectorHasher<StopId>, eqVecStopid> seenPrefix;
     const int minDep;
     const int maxDep;
 };
 
-inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, TransferPattern::Data& tpData) noexcept
+inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, TransferPattern::Data& tpData)
 {
     Progress progress(data.numberOfStops());
     TransferPatternBuilder bobTheBuilder(data);
@@ -167,7 +178,7 @@ inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, Transfer
     progress.finished();
 }
 
-inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, TransferPattern::Data& tpData, const int numberOfThreads, const int pinMultiplier = 1) noexcept
+inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, TransferPattern::Data& tpData, const int numberOfThreads, const int pinMultiplier = 1)
 {
     Progress progress(data.numberOfStops());
 
@@ -186,12 +197,11 @@ inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, Transfer
 
 #pragma omp for schedule(dynamic, 1)
         for (size_t i = 0; i < numberOfStops; ++i) {
-            const StopId stop = StopId(i);
-            bobTheBuilder.computeTransferPatternForStop(stop);
+            bobTheBuilder.computeTransferPatternForStop(StopId(i));
             AssertMsg(Graph::isAcyclic<DynamicDAGTransferPattern>(bobTheBuilder.getDAG()), "Graph is not acyclic!");
 
-            Graph::move(std::move(bobTheBuilder.getDAG()), tpData.transferPatternOfStop[stop]);
-            tpData.transferPatternOfStop[stop].sortEdges(ToVertex);
+            Graph::move(std::move(bobTheBuilder.getDAG()), tpData.transferPatternOfStop[i]);
+            tpData.transferPatternOfStop[i].sortEdges(ToVertex);
 
             ++progress;
         }

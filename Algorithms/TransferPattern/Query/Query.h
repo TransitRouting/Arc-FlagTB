@@ -120,8 +120,11 @@ public:
         , timestampsForBags(data.raptorData.numberOfStops(), 0)
         , currentTimestamp(0)
     {
-        profiler.registerPhases({ PHASE_EXTRACT_QUERY_GRAPH, PHASE_CLEAR, PHASE_INIT_SOURCE_LABELS,
-            PHASE_EVAL_GRAPH, PHASE_EXTRACT_JOURNEYS });
+        profiler.registerPhases({
+                PHASE_EXTRACT_QUERY_GRAPH, PHASE_CLEAR,
+                /* PHASE_CLEAR_QUERY_GRAPH, PHASE_CLEAR_PQ, */
+                PHASE_INIT_SOURCE_LABELS, PHASE_EVAL_GRAPH, PHASE_EXTRACT_JOURNEYS 
+        });
         profiler.registerMetrics({ METRIC_NUM_VERTICES_QUERY_GRAPH, METRIC_NUM_EDGES_QUERY_GRAPH, METRIC_SEETLED_VERTICES,
             METRIC_RELAXED_TRANSFER_EDGES, METRIC_INCORPERATED_LABELS });
     }
@@ -196,22 +199,26 @@ private:
     {
         profiler.startPhase();
 
+        /* profiler.startPhase(); */
         queryGraph.clear();
         queryGraph.addVertices(data.raptorData.numberOfStops());
 
         // should prop be evaluated which reserve size is fastest
-        queryGraph.reserve(data.raptorData.numberOfStops(), data.raptorData.numberOfStops() >> 2);
+        queryGraph.reserve(data.raptorData.numberOfStops(), data.raptorData.numberOfStops() << 1);
+        /* profiler.donePhase(PHASE_CLEAR_QUERY_GRAPH); */
 
         left = 0;
         right = 0;
 
         alreadySeen.clear();
 
+        /* profiler.startPhase(); */
         Q.clear();
+        /* profiler.donePhase(PHASE_CLEAR_PQ); */
 
         ++currentTimestamp;
 
-        if (currentTimestamp == 0)
+        if (currentTimestamp == 0) [[unlikely]]
             Vector::fill(dijkstraBags);
 
         profiler.donePhase(PHASE_CLEAR);
@@ -238,7 +245,7 @@ private:
                 Vertex successor = sourceTP.get(ToVertex, edge);
 
                 // insert into queue
-                if (!alreadySeen.contains(successor))
+                if (!alreadySeen.contains(successor)) 
                     addVertexToQueryGraph(successor);
 
                 // add edges
@@ -254,8 +261,6 @@ private:
             }
         }
 
-        /* AssertMsg(Graph::isAcyclic(queryGraph), "Graph is not acyclic!"); */
-
         profiler.donePhase(PHASE_EXTRACT_QUERY_GRAPH);
     }
 
@@ -270,7 +275,7 @@ private:
     inline void insertIntoQueue(Vertex vertex)
     {
         AssertMsg(right <= queue.size(), "Right is out of bounds!");
-        if (right == queue.size()) {
+        if (right == queue.size()) [[unlikely]] {
             // the queue is full, so push back resizes
             ++right;
             queue.push_back(vertex);
@@ -295,7 +300,7 @@ private:
         AssertMsg(data.raptorData.isStop(StopId(vertex)), "Vertex is not a stop!");
         AssertMsg(vertex < timestampsForBags.size(), "Vertex is out of bounds!");
 
-        if (timestampsForBags[vertex] == currentTimestamp)
+        if (timestampsForBags[vertex] == currentTimestamp) [[unlikely]]
             return;
 
         dijkstraBags[vertex] = DijkstraBagType();
@@ -338,7 +343,7 @@ private:
                 const Vertex v = queryGraph.get(ToVertex, edge);
 
                 // parent hop reduction
-                if (v == uLabel.parentStop)
+                if (v == uLabel.parentStop) [[unlikely]]
                     continue;
 
                 int travelTime = queryGraph.get(TravelTime, edge);

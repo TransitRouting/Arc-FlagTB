@@ -201,8 +201,7 @@ public:
         evaluateInitialTransfers();
         scanTrips();
         for (const StopId target : targets) {
-            journeyOfRound = getJourneys(target);
-            allJourneys.insert(allJourneys.end(), journeyOfRound.begin(), journeyOfRound.end());
+            getJourneys(target);
         }
         targetLabelChanged.assign(data.raptorData.stopData.size(), emptyTargetLabelChanged);
 
@@ -221,8 +220,7 @@ public:
             scanTrips();
             // collect all journeys from this round and append it to allJourneys
             for (const StopId target : targets) {
-                journeyOfRound = getJourneys(target);
-                allJourneys.insert(allJourneys.end(), journeyOfRound.begin(), journeyOfRound.end());
+                getJourneys(target);
             }
             // update and go to next timestamp
             i = j;
@@ -289,11 +287,12 @@ public:
         return allJourneys;
     }
 
-    inline std::vector<RAPTOR::Journey> getJourneys(const StopId& target) const noexcept
+    inline void getJourneys(const StopId& target)
     {
         if (target == lastSource)
-            return {};
+            return;
         std::vector<RAPTOR::Journey> result;
+        result.reserve(32);
         int bestArrivalTime = INFTY;
         int counter(0);
         for (const TargetLabel& label : targetLabels[target]) {
@@ -302,19 +301,21 @@ public:
             bestArrivalTime = label.arrivalTime;
             result.emplace_back(getJourney(label, Vertex(target)));
         }
-        return result;
+        allJourneys.insert(allJourneys.end(), result.begin(), result.end());
     }
 
 private:
     inline void clear() noexcept
     {
         queueSize = 0;
+
         reachedIndex.clear();
         targetLabels.assign(data.raptorData.stopData.size(), emptyTargetLabels);
         minArrivalTimeFastLookUp.assign(data.raptorData.stopData.size(), emptyMinArrivalTimeFastLookUp);
         targetLabelChanged.assign(data.raptorData.stopData.size(), emptyTargetLabelChanged);
+
         allJourneys.clear();
-        allJourneys.reserve(1000);
+        allJourneys.reserve(1<<12);
     }
 
     inline void computeInitialAndFinalTransfers() noexcept

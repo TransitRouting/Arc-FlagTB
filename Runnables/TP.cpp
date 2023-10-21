@@ -11,6 +11,7 @@ int main(int argc, char** argv)
     checkAsserts();
     ::Shell::Shell shell;
 
+    new ExportTPDAGOfStop(shell);
     new RunTransferPatternQueries(shell);
     new ComputeTPUsingTB(shell);
 

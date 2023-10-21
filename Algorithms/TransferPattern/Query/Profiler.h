@@ -12,6 +12,8 @@ typedef enum {
     PHASE_INIT_SOURCE_LABELS,
     PHASE_EVAL_GRAPH,
     PHASE_CLEAR,
+    PHASE_CLEAR_QUERY_GRAPH,
+    PHASE_CLEAR_PQ,
     PHASE_EXTRACT_JOURNEYS,
     NUM_PHASES
 } Phase;
@@ -21,6 +23,8 @@ constexpr const char* PhaseNames[] = {
     "Initialize Source Labels     ",
     "Evaluate Query Graph         ",
     "Clear all Datastructures     ",
+    "Clearing the Query Graph     ",
+    "Clearing the Priority Queue  ",
     "Extract Journeys             "
 };
 
