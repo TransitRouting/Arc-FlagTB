@@ -116,7 +116,7 @@ private:
     }
 };
 
-class ExportTPDAGOfStop: public ParameterizedCommand {
+class ExportTPDAGOfStop : public ParameterizedCommand {
 public:
     ExportTPDAGOfStop(BasicShell& shell)
         : ParameterizedCommand(shell, "exportTPDAGofStop", "Exports the computed Transfer Patterns of the given stop in the given type file.")
@@ -136,7 +136,7 @@ public:
         TransferPattern::Data data(inputFile);
         data.printInfo();
 
-        const size_t stop  = getParameter<size_t>("StopId");
+        const size_t stop = getParameter<size_t>("StopId");
 
         if (!(stop < data.raptorData.numberOfStops())) {
             std::cout << "Stop Out of range!" << std::endl;

@@ -120,11 +120,9 @@ public:
         , timestampsForBags(data.raptorData.numberOfStops(), 0)
         , currentTimestamp(0)
     {
-        profiler.registerPhases({
-                PHASE_EXTRACT_QUERY_GRAPH, PHASE_CLEAR,
-                /* PHASE_CLEAR_QUERY_GRAPH, PHASE_CLEAR_PQ, */
-                PHASE_INIT_SOURCE_LABELS, PHASE_EVAL_GRAPH, PHASE_EXTRACT_JOURNEYS 
-        });
+        profiler.registerPhases({ PHASE_EXTRACT_QUERY_GRAPH, PHASE_CLEAR,
+            /* PHASE_CLEAR_QUERY_GRAPH, PHASE_CLEAR_PQ, */
+            PHASE_INIT_SOURCE_LABELS, PHASE_EVAL_GRAPH, PHASE_EXTRACT_JOURNEYS });
         profiler.registerMetrics({ METRIC_NUM_VERTICES_QUERY_GRAPH, METRIC_NUM_EDGES_QUERY_GRAPH, METRIC_SEETLED_VERTICES,
             METRIC_RELAXED_TRANSFER_EDGES, METRIC_INCORPERATED_LABELS });
     }
@@ -245,7 +243,7 @@ private:
                 Vertex successor = sourceTP.get(ToVertex, edge);
 
                 // insert into queue
-                if (!alreadySeen.contains(successor)) 
+                if (!alreadySeen.contains(successor))
                     addVertexToQueryGraph(successor);
 
                 // add edges

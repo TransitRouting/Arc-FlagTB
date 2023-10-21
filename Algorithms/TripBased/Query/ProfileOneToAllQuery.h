@@ -315,7 +315,7 @@ private:
         targetLabelChanged.assign(data.raptorData.stopData.size(), emptyTargetLabelChanged);
 
         allJourneys.clear();
-        allJourneys.reserve(1<<12);
+        allJourneys.reserve(1 << 12);
     }
 
     inline void computeInitialAndFinalTransfers() noexcept

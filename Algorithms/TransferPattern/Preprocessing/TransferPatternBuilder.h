@@ -15,11 +15,12 @@
 
 namespace TransferPattern {
 
-    struct eqVecStopid {
-        bool operator()(const std::vector<StopId>& a, const std::vector<StopId>& b) const {
-            return a == b;
-        }
-    };
+struct eqVecStopid {
+    bool operator()(const std::vector<StopId>& a, const std::vector<StopId>& b) const
+    {
+        return a == b;
+    }
+};
 
 class TransferPatternBuilder {
 public:
@@ -30,7 +31,7 @@ public:
         , minDep(0)
         , maxDep(24 * 60 * 60 - 1)
     {
-        seenPrefix.set_empty_key({noStop});
+        seenPrefix.set_empty_key({ noStop });
         clear();
     }
 
@@ -132,7 +133,7 @@ public:
             dynamicDAG.set(ViaVertex, vertex, vertex);
         }
 
-        seenPrefix.resize(1<<6);
+        seenPrefix.resize(1 << 6);
         seenPrefix.clear_no_resize();
     }
 
