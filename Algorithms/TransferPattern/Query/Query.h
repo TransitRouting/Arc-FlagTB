@@ -241,19 +241,29 @@ private:
             // relax all outgoing edges and add (reversed edge) to queryGraph
             for (const Edge edge : sourceTP.edgesFrom(currentVertex)) {
                 Vertex successor = sourceTP.get(ToVertex, edge);
+                Vertex viaSuccessor = sourceTP.get(ViaVertex, successor);
 
                 // insert into queue
                 if (!alreadySeen.contains(successor))
                     addVertexToQueryGraph(successor);
 
-                // add edges
-                Edge previousEdge = queryGraph.findEdge(
-                    sourceTP.get(ViaVertex, successor),
-                    sourceTP.get(ViaVertex, currentVertex));
-
-                // check if there is no edge *or* if there is already an edge, but not the same transfer modus (walking vs by route)
-                if (!queryGraph.isEdge(previousEdge) || queryGraph.get(TravelTime, previousEdge) != sourceTP.get(TravelTime, edge)) [[likely]] {
-                    queryGraph.addEdge(sourceTP.get(ViaVertex, successor), sourceTP.get(ViaVertex, currentVertex)).set(TravelTime, sourceTP.get(TravelTime, edge));
+                bool hasRouteEdge = false;
+                bool hasWalkingEdge = false;
+                for (const Edge e : queryGraph.edgesFrom(viaSuccessor)) {
+                    if (queryGraph.get(ToVertex, e) == sourceTP.get(ViaVertex, currentVertex)) {
+                        if (queryGraph.get(TravelTime, e) == -1)
+                            hasRouteEdge = true;
+                        else
+                            hasWalkingEdge = true;
+                    }
+                }
+                if (hasWalkingEdge && hasRouteEdge)
+                    continue;
+                if ((sourceTP.get(TravelTime, edge) == -1 && !hasRouteEdge) || (!hasWalkingEdge)) {
+                    queryGraph.addEdge(
+                                  sourceTP.get(ViaVertex, successor),
+                                  sourceTP.get(ViaVertex, currentVertex))
+                        .set(TravelTime, sourceTP.get(TravelTime, edge));
                     profiler.countMetric(METRIC_NUM_EDGES_QUERY_GRAPH);
                 }
             }

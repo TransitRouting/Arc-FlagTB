@@ -64,8 +64,10 @@ public:
         if (routeType == 0)
             return FromIntermediate(inter, inter.geographicRoutes());
         if (routeType == 1)
-            return FromIntermediate(inter, inter.fifoRoutes());
+            return FromIntermediate(inter, inter.greedyfifoRoutes());
         if (routeType == 2)
+            return FromIntermediate(inter, inter.fifoRoutes());
+        if (routeType == 3)
             return FromIntermediate(inter, inter.offsetRoutes());
         return FromIntermediate(inter, inter.fifoRoutes());
     }

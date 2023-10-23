@@ -151,6 +151,23 @@ public:
         return result;
     }
 
+    inline void printStatsAboutTP() const
+    {
+        size_t sumVertices(0), sumEdges(0), maxVertices(0), maxEdges(0);
+        for (auto& tp : transferPatternOfStop) {
+            maxVertices = std::max(tp.numVertices(), maxVertices);
+            maxEdges = std::max(tp.numEdges(), maxEdges);
+
+            sumVertices += tp.numVertices();
+            sumEdges += tp.numEdges();
+        }
+
+        std::cout << "   Total # of vertices:      " << std::setw(12) << String::prettyInt(sumVertices) << std::endl;
+        std::cout << "   Total # of edges:         " << std::setw(12) << String::prettyInt(sumEdges) << std::endl;
+        std::cout << "   Max # of vertices:        " << std::setw(12) << String::prettyInt(maxVertices) << std::endl;
+        std::cout << "   Max # of edges:           " << std::setw(12) << String::prettyInt(maxEdges) << std::endl;
+    }
+
     inline long long byteSize() const noexcept
     {
         long long result = Vector::byteSize(lineLookup);
@@ -171,9 +188,7 @@ public:
         raptorData.printInfo();
 
         std::cout << "Info about Transfer Pattern:" << std::endl;
-        std::pair<size_t, size_t> result = maxNumVerticesAndNumEdgesInTP();
-        std::cout << "   Max # vertices in a TP:   " << std::setw(12) << String::prettyInt(result.first) << std::endl;
-        std::cout << "   Max # edges in a TP:      " << std::setw(12) << String::prettyInt(result.second) << std::endl;
+        printStatsAboutTP();
         std::cout << "   Storage usage of all TP:  " << std::setw(12) << String::bytesToString(byteSize()) << std::endl;
     }
 

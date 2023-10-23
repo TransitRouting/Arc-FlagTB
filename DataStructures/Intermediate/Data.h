@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "../../Algorithms/BipartiteGraphAlgorithms.h"
 #include "../../Algorithms/Dijkstra/Dijkstra.h"
 #include "../../Algorithms/StronglyConnectedComponents.h"
 #include "../../Helpers/Assert.h"
@@ -25,6 +26,7 @@
 #include "../Geometry/Point.h"
 #include "../Geometry/Rectangle.h"
 #include "../Graph/Graph.h"
+#include "../MaxFlowMinCut/FlowGraphs.h"
 #include "Entities/Stop.h"
 #include "Entities/StopEvent.h"
 #include "Entities/Trip.h"
@@ -885,12 +887,126 @@ public:
         return routes;
     }
 
-    inline std::vector<std::vector<Intermediate::Trip>> fifoRoutes() const noexcept
+    inline std::vector<std::vector<Intermediate::Trip>> greedyfifoRoutes() const noexcept
     {
         std::vector<Intermediate::Trip> sortedTrips = trips;
         std::sort(sortedTrips.begin(), sortedTrips.end());
         std::vector<std::vector<Intermediate::Trip>> routes;
         appendRoutes(routes, sortedTrips, [](const Trip& a, const Trip& b) { return isFiFo(a, b); });
+        return routes;
+    }
+
+    // this does not implement the algorithm to create an ortientation for transitive graphs
+    // this method just checks if for every edge A->B and B->C, if A->C is present
+    // NOTE: even vertices are in one side, odd in the other
+    inline bool checkFlowGraph(const DynamicFlowGraph& graph) const
+    {
+        for (Vertex A(0); A < graph.numVertices(); A += 2) {
+            for (const Edge edge : graph.edgesFrom(A)) {
+                const Vertex B = graph.get(ToVertex, edge);
+                for (const Edge first : graph.edgesFrom(Vertex(B - 1))) {
+                    const Vertex C = graph.get(ToVertex, first);
+                    if (A == C)
+                        continue;
+                    if (!graph.hasEdge(A, C)) {
+                        std::cout << "Vertex A: " << A << std::endl;
+                        std::cout << "Vertex B: " << B << std::endl;
+                        std::cout << "Vertex C: " << C << std::endl;
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    inline std::vector<std::vector<Intermediate::Trip>> fifoRoutes() const
+    {
+        std::vector<Intermediate::Trip> sortedTrips = trips;
+        std::sort(sortedTrips.begin(), sortedTrips.end());
+        std::vector<std::vector<Intermediate::Trip>> routes;
+        routes.reserve(trips.size());
+
+        // trip routing graph
+        DynamicFlowGraph flowGraph;
+        IndexedSet<false, Vertex> leftSide(trips.size() << 1);
+        IndexedSet<false, Vertex> rightSide(trips.size() << 1);
+        // trips is now sorted by stop sequence
+        size_t left(0), right(0);
+
+        while (left < trips.size() && left <= right) {
+            // @ todo check if can fill the sides only once
+            while (right < trips.size() && equals(trips[left].stopEvents, trips[right].stopEvents)) {
+                leftSide.insert(Vertex((right - left) << 1));
+                rightSide.insert(Vertex(((right - left) << 1) + 1));
+                ++right;
+            }
+
+            flowGraph.clear();
+            flowGraph.reserve(((right - left) << 1), ((right - left) * (right - left)) >> 1);
+            flowGraph.addVertices(((right - left) << 1));
+
+            // now add the edges to the graph
+            for (size_t i(0); i < (right - left); ++i) {
+                for (size_t j(i + 1); j < (right - left); ++j) {
+                    if (i == j)
+                        continue;
+                    bool before = true;
+
+                    for (size_t stopIndex(0); before && stopIndex < trips[left + i].stopEvents.size(); ++stopIndex) {
+                        before &= (trips[left + i].stopEvents[stopIndex].departureTime <= trips[left + j].stopEvents[stopIndex].departureTime);
+                        before &= (trips[left + i].stopEvents[stopIndex].arrivalTime <= trips[left + j].stopEvents[stopIndex].arrivalTime);
+                    }
+                    if (before) {
+                        flowGraph.addEdge(Vertex(i << 1), Vertex((j << 1) + 1)).set(Capacity, 1);
+                        flowGraph.addEdge(Vertex((j << 1) + 1), Vertex(i << 1)).set(Capacity, 0);
+                    }
+                }
+            }
+
+            AssertMsg(checkFlowGraph(flowGraph), "Edges are missing, this is not the wanted representation of the flowgraph!");
+
+            BipartiteGraph BIgraph(flowGraph, leftSide, rightSide);
+            std::vector<Dinic::CutEdge> cutEdges = maximumBipartiteMatching(BIgraph);
+
+            std::sort(cutEdges.begin(), cutEdges.end());
+
+            std::vector<int> newRouteIdOfVertex((right - left), -1);
+
+            for (Dinic::CutEdge& cutEdge : cutEdges) {
+                AssertMsg(!(cutEdge.from & 1) && (cutEdge.to & 1), "Edge is in the wrong direction?");
+
+                if (newRouteIdOfVertex[(cutEdge.from >> 1)] == -1) {
+                    newRouteIdOfVertex[(cutEdge.from >> 1)] = routes.size();
+                    newRouteIdOfVertex[(cutEdge.to - 1) >> 1] = routes.size();
+
+                    routes.emplace_back(std::vector<Intermediate::Trip> {
+                        trips[left + (cutEdge.from >> 1)],
+                        trips[left + ((cutEdge.to - 1) >> 1)] });
+                    AssertMsg((size_t)newRouteIdOfVertex[(cutEdge.from >> 1)] + 1 == routes.size(), "Regrowing of routes did not work?");
+                } else {
+                    newRouteIdOfVertex[(cutEdge.to - 1) >> 1] = newRouteIdOfVertex[(cutEdge.from >> 1)];
+                    AssertMsg((size_t)newRouteIdOfVertex[(cutEdge.to - 1) >> 1] < routes.size(), "Index out of bounds!");
+
+                    routes[newRouteIdOfVertex[(cutEdge.to - 1) >> 1]].emplace_back(trips[left + ((cutEdge.to - 1) >> 1)]);
+                }
+            }
+
+            for (size_t i(0); i < newRouteIdOfVertex.size(); ++i) {
+                if (newRouteIdOfVertex[i] != -1)
+                    continue;
+
+                newRouteIdOfVertex[i] = routes.size();
+                routes.emplace_back(std::vector<Intermediate::Trip> { trips[left + i] });
+            }
+
+            AssertMsg(std::find(newRouteIdOfVertex.begin(), newRouteIdOfVertex.end(), -1) == newRouteIdOfVertex.end(), "Trip has not been assigned!");
+            left = right;
+
+            leftSide.clear();
+            rightSide.clear();
+        }
+
         return routes;
     }
 

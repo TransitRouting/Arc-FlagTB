@@ -78,13 +78,6 @@ public:
 
         std::cout << "Computing Transfer Pattern with " << (int)numberOfThreads << " # of threads!" << std::endl;
 
-        /* TransferPattern::TransferPatternBuilder bobTheBuilder(data); */
-        /* bobTheBuilder.computeTransferPatternForStop(StopId(593)); */
-
-        /* Graph::move(std::move(bobTheBuilder.getDAG()), tpData.transferPatternOfStop[593]); */
-        /* bobTheBuilder.getDAG().printAnalysis(); */
-        /* Graph::toGML(outputFile, bobTheBuilder.getDAG()); */
-
         if (numberOfThreads == 0) {
             TransferPattern::ComputeTransferPatternUsingTripBased(data, tpData);
         } else {

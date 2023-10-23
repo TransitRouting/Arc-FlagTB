@@ -96,7 +96,7 @@ public:
     {
         addParameter("Input file");
         addParameter("Output file");
-        addParameter("Route type", "FIFO", { "Geographic", "FIFO", "Offset", "Frequency" });
+        addParameter("Route type", "Opt-FIFO", { "Geographic", "FIFO", "Opt-FIFO", "Offset", "Frequency" });
     }
 
     virtual void execute() noexcept
@@ -109,10 +109,12 @@ public:
             routeType = 0;
         } else if (routeTypeString == "FIFO") {
             routeType = 1;
-        } else if (routeTypeString == "Offset") {
+        } else if (routeTypeString == "Opt-FIFO") {
             routeType = 2;
-        } else {
+        } else if (routeTypeString == "Offset") {
             routeType = 3;
+        } else {
+            routeType = 4;
         }
 
         Intermediate::Data inter = Intermediate::Data::FromBinary(inputFile);
