@@ -96,7 +96,7 @@ public:
     {
         addParameter("Input file");
         addParameter("Output file");
-        addParameter("Route type", "Opt-FIFO", { "Geographic", "FIFO", "Opt-FIFO", "Offset", "Frequency" });
+        addParameter("Route type", "FIFO", { "Geographic", "FIFO", "Opt-FIFO", "Offset", "Frequency" });
     }
 
     virtual void execute() noexcept

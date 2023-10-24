@@ -52,6 +52,16 @@ In: Proceedings of the 24th Workshop on Algorithm Engineering and Experiments (A
 Moritz Potthoff, Jonas Sauer
 Accepted for publication at the 22nd Symposium on Algorithmic Approaches for Transportation Modelling, Optimization, and Systems (ATMOS'22)
 
+## Clone from Github
+
+This repository contains a submodule (see ``ExternalLibs/sparsehash``), so clone this repo using the ``--recurse-submodules ...`` argument.
+To install sparsehash (see https://github.com/sparsehash/sparsehash), call
+```
+>> cd ExternalLibs/sparsehash
+>> ./configure --prefix=[the path to ExternalLibs/sparsehash]
+>> make
+>> make install
+```
 ## Usage
 To use the Arc-Flag TB algorithm, compile the executables in the  ``Runnables`` folder (using the ``Makefile``). Next to the ``ULTRA`` and ``Network`` executables are the ``ARCTB`` executable and two scripts called ``prepLayoutGraph.script`` and ``arcFlagTB.script``.
 
