@@ -100,6 +100,36 @@ inline std::vector<Dinic::CutEdge> maximumBipartiteMatching(BipartiteGraph& data
     return result;
 }
 
+inline std::vector<Dinic::CutEdge> maximumBipartiteMatching(DynamicFlowGraph& graph) {
+    const Vertex source = graph.addVertex();
+    const Vertex target = graph.addVertex();
+
+    for (size_t i(0); i < (graph.numVertices() - 2); i += 2) {
+        graph.addEdge(source, Vertex(i)).set(Capacity, 1);
+        graph.addEdge(Vertex(i), source).set(Capacity, 0);
+
+        graph.addEdge(Vertex(i + 1), target).set(Capacity, 1);
+        graph.addEdge(target, Vertex(i + 1)).set(Capacity, 0);
+    }
+
+    Dinic dinic(graph);
+    dinic.run(source, target);
+    std::vector<Dinic::CutEdge> result;
+    const StaticFlowGraph& flowGraph = dinic.getFlowGraph();
+    for (size_t i(0); i < (flowGraph.numVertices() - 2); i += 2) {
+        const Vertex from(i);
+        for (const Edge edge : flowGraph.edgesFrom(from)) {
+            if (dinic.getFlow(edge) != 1)
+                continue;
+            const Vertex to = flowGraph.get(ToVertex, edge);
+            if (!((to & 1) && to != target))
+                continue;
+            result.emplace_back(from, to, edge);
+        }
+    }
+    return result;
+}
+
 template <typename GRAPH>
 inline std::vector<Dinic::CutEdge> maximumBipartiteMatching(const GRAPH& graph)
 {

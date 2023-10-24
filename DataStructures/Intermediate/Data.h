@@ -927,37 +927,37 @@ public:
         std::vector<std::vector<Intermediate::Trip>> routes;
         routes.reserve(trips.size());
 
-        // trip routing graph
+        std::vector<int> newRouteIdOfTrip(trips.size(), -1);
+
         DynamicFlowGraph flowGraph;
-        IndexedSet<false, Vertex> leftSide(trips.size() << 1);
-        IndexedSet<false, Vertex> rightSide(trips.size() << 1);
+
         // trips is now sorted by stop sequence
         size_t left(0), right(0);
 
         while (left < trips.size() && left <= right) {
             // @ todo check if can fill the sides only once
             while (right < trips.size() && equals(trips[left].stopEvents, trips[right].stopEvents)) {
-                leftSide.insert(Vertex((right - left) << 1));
-                rightSide.insert(Vertex(((right - left) << 1) + 1));
                 ++right;
             }
 
             flowGraph.clear();
-            flowGraph.reserve(((right - left) << 1), ((right - left) * (right - left)) >> 1);
-            flowGraph.addVertices(((right - left) << 1));
+            flowGraph.reserve((right - left) << 1, (right - left) << 2);
+            flowGraph.addVertices((right - left) << 1);
 
             // now add the edges to the graph
             for (size_t i(0); i < (right - left); ++i) {
                 for (size_t j(i + 1); j < (right - left); ++j) {
-                    if (i == j)
-                        continue;
                     bool before = true;
 
                     for (size_t stopIndex(0); before && stopIndex < trips[left + i].stopEvents.size(); ++stopIndex) {
                         before &= (trips[left + i].stopEvents[stopIndex].departureTime <= trips[left + j].stopEvents[stopIndex].departureTime);
                         before &= (trips[left + i].stopEvents[stopIndex].arrivalTime <= trips[left + j].stopEvents[stopIndex].arrivalTime);
                     }
+
                     if (before) {
+                        AssertMsg(flowGraph.isVertex(Vertex(i << 1)), i << " is not a valid vertex?");
+                        AssertMsg(flowGraph.isVertex(Vertex(j << 1)), j << " is not a valid vertex?");
+
                         flowGraph.addEdge(Vertex(i << 1), Vertex((j << 1) + 1)).set(Capacity, 1);
                         flowGraph.addEdge(Vertex((j << 1) + 1), Vertex(i << 1)).set(Capacity, 0);
                     }
@@ -966,47 +966,42 @@ public:
 
             AssertMsg(checkFlowGraph(flowGraph), "Edges are missing, this is not the wanted representation of the flowgraph!");
 
-            BipartiteGraph BIgraph(flowGraph, leftSide, rightSide);
-            std::vector<Dinic::CutEdge> cutEdges = maximumBipartiteMatching(BIgraph);
+            std::vector<Dinic::CutEdge> cutEdges = maximumBipartiteMatching(flowGraph);
 
             std::sort(cutEdges.begin(), cutEdges.end());
-
-            std::vector<int> newRouteIdOfVertex((right - left), -1);
 
             for (Dinic::CutEdge& cutEdge : cutEdges) {
                 AssertMsg(!(cutEdge.from & 1) && (cutEdge.to & 1), "Edge is in the wrong direction?");
 
-                if (newRouteIdOfVertex[(cutEdge.from >> 1)] == -1) {
-                    newRouteIdOfVertex[(cutEdge.from >> 1)] = routes.size();
-                    newRouteIdOfVertex[(cutEdge.to - 1) >> 1] = routes.size();
+                TripId fromTrip = TripId(left + (cutEdge.from >> 1));
+                TripId toTrip = TripId(left + ((cutEdge.to - 1) >> 1));
+
+                if (newRouteIdOfTrip[fromTrip] == -1) {
+                    newRouteIdOfTrip[fromTrip] = routes.size();
+                    newRouteIdOfTrip[toTrip] = routes.size();
 
                     routes.emplace_back(std::vector<Intermediate::Trip> {
-                        trips[left + (cutEdge.from >> 1)],
-                        trips[left + ((cutEdge.to - 1) >> 1)] });
-                    AssertMsg((size_t)newRouteIdOfVertex[(cutEdge.from >> 1)] + 1 == routes.size(), "Regrowing of routes did not work?");
+                        trips[fromTrip],
+                        trips[toTrip] });
                 } else {
-                    newRouteIdOfVertex[(cutEdge.to - 1) >> 1] = newRouteIdOfVertex[(cutEdge.from >> 1)];
-                    AssertMsg((size_t)newRouteIdOfVertex[(cutEdge.to - 1) >> 1] < routes.size(), "Index out of bounds!");
+                    newRouteIdOfTrip[toTrip] = newRouteIdOfTrip[fromTrip];
 
-                    routes[newRouteIdOfVertex[(cutEdge.to - 1) >> 1]].emplace_back(trips[left + ((cutEdge.to - 1) >> 1)]);
+                    routes[newRouteIdOfTrip[toTrip]].emplace_back(trips[toTrip]);
                 }
             }
 
-            for (size_t i(0); i < newRouteIdOfVertex.size(); ++i) {
-                if (newRouteIdOfVertex[i] != -1)
+            for (size_t i(left); i < right; ++i) {
+                if (newRouteIdOfTrip[i] != -1)
                     continue;
 
-                newRouteIdOfVertex[i] = routes.size();
-                routes.emplace_back(std::vector<Intermediate::Trip> { trips[left + i] });
+                newRouteIdOfTrip[i] = routes.size();
+                routes.emplace_back(std::vector<Intermediate::Trip> { trips[i] });
             }
 
-            AssertMsg(std::find(newRouteIdOfVertex.begin(), newRouteIdOfVertex.end(), -1) == newRouteIdOfVertex.end(), "Trip has not been assigned!");
             left = right;
-
-            leftSide.clear();
-            rightSide.clear();
         }
 
+        AssertMsg(std::find(newRouteIdOfTrip.begin(), newRouteIdOfTrip.end(), -1) == newRouteIdOfTrip.end(), "Trip has not been assigned!");
         return routes;
     }
 
