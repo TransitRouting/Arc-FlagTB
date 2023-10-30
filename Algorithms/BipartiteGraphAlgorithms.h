@@ -100,7 +100,8 @@ inline std::vector<Dinic::CutEdge> maximumBipartiteMatching(BipartiteGraph& data
     return result;
 }
 
-inline std::vector<Dinic::CutEdge> maximumBipartiteMatching(DynamicFlowGraph& graph) {
+inline std::vector<Dinic::CutEdge> maximumBipartiteMatching(DynamicFlowGraph& graph)
+{
     const Vertex source = graph.addVertex();
     const Vertex target = graph.addVertex();
 

@@ -1,17 +1,18 @@
 #pragma once
 
 #include "../../../DataStructures/Graph/Utils/Utils.h"
+#include "../../../DataStructures/RAPTOR/Entities/JourneyWithStopEvent.h"
 #include "../../../DataStructures/TransferPattern/Data.h"
 #include "../../../DataStructures/TripBased/Data.h"
+
 #include "../../TripBased/Query/ProfileOneToAllQuery.h"
+/* #include "RangeRAPTOR/RangeRAPTOR.h" */
 
 #include "../../../Helpers/Console/Progress.h"
 #include "../../../Helpers/MultiThreading.h"
 #include "../../../Helpers/Vector/Vector.h"
 
 #include <google/dense_hash_map>
-
-/* #include <unordered_map> */
 
 namespace TransferPattern {
 
@@ -24,9 +25,10 @@ struct eqVecStopid {
 
 class TransferPatternBuilder {
 public:
-    TransferPatternBuilder(const TripBased::Data& data)
+    TransferPatternBuilder(TripBased::Data& data)
         : data(data)
         , query(data)
+        /* , query(data.raptorData) */
         , dynamicDAG()
         , minDep(0)
         , maxDep(24 * 60 * 60 - 1)
@@ -80,12 +82,13 @@ public:
 
         // This solves one-to-all
         query.run(Vertex(stop), minDep, maxDep);
+        /* query.runOneToAllStops(Vertex(stop), minDep, maxDep); */
 
         int travelTime(-1);
         StopId target(0);
-        RAPTOR::JourneyLeg leg;
 
         for (RAPTOR::Journey& j : query.getAllJourneys()) {
+        /* for (RAPTOR::JourneyWithStopEvent& j : query.getAllJourneys()) { */
             currentPrefix.clear();
             currentPrefix.reserve(32);
 
@@ -93,13 +96,15 @@ public:
             target = StopId(j.back().to);
 
             for (size_t i(0); i < j.size(); ++i) {
-                leg = j[i];
+                auto leg = j[i];
 
                 if (leg.from == leg.to)
                     continue;
 
                 if (!leg.usesRoute) {
-                    travelTime = getTravelTimeByFootpath(StopId(leg.from), StopId(leg.to));
+                    /* travelTime = getTravelTimeByFootpath(StopId(leg.from), StopId(leg.to)); */
+                    travelTime = leg.transferTime();
+                    AssertMsg(travelTime >= 0, "Footpath Traveltime does not match!\n\tleg.departureTime: " << leg.departureTime << "\n\tleg.arrivalTime: " << leg.arrivalTime);
                 } else {
                     travelTime = -1;
                 }
@@ -120,7 +125,6 @@ public:
 
         // keep first # of stops vertices, the rest can vanish
         dynamicDAG.deleteVertices([&](Vertex vertex) { return vertex >= data.raptorData.numberOfStops() && dynamicDAG.isIsolated(vertex); });
-        /* dynamicDAG.reduceMultiEdgesBy(TravelTime); */
         dynamicDAG.packEdges();
     }
 
@@ -151,12 +155,12 @@ public:
     }
 
 private:
-    const TripBased::Data data;
+    TripBased::Data data;
     TripBased::ProfileOneToAllQuery<TripBased::NoProfiler> query;
+    /* RAPTOR::RangeRAPTOR::RangeRAPTOR<RAPTOR::RangeRAPTOR::TransitiveRAPTORModule<RAPTOR::NoProfiler>> query; */
 
     DynamicDAGTransferPattern dynamicDAG;
 
-    /* std::unordered_map<std::vector<StopId>, Vertex, std::VectorHasher<StopId>> seenPrefix; */
     google::dense_hash_map<std::vector<StopId>, Vertex, std::VectorHasher<StopId>, eqVecStopid> seenPrefix;
     const int minDep;
     const int maxDep;

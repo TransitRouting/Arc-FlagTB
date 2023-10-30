@@ -95,6 +95,7 @@ public:
         std::cout << "Total Size:       " << String::bytesToString(tpData.byteSize()) << std::endl;
         std::cout << "Average # Nodes:  " << String::prettyDouble(totalNumVertices / data.raptorData.numberOfStops()) << std::endl;
         std::cout << "Average # Edges:  " << String::prettyDouble(totalNumEdges / data.raptorData.numberOfStops()) << std::endl;
+
         tpData.serialize(outputFile);
     }
 

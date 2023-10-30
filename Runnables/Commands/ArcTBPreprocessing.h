@@ -124,6 +124,7 @@ public:
 
         RAPTOR::Data raptor(inputFile);
         raptor.printInfo();
+
         TripBased::Data data(raptor);
 
         TripBased::ULTRABuilderTransitive<false> shortcutGraphBuilder(data);

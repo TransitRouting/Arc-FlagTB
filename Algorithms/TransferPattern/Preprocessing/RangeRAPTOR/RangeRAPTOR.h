@@ -73,7 +73,6 @@ public:
         , minDepartureTime(never)
         , maxDepartureTime(never)
     {
-        stopEventGraphOfThread.addVertices(data.numberOfStopEvents());
     }
 
     template <typename T = TransferGraph, typename = std::enable_if_t<Meta::Equals<T, TransferGraph>() && Meta::Equals<T, InitialTransferGraph>()>>
@@ -227,49 +226,15 @@ private:
     template <bool RUN_BACKWARD_QUERIES = false>
     inline void collectArrivals(const Vertex target) noexcept
     {
-        std::vector<EdgeListOfStopEventIds> allEdgeLists = forwardRaptor.getEdgeLists(target);
-        if (allEdgeLists.size() == 0)
-            return;
-        int partitionOfTarget = data.getPartitionCellOfStop(StopId(target));
+        std::vector<JourneyWithStopEvent> journeys = forwardRaptor.getJourneys(target);
 
-        for (EdgeListOfStopEventIds edgeList : allEdgeLists) {
-            // skip the first and do not use the last one
-            AssertMsg(edgeList.size() > 0, "EdgeList is empty!\n");
-            size_t fromStopEventId(0);
-            size_t toStopEventId = edgeList[0].second;
-            for (size_t i(1); i < edgeList.size(); ++i) {
-                // connect old toStopEventId with current fromStopEventId
-                fromStopEventId = edgeList[i].first;
-
-                AssertMsg(stopEventGraphOfThread.isVertex(Vertex(toStopEventId)), "ToStopEventId is not a valid stopEventId");
-                AssertMsg(stopEventGraphOfThread.isVertex(Vertex(fromStopEventId)), "FromStopEventId is not a valid stopEventId");
-
-                // if graph doesn't have the edge
-                if (!stopEventGraphOfThread.hasEdge(Vertex(toStopEventId), Vertex(fromStopEventId))) {
-                    std::vector<bool> emptyFlag(data.getNumberOfPartitionCells(), false);
-                    stopEventGraphOfThread.addEdge(Vertex(toStopEventId), Vertex(fromStopEventId)).set(ARCFlag, emptyFlag);
-                }
-
-                Edge foundEdge = stopEventGraphOfThread.findEdge(Vertex(toStopEventId), Vertex(fromStopEventId));
-
-                AssertMsg(stopEventGraphOfThread.isEdge(foundEdge), "Edge is not a valid edge!");
-
-                std::vector<bool>& toSetFlags = stopEventGraphOfThread.get(ARCFlag, foundEdge);
-                AssertMsg(toSetFlags.size() == (size_t)data.getNumberOfPartitionCells(), "Flag Size is not correct!");
-
-                toSetFlags[partitionOfTarget] = true;
-
-                AssertMsg(stopEventGraphOfThread.get(ARCFlag, foundEdge)[partitionOfTarget], "Flag should be set to true!");
-
-                toStopEventId = edgeList[i].second;
-            }
-        }
+        allJourneys.insert(allJourneys.end(), journeys.begin(), journeys.end());
     }
 
 public:
-    inline const SimpleDynamicGraphWithARCFlag& getStopEventGraph() const noexcept
+    inline std::vector<JourneyWithStopEvent> getAllJourneys() const noexcept
     {
-        return stopEventGraphOfThread;
+        return allJourneys;
     }
 
 private:
@@ -284,10 +249,7 @@ private:
     // One-to- ;
     IndexedSet<false, Vertex> targetVertices;
 
-    // ARC-Flag TB StopEventGraph
-    SimpleDynamicGraphWithARCFlag stopEventGraphOfThread;
-
-    std::vector<std::vector<JourneyWithStopEvent>> allJourneys;
+    std::vector<JourneyWithStopEvent> allJourneys;
 };
 
 }
