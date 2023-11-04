@@ -1212,7 +1212,6 @@ public:
         }
         layoutGraph.clear();
         layoutGraph.addVertices(stopData.size());
-        // layoutGraph.addVertices(transferGraph.numVertices());
 
         for (Vertex vertex : layoutGraph.vertices()) {
             layoutGraph.set(Weight, vertex, 1);

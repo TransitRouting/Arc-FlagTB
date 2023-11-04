@@ -15,7 +15,7 @@
 namespace TransferPattern {
 
 template <typename PROFILER = NoProfiler>
-class Query {
+class QueryAStar {
 public:
     using Profiler = PROFILER;
     using Type = Query<Profiler>;
@@ -29,41 +29,62 @@ public:
             , routeId(noRouteId)
             , parentStop(noStop)
             , parentIndex(-1)
+            , bestTravelTime(0)
+            , bestNumTrips(0)
         {
         }
 
         template <typename LABEL>
-        DijkstraLabel(const LABEL& parentLabel, const int travelTime)
+        DijkstraLabel(LABEL& parentLabel, int travelTime)
             : arrivalTime(parentLabel.arrivalTime + travelTime)
             , parentDepartureTime(parentLabel)
             , numberOfTrips(parentLabel.numberOfTrips)
             , routeId(noRouteId)
             , parentStop(parentLabel.parentStop)
             , parentIndex(parentLabel.parentIndex)
+            , bestTravelTime(0)
+            , bestNumTrips(0)
         {
         }
 
-        DijkstraLabel(const int newArrivalTime, const int newParentDepartureTime, const int newNumberOfTrips, const RouteId newRouteId, const StopId parentStop, const size_t parentIndex)
+        DijkstraLabel(const DijkstraLabel& other)
+            : arrivalTime(other.arrivalTime + other.bestTravelTime)
+            , parentDepartureTime(other.parentDepartureTime)
+            , numberOfTrips(other.numberOfTrips + other.bestNumTrips)
+            , routeId(other.routeId)
+            , parentStop(other.parentStop)
+            , parentIndex(other.parentIndex)
+            , bestTravelTime(other.bestTravelTime)
+            , bestNumTrips(other.bestNumTrips)
+        {
+        }
+
+
+        DijkstraLabel(int newArrivalTime, int newParentDepartureTime, int newNumberOfTrips, RouteId newRouteId, StopId parentStop, size_t parentIndex, int newBestTravelTime, uint8_t newBestNumTrips)
             : arrivalTime(newArrivalTime)
             , parentDepartureTime(newParentDepartureTime)
             , numberOfTrips(newNumberOfTrips)
             , routeId(newRouteId)
             , parentStop(parentStop)
             , parentIndex(parentIndex)
+            , bestTravelTime(newBestTravelTime)
+            , bestNumTrips(newBestNumTrips)
         {
         }
 
-        DijkstraLabel(const int departureTime, const StopId sourceStop)
+        DijkstraLabel(int departureTime, StopId sourceStop)
             : arrivalTime(departureTime)
             , parentDepartureTime(departureTime)
             , numberOfTrips(0)
             , routeId(noRouteId)
             , parentStop(sourceStop)
             , parentIndex(0)
+            , bestTravelTime(0)
+            , bestNumTrips(0)
         {
         }
 
-        inline void set(const int newArrivalTime, const int newParentDepartureTime, const int newNumberOfTrips, const RouteId newRouteId, const StopId newParentStop, const size_t newParentIndex)
+        inline void set(int newArrivalTime, int newParentDepartureTime, int newNumberOfTrips, RouteId newRouteId, StopId newParentStop, size_t newParentIndex, int newBestTravelTime, uint8_t newBestNumTrips)
         {
             arrivalTime = newArrivalTime;
             parentDepartureTime = newParentDepartureTime;
@@ -71,25 +92,27 @@ public:
             routeId = newRouteId;
             parentStop = newParentStop;
             parentIndex = newParentIndex;
+            bestTravelTime = newBestTravelTime;
+            bestNumTrips = newBestNumTrips;
         }
 
         inline int getKey() const
         {
-            return arrivalTime;
+            return arrivalTime + bestTravelTime;
         }
 
-        inline bool hasSmallerKey(const DijkstraLabel* const other) const
+        inline bool hasSmallerKey(DijkstraLabel* other) const
         {
             return getKey() < other->getKey();
         }
 
         template <typename OTHER_LABEL>
-        inline bool dominates(const OTHER_LABEL& other) const
+        inline bool dominates(OTHER_LABEL& other) const
         {
             return arrivalTime <= other.arrivalTime && numberOfTrips <= other.numberOfTrips;
         }
 
-        friend std::ostream& operator<<(std::ostream& out, const DijkstraLabel& r)
+        friend std::ostream& operator<<(std::ostream& out, DijkstraLabel& r)
         {
             return out << r.arrivalTime << "," << (int)r.numberOfTrips << "," << (int)r.parentStop << "," << (int)r.routeId;
         }
@@ -100,12 +123,14 @@ public:
         RouteId routeId;
         StopId parentStop;
         size_t parentIndex;
+        int bestTravelTime;
+        uint8_t bestNumTrips;
     };
 
     using DijkstraBagType = DijkstraBag<DijkstraLabel>;
 
 public:
-    Query(Data& data)
+    QueryAStar(Data& data)
         : data(data)
         , sourceStop(noVertex)
         , targetStop(noVertex)
@@ -331,8 +356,6 @@ private:
     // ######
 
     // * Evaluate the Query Graph using Multi Criteria Dijkstra
-
-    // @todo check the aStar potential idea
     inline void evaluateQueryGraph()
     {
         profiler.startPhase();
@@ -374,7 +397,10 @@ private:
                     newNumberOfTrips,
                     usedRoute,
                     StopId(u),
-                    parentIndex);
+                    parentIndex,
+                    data.getLowerBoundTravelTime(StopId(targetStop), StopId(v)),
+                    data.getLowerBoundNumberOfTrips(StopId(targetStop), StopId(v))
+                );
 
                 arrivalByEdge(v, vLabel);
             }
@@ -393,9 +419,13 @@ private:
                 << String::secToTime(label.arrivalTime) << " [" << label.arrivalTime << "])!");
 
         profiler.countMetric(METRIC_RELAXED_TRANSFER_EDGES);
-        // Target Pruning
-        if (dijkstraBags[targetStop].dominates(label))
+        // Target Pruning - adapted
+        // copy label and add the lower bound for trips
+        DijkstraLabel skewedCopy(label);
+        
+        if (dijkstraBags[targetStop].dominates(skewedCopy))
             return false;
+
         prepBag(vertex);
         // normal (?) pruning... if the label is already dominated by other labels in it's bag, don't add it
         if (!dijkstraBags[vertex].merge(label))

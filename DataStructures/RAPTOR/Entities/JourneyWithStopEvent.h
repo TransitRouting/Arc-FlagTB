@@ -36,14 +36,14 @@ public:
     }
 
     JourneyLegWithStopEvent(const Vertex from = noVertex, const Vertex to = noVertex, const int departureTime = never, const int arrivalTime = never, const bool usesRoute = false, const RouteId routeId = noRouteId)
-            : from(from)
-            , to(to)
-            , fromStopEventId(0)
-            , toStopEventId(0)
-            , departureTime(departureTime)
-            , arrivalTime(arrivalTime)
-            , usesRoute(usesRoute)
-            , routeId(routeId)
+        : from(from)
+        , to(to)
+        , fromStopEventId(0)
+        , toStopEventId(0)
+        , departureTime(departureTime)
+        , arrivalTime(arrivalTime)
+        , usesRoute(usesRoute)
+        , routeId(routeId)
     {
     }
 

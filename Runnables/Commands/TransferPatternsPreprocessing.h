@@ -5,6 +5,7 @@
 
 #include "../../Algorithms/TransferPattern/Preprocessing/TransferPatternBuilder.h"
 #include "../../Algorithms/TransferPattern/Query/Query.h"
+#include "../../Algorithms/TransferPattern/Query/QueryAStar.h"
 
 #include "../../DataStructures/Graph/Graph.h"
 #include "../../DataStructures/Queries/Queries.h"
@@ -23,33 +24,43 @@ public:
     {
         addParameter("Input file (TP Data)");
         addParameter("Number of queries");
+        addParameter("A Star enabled?", "false");
     }
 
     virtual void execute() noexcept
     {
+        const bool useAStar = getParameter<bool>("A Star enabled?");
         const std::string inputFile = getParameter("Input file (TP Data)");
 
         TransferPattern::Data data(inputFile);
         data.printInfo();
 
-        TransferPattern::Query<TransferPattern::AggregateProfiler> algorithm(data);
-
         const size_t n = getParameter<size_t>("Number of queries");
         const std::vector<StopQuery> queries = generateRandomStopQueries(data.raptorData.numberOfStops(), n);
-        /* const std::vector<StopQuery> queries = { */
-        /*     StopQuery(StopId(617), StopId(289), 72170), */
-        /*     StopQuery(StopId(1829), StopId(1532), 32360), */
-        /*     StopQuery(StopId(300), StopId(1148), 51724) */
-        /* }; */
-        double numJourneys = 0;
-        for (const StopQuery& query : queries) {
-            algorithm.run(query.source, query.departureTime, query.target);
-            numJourneys += algorithm.getJourneys().size();
-        }
+ 
+        if (!useAStar) {
+            TransferPattern::Query<TransferPattern::AggregateProfiler> algorithm(data);
+            double numJourneys = 0;
+            for (const StopQuery& query : queries) {
+                algorithm.run(query.source, query.departureTime, query.target);
+                numJourneys += algorithm.getJourneys().size();
+            }
 
-        std::cout << "#### Stats ####" << std::endl;
-        algorithm.getProfiler().printStatistics();
-        std::cout << "Avg. journeys                : " << String::prettyDouble(numJourneys / n) << std::endl;
+            std::cout << "#### Stats ####" << std::endl;
+            algorithm.getProfiler().printStatistics();
+            std::cout << "Avg. journeys                : " << String::prettyDouble(numJourneys / n) << std::endl;
+        } else {
+            TransferPattern::QueryAStar<TransferPattern::AggregateProfiler> algorithm(data);
+            double numJourneys = 0;
+            for (const StopQuery& query : queries) {
+                algorithm.run(query.source, query.departureTime, query.target);
+                numJourneys += algorithm.getJourneys().size();
+            }
+
+            std::cout << "#### Stats ####" << std::endl;
+            algorithm.getProfiler().printStatistics();
+            std::cout << "Avg. journeys                : " << String::prettyDouble(numJourneys / n) << std::endl;
+        }
     }
 };
 

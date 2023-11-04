@@ -5,7 +5,9 @@
 #include "../../../DataStructures/TransferPattern/Data.h"
 #include "../../../DataStructures/TripBased/Data.h"
 
-#include "../../TripBased/Query/ProfileOneToAllQuery.h"
+#include "ProfileTB.h"
+
+/* #include "../../TripBased/Query/ProfileOneToAllQuery.h" */
 /* #include "RangeRAPTOR/RangeRAPTOR.h" */
 
 #include "../../../Helpers/Console/Progress.h"
@@ -47,7 +49,6 @@ public:
         return dynamicDAG;
     }
 
-    // @todo check why so many edges are in the resulting dag? is it because we use TB? and hence many different transfer patterns are created, althought one could reduce it?
     inline void addPrefixToDAG(std::vector<StopId>& prefix, const int travelTime = -1)
     {
         AssertMsg(prefix.size() > 0, "Prefix is empty?");
@@ -82,13 +83,14 @@ public:
 
         // This solves one-to-all
         query.run(Vertex(stop), minDep, maxDep);
+
         /* query.runOneToAllStops(Vertex(stop), minDep, maxDep); */
 
         int travelTime(-1);
         StopId target(0);
 
         for (RAPTOR::Journey& j : query.getAllJourneys()) {
-        /* for (RAPTOR::JourneyWithStopEvent& j : query.getAllJourneys()) { */
+            /* for (RAPTOR::JourneyWithStopEvent& j : query.getAllJourneys()) { */
             currentPrefix.clear();
             currentPrefix.reserve(32);
 
@@ -141,6 +143,16 @@ public:
         seenPrefix.clear_no_resize();
     }
 
+    inline std::vector<int> getMinTravelTimes() noexcept
+    {
+        return query.getMinTravelTimes();
+    }
+
+    inline std::vector<uint8_t> getMinNumberOfTransfers() noexcept
+    {
+        return query.getMinNumberOfTransfers();
+    }
+
     inline int getTravelTimeByFootpath(StopId from, StopId to) noexcept
     {
         AssertMsg(data.isStop(from), "From is not a valid stop!");
@@ -156,7 +168,7 @@ public:
 
 private:
     TripBased::Data data;
-    TripBased::ProfileOneToAllQuery<TripBased::NoProfiler> query;
+    TripBased::ProfileTB<TripBased::NoProfiler> query;
     /* RAPTOR::RangeRAPTOR::RangeRAPTOR<RAPTOR::RangeRAPTOR::TransitiveRAPTORModule<RAPTOR::NoProfiler>> query; */
 
     DynamicDAGTransferPattern dynamicDAG;
@@ -177,6 +189,8 @@ inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, Transfer
 
         Graph::move(std::move(bobTheBuilder.getDAG()), tpData.transferPatternOfStop[stop]);
         tpData.transferPatternOfStop[stop].sortEdges(ToVertex);
+
+        tpData.assignLowerBounds(stop, bobTheBuilder.getMinTravelTimes(), bobTheBuilder.getMinNumberOfTransfers());
 
         ++progress;
     }
@@ -208,6 +222,7 @@ inline void ComputeTransferPatternUsingTripBased(TripBased::Data& data, Transfer
             Graph::move(std::move(bobTheBuilder.getDAG()), tpData.transferPatternOfStop[i]);
             tpData.transferPatternOfStop[i].sortEdges(ToVertex);
 
+            tpData.assignLowerBounds(StopId(i), bobTheBuilder.getMinTravelTimes(), bobTheBuilder.getMinNumberOfTransfers());
             ++progress;
         }
     }

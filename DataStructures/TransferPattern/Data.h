@@ -8,6 +8,7 @@
 #include "../RAPTOR/Entities/RouteSegment.h"
 #include "../RAPTOR/Entities/StopEvent.h"
 #include "Entities/Lookups.h"
+#include "Entities/LowerBound.h"
 
 namespace TransferPattern {
 
@@ -23,7 +24,13 @@ public:
         , stopLookup(data.numberOfStops())
         , firstTripIdOfLine(data.numberOfRoutes() + 1, noTripId)
         , transferPatternOfStop(data.numberOfStops())
+        , lowerBounds(data.numberOfStops())
     {
+        // fill all the lowerBounds with enough space
+        for (size_t stop(0); stop < data.numberOfStops(); ++stop) {
+            lowerBounds[stop].resize(data.numberOfStops());
+        }
+
         buildLineLookup();
         buildStopLookup();
     }
@@ -38,6 +45,7 @@ private:
     {
         if (verbose)
             std::cout << "Building the Direct-Connection-Lookup Datastructure" << std::endl;
+
         Progress progress(raptorData.numberOfRoutes());
 
         lineLookup.assign(raptorData.numberOfRoutes(), {});
@@ -100,6 +108,35 @@ private:
     }
 
 public:
+    inline void assignLowerBounds(const StopId stop, std::vector<int> bestTravelTimes, std::vector<uint8_t> bestMinNumberOfTrips)
+    {
+        AssertMsg(raptorData.isStop(stop), "Stop is not a valid stop!");
+        AssertMsg(bestTravelTimes.size() == raptorData.numberOfStops(), "BestTravelTimes has not the right amount of elements!");
+        AssertMsg(bestMinNumberOfTrips.size() == raptorData.numberOfStops(), "BestMinNumberOfTrips has not the right amount of elements!");
+
+        for (size_t i(0); i < raptorData.numberOfStops(); ++i) {
+            AssertMsg(stop < lowerBounds[i].travelTimes.size(), "Size is not correct!");
+            AssertMsg(stop < lowerBounds[i].numberOfTrips.size(), "Size is not correct!");
+
+            lowerBounds[i].travelTimes[stop] = bestTravelTimes[i];
+            lowerBounds[i].numberOfTrips[stop] = bestMinNumberOfTrips[i];
+        }
+    }
+
+    inline int getLowerBoundTravelTime(const StopId& target, const StopId& u) {
+        AssertMsg(raptorData.isStop(target), "Target is not a stop!");
+        AssertMsg(raptorData.isStop(u), "Stop u is not a stop!");
+
+        return lowerBounds[target].travelTimes[u];
+    }
+
+    inline int getLowerBoundNumberOfTrips(const StopId target, const StopId u) {
+        AssertMsg(raptorData.isStop(target), "Target is not a stop!");
+        AssertMsg(raptorData.isStop(u), "Stop u is not a stop!");
+
+        return lowerBounds[target].numberOfTrips[u];
+    }
+
     inline RAPTOR::StopEvent getStopEvent(const RouteId routeId = noRouteId, const size_t tripIndex = (size_t)-1, const StopIndex stopIndex = StopIndex(0)) const
     {
         AssertMsg(raptorData.isRoute(routeId), "Route is not a route!");
@@ -139,7 +176,6 @@ public:
         return TripId(firstTripIdOfLine[route] + tripIndex);
     }
 
-public:
     inline std::pair<size_t, size_t> maxNumVerticesAndNumEdgesInTP() const
     {
         std::pair<size_t, size_t> result(0, 0);
@@ -195,14 +231,14 @@ public:
     inline void serialize(const std::string& fileName)
     {
         raptorData.serialize(fileName + ".raptor");
-        IO::serialize(fileName, lineLookup, stopLookup, firstTripIdOfLine);
+        IO::serialize(fileName, lineLookup, stopLookup, firstTripIdOfLine, lowerBounds);
         IO::serialize(fileName + ".transferPattern", transferPatternOfStop);
     }
 
     inline void deserialize(const std::string& fileName)
     {
         raptorData.deserialize(fileName + ".raptor");
-        IO::deserialize(fileName, lineLookup, stopLookup, firstTripIdOfLine);
+        IO::deserialize(fileName, lineLookup, stopLookup, firstTripIdOfLine, lowerBounds);
 
         std::cout << "Loading all transfer patterns from " << fileName << ".transferPattern!" << std::endl;
         IO::deserialize(fileName + ".transferPattern", transferPatternOfStop);
@@ -218,6 +254,8 @@ public:
     // StaticDAGTransferPattern holds ViaVertex == points to the correct StopId
     // and holds TravelTime == if negative, the edge is a trip edge
     std::vector<StaticDAGTransferPattern> transferPatternOfStop;
+
+    std::vector<LowerBound> lowerBounds;
 };
 
 } // namespace TransferPattern
