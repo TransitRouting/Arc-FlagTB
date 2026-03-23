@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1f3a"/>
+      <stop offset="100%" stop-color="#0f1328"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-opacity="0.03" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+
+  <!-- Title -->
+  <text x="640" y="230" font-family="'DejaVu Sans', 'Segoe UI', Arial, sans-serif" font-size="90" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="-1">FLASH-TB</text>
+
+  <!-- Separator -->
+  <line x1="340" y1="260" x2="940" y2="260" stroke="#334155" stroke-width="2"/>
+
+  <!-- Subtitle -->
+  <text x="640" y="310" font-family="'DejaVu Sans', 'Segoe UI', Arial, sans-serif" font-size="28" fill="#94a3b8" text-anchor="middle" font-weight="600">Arc-Flag Trip-Based Transit Routing</text>
+
+  <!-- Tagline -->
+  <text x="640" y="375" font-family="'DejaVu Sans', 'Segoe UI', Arial, sans-serif" font-size="20" fill="#64748b" text-anchor="middle">Fast public transit routing with</text>
+  <text x="640" y="405" font-family="'DejaVu Sans', 'Segoe UI', Arial, sans-serif" font-size="20" fill="#64748b" text-anchor="middle">arc-flags and trip-based search</text>
+
+  <!-- Key concepts (pills) -->
+  <g transform="translate(640, 470)">
+    <rect x="-195" y="-15" width="120" height="30" rx="15" fill="#3b82f6" fill-opacity="0.15" stroke="#3b82f6" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="-135" y="5" font-family="'DejaVu Sans', sans-serif" font-size="14" fill="#60a5fa" text-anchor="middle" font-weight="600">Arc-Flags</text>
+
+    <rect x="-60" y="-15" width="120" height="30" rx="15" fill="#ef4444" fill-opacity="0.15" stroke="#ef4444" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="0" y="5" font-family="'DejaVu Sans', sans-serif" font-size="14" fill="#f87171" text-anchor="middle" font-weight="600">Trip-Based</text>
+
+    <rect x="75" y="-15" width="120" height="30" rx="15" fill="#22c55e" fill-opacity="0.15" stroke="#22c55e" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="135" y="5" font-family="'DejaVu Sans', sans-serif" font-size="14" fill="#4ade80" text-anchor="middle" font-weight="600">Pruning</text>
+  </g>
+
+  <!-- Badge -->
+  <rect x="540" y="530" width="200" height="36" rx="18" fill="#263238" stroke="#334155" stroke-width="1"/>
+  <text x="640" y="554" font-family="'DejaVu Sans', sans-serif" font-size="14" fill="#80cbc4" text-anchor="middle">Part of TransitRouting</text>
+</svg>
